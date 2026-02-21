@@ -9,14 +9,15 @@ import {
 } from '../utils/calculations';
 import type { SleeperLeagueUser, SleeperRoster } from '../types/sleeper';
 
-const SLEEPER_USERNAME = 'gauthamkv';
 const REGULAR_SEASON_WEEKS = 14; // Regular season weeks for matchup calculations
 const TOTAL_SEASON_WEEKS = 18;   // Full season (incl. playoffs) for transactions
 
-export function useUser() {
+export function useUser(username: string) {
   return useQuery({
-    queryKey: ['user', SLEEPER_USERNAME],
-    queryFn: () => sleeperApi.getUser(SLEEPER_USERNAME),
+    queryKey: ['user', username],
+    queryFn: () => sleeperApi.getUser(username),
+    enabled: !!username,
+    retry: false,
   });
 }
 

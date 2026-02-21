@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2,
-  Loader2, ChevronRight, Calendar, ChevronLeft,
+  Loader2, ChevronRight, Calendar, ChevronLeft, UserCircle,
 } from 'lucide-react';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear } from './hooks/useLeagueData';
@@ -339,8 +339,61 @@ function LeagueSelector({ userId }: { userId: string }) {
   );
 }
 
-function AppContent() {
-  const user = useUser();
+/** Username entry screen shown before a user is loaded */
+function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
+  const [value, setValue] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = value.trim();
+    if (trimmed) onSubmit(trimmed);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="flex justify-center mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-700 flex items-center justify-center">
+            <UserCircle size={36} className="text-white" />
+          </div>
+        </div>
+        <h1 className="text-3xl font-bold text-white mb-2 text-center">Sleeper Dashboard</h1>
+        <p className="text-gray-400 text-center mb-8">
+          Enter your Sleeper username to view your leagues
+        </p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Sleeper username"
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={!value.trim()}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors"
+          >
+            View Dashboard
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AppContent({
+  username,
+  onChangeUser,
+}: {
+  username: string;
+  onChangeUser: () => void;
+}) {
+  const user = useUser(username);
 
   if (user.isLoading) {
     return (
@@ -353,8 +406,19 @@ function AppContent() {
 
   if (user.isError || !user.data) {
     return (
-      <div className="flex items-center justify-center h-screen text-red-400 text-center px-4">
-        Could not find Sleeper user. Check the username in useLeagueData.ts.
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-red-400 mb-2">
+            Could not find Sleeper user "{username}".
+          </p>
+          <p className="text-gray-500 text-sm mb-6">Check the username and try again.</p>
+          <button
+            onClick={onChangeUser}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl transition-colors text-sm font-medium"
+          >
+            Try another username
+          </button>
+        </div>
       </div>
     );
   }
@@ -364,17 +428,28 @@ function AppContent() {
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <header className="flex items-center gap-3 mb-8">
-          {user.data.avatar && (
+          {user.data.avatar ? (
             <img
               src={avatarUrl(user.data.avatar) ?? ''}
               alt={user.data.display_name}
               className="w-10 h-10 rounded-full flex-shrink-0"
             />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center flex-shrink-0">
+              <UserCircle size={22} className="text-white" />
+            </div>
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-white leading-tight">Sleeper Dashboard</h1>
             <p className="text-gray-500 text-sm">{user.data.display_name}</p>
           </div>
+          <button
+            onClick={onChangeUser}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+          >
+            <UserCircle size={15} />
+            Change user
+          </button>
         </header>
 
         <LeagueSelector userId={user.data.user_id} />
@@ -384,9 +459,20 @@ function AppContent() {
 }
 
 export default function App() {
+  const [username, setUsername] = useState<string | null>(null);
+
+  const handleChangeUser = () => {
+    queryClient.clear();
+    setUsername(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      {username === null ? (
+        <UsernameInput onSubmit={setUsername} />
+      ) : (
+        <AppContent username={username} onChangeUser={handleChangeUser} />
+      )}
     </QueryClientProvider>
   );
 }
