@@ -70,7 +70,29 @@ export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistor
               <span>Trade · {formatTimestamp(trade.created)}</span>
             </div>
 
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+            {/* Mobile: stacked */}
+            <div className="flex flex-col gap-3 sm:hidden">
+              <TradeSide
+                teamName={team1?.teamName ?? `Team ${id1}`}
+                receivedPlayers={t1Receives}
+                receivedPicks={t1ReceivesPicks.map((p) => `${p.season} Rd${p.round}`)}
+                playerMap={playerMap}
+              />
+              <div className="flex items-center gap-2 text-gray-700">
+                <div className="flex-1 h-px bg-gray-800" />
+                <ArrowLeftRight size={12} />
+                <div className="flex-1 h-px bg-gray-800" />
+              </div>
+              <TradeSide
+                teamName={team2?.teamName ?? `Team ${id2}`}
+                receivedPlayers={t2Receives}
+                receivedPicks={t2ReceivesPicks.map((p) => `${p.season} Rd${p.round}`)}
+                playerMap={playerMap}
+              />
+            </div>
+
+            {/* Desktop: side-by-side */}
+            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
               <TradeSide
                 teamName={team1?.teamName ?? `Team ${id1}`}
                 receivedPlayers={t1Receives}
