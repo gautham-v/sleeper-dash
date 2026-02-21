@@ -53,11 +53,17 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div className="bg-gray-800 rounded-lg p-2">
-                <div className="text-gray-400">Last 3 Avg</div>
+                <div className="text-gray-400">
+                  <span className="sm:hidden">L3</span>
+                  <span className="hidden sm:inline">Last 3 Avg</span>
+                </div>
                 <div className="text-white font-semibold">{r.recentAvg.toFixed(1)}</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-2">
-                <div className="text-gray-400">Season Avg</div>
+                <div className="text-gray-400">
+                  <span className="sm:hidden">Avg</span>
+                  <span className="hidden sm:inline">Season Avg</span>
+                </div>
                 <div className="text-white font-semibold">{r.seasonAvg.toFixed(1)}</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-2">

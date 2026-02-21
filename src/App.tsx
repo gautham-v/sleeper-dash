@@ -61,14 +61,14 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-5 transition-colors"
+        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
       >
         <ChevronLeft size={16} />
         Back to leagues
       </button>
 
       {/* League header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4 sm:mb-6">
         {league?.avatar ? (
           <img
             src={avatarUrl(league.avatar) ?? ''}
@@ -361,9 +361,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6">
         {/* Header */}
-        <header className="flex items-center gap-3 mb-8">
+        <header className="flex items-center gap-3 mb-5 sm:mb-8">
           {user.data.avatar && (
             <img
               src={avatarUrl(user.data.avatar) ?? ''}
