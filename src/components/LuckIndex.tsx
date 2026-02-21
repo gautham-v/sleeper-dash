@@ -52,7 +52,7 @@ export function LuckIndex({ entries }: LuckIndexProps) {
           >
             <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
             <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
-            <div className="w-24 shrink-0">
+            <div className="w-24 sm:w-32 shrink-0">
               <div className="font-medium text-white text-sm leading-tight truncate">
                 {entry.teamName}
               </div>
