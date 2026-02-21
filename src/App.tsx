@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2, Loader2 } from 'lucide-react';
+import {
+  Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2,
+  Loader2, ChevronRight, Calendar, ChevronLeft,
+} from 'lucide-react';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear } from './hooks/useLeagueData';
 import { buildUserMap } from './hooks/useLeagueData';
@@ -12,6 +15,7 @@ import { TradeHistory } from './components/TradeHistory';
 import { DraftGrades } from './components/DraftGrades';
 import { YearOverYear } from './components/YearOverYear';
 import { avatarUrl } from './utils/calculations';
+import type { SleeperLeague } from './types/sleeper';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -29,7 +33,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function LeagueDashboard({ leagueId }: { leagueId: string }) {
+function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<TabId>('standings');
   const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
     useDashboardData(leagueId);
@@ -54,39 +58,54 @@ function LeagueDashboard({ leagueId }: { leagueId: string }) {
 
   return (
     <div>
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-5 transition-colors"
+      >
+        <ChevronLeft size={16} />
+        Back to leagues
+      </button>
+
       {/* League header */}
       <div className="flex items-center gap-3 mb-6">
-        {league?.avatar && (
+        {league?.avatar ? (
           <img
             src={avatarUrl(league.avatar) ?? ''}
             alt={league.name}
-            className="w-12 h-12 rounded-xl object-cover"
+            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
           />
+        ) : (
+          <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            {league?.name?.slice(0, 2) ?? '??'}
+          </div>
         )}
-        <div>
-          <h2 className="text-xl font-bold text-white">{league?.name ?? 'League'}</h2>
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-white truncate">{league?.name ?? 'League'}</h2>
           <p className="text-gray-500 text-sm">
-            {league?.season} Season · Week {currentWeek} · {computed.standings.length} Teams
+            {league?.season} · Week {currentWeek} · {computed.standings.length} teams
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-6">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-              activeTab === id
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <Icon size={14} />
-            {label}
-          </button>
-        ))}
+      {/* Tabs — bleed to screen edges on mobile for smooth scroll */}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-1 overflow-x-auto pb-2 mb-6 no-scrollbar">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                activeTab === id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab content */}
@@ -137,7 +156,79 @@ function LeagueDashboard({ leagueId }: { leagueId: string }) {
   );
 }
 
+/** Season list for a specific league group */
+function SeasonPicker({
+  leagues,
+  onSelect,
+  onBack,
+}: {
+  leagues: SleeperLeague[];
+  onSelect: (leagueId: string) => void;
+  onBack: () => void;
+}) {
+  const sorted = [...leagues].sort((a, b) => Number(b.season) - Number(a.season));
+  const rep = sorted[0];
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-5 transition-colors"
+      >
+        <ChevronLeft size={16} />
+        All leagues
+      </button>
+
+      {/* League identity */}
+      <div className="flex items-center gap-3 mb-6">
+        {rep.avatar ? (
+          <img
+            src={avatarUrl(rep.avatar) ?? ''}
+            alt={rep.name}
+            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+            {rep.name.slice(0, 2)}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-white truncate">{rep.name}</h2>
+          <p className="text-gray-500 text-sm">{rep.settings.num_teams} teams</p>
+        </div>
+      </div>
+
+      <p className="text-sm text-gray-400 mb-3">Select a season</p>
+
+      <div className="flex flex-col gap-2">
+        {sorted.map((league) => (
+          <button
+            key={league.league_id}
+            onClick={() => onSelect(league.league_id)}
+            className="flex items-center justify-between bg-gray-900 hover:bg-gray-800 px-4 py-4 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center flex-shrink-0">
+                <Calendar size={16} className="text-indigo-400" />
+              </div>
+              <div>
+                <div className="font-semibold text-white">{league.season} Season</div>
+                <div className="text-xs text-gray-500">{league.settings.num_teams} teams</div>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type View = 'leagues' | 'seasons' | 'dashboard';
+
 function LeagueSelector({ userId }: { userId: string }) {
+  const [view, setView] = useState<View>('leagues');
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
   const leagues = useUserLeaguesAllSeasons(userId);
 
@@ -150,52 +241,99 @@ function LeagueSelector({ userId }: { userId: string }) {
     );
   }
 
-  if (selectedLeague) {
+  // Group leagues by name
+  const grouped = leagues.data.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
+    (acc[league.name] ??= []).push(league);
+    return acc;
+  }, {});
+
+  if (view === 'dashboard' && selectedLeague) {
     return (
-      <div>
-        <button
-          onClick={() => setSelectedLeague(null)}
-          className="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1"
-        >
-          ← All Leagues
-        </button>
-        <LeagueDashboard leagueId={selectedLeague} />
-      </div>
+      <LeagueDashboard
+        leagueId={selectedLeague}
+        onBack={() => {
+          setSelectedLeague(null);
+          setView(selectedGroup ? 'seasons' : 'leagues');
+        }}
+      />
     );
   }
 
-  // Sort: most recent season first
-  const sorted = [...leagues.data].sort((a, b) => Number(b.season) - Number(a.season));
+  if (view === 'seasons' && selectedGroup && grouped[selectedGroup]) {
+    return (
+      <SeasonPicker
+        leagues={grouped[selectedGroup]}
+        onSelect={(id) => {
+          setSelectedLeague(id);
+          setView('dashboard');
+        }}
+        onBack={() => {
+          setSelectedGroup(null);
+          setView('leagues');
+        }}
+      />
+    );
+  }
+
+  // Sort league groups by most recent season first
+  const sortedGroups = Object.entries(grouped).sort(([, a], [, b]) => {
+    const maxA = Math.max(...a.map((l) => Number(l.season)));
+    const maxB = Math.max(...b.map((l) => Number(l.season)));
+    return maxB - maxA;
+  });
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-4">Pick a League</h2>
+      <h2 className="text-lg font-semibold text-white mb-4">Your Leagues</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        {sorted.map((league) => (
-          <button
-            key={league.league_id}
-            onClick={() => setSelectedLeague(league.league_id)}
-            className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-4 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600"
-          >
-            {league.avatar ? (
-              <img
-                src={avatarUrl(league.avatar) ?? ''}
-                alt={league.name}
-                className="w-10 h-10 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-indigo-700 flex items-center justify-center text-white font-bold">
-                {league.name.slice(0, 2)}
+        {sortedGroups.map(([name, group]) => {
+          const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
+          const latest = seasons[0];
+
+          return (
+            <button
+              key={name}
+              onClick={() => {
+                if (group.length === 1) {
+                  setSelectedLeague(group[0].league_id);
+                  setView('dashboard');
+                } else {
+                  setSelectedGroup(name);
+                  setView('seasons');
+                }
+              }}
+              className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-4 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
+            >
+              {latest.avatar ? (
+                <img
+                  src={avatarUrl(latest.avatar) ?? ''}
+                  alt={name}
+                  className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {name.slice(0, 2)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-white truncate mb-1">{name}</div>
+                <div className="text-xs text-gray-500 mb-2">{latest.settings.num_teams} teams</div>
+                {/* Season badges */}
+                <div className="flex flex-wrap gap-1">
+                  {seasons.map((l) => (
+                    <span
+                      key={l.league_id}
+                      className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full border border-gray-700"
+                    >
+                      {l.season}
+                    </span>
+                  ))}
+                </div>
               </div>
-            )}
-            <div>
-              <div className="font-semibold text-white">{league.name}</div>
-              <div className="text-xs text-gray-500">
-                {league.settings.num_teams} teams · {league.season}
-              </div>
-            </div>
-          </button>
-        ))}
+              <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -215,7 +353,7 @@ function AppContent() {
 
   if (user.isError || !user.data) {
     return (
-      <div className="flex items-center justify-center h-screen text-red-400">
+      <div className="flex items-center justify-center h-screen text-red-400 text-center px-4">
         Could not find Sleeper user. Check the username in useLeagueData.ts.
       </div>
     );
@@ -230,11 +368,11 @@ function AppContent() {
             <img
               src={avatarUrl(user.data.avatar) ?? ''}
               alt={user.data.display_name}
-              className="w-10 h-10 rounded-full"
+              className="w-10 h-10 rounded-full flex-shrink-0"
             />
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-white">Sleeper Dashboard</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-white leading-tight">Sleeper Dashboard</h1>
             <p className="text-gray-500 text-sm">{user.data.display_name}</p>
           </div>
         </header>
