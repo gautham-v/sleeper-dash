@@ -8,34 +8,34 @@ interface BlowoutsProps {
 }
 
 function GameCard({ game, variant }: { game: BlowoutGame; variant: 'blowout' | 'close' }) {
-  const accent = variant === 'blowout' ? 'text-orange-400' : 'text-cyan-400';
-  const bg = variant === 'blowout' ? 'border-orange-900/40' : 'border-cyan-900/40';
+  const accent = variant === 'blowout' ? 'text-red-400' : 'text-brand-cyan';
+  const bg = variant === 'blowout' ? 'border-red-500/20 bg-red-500/5' : 'border-brand-cyan/20 bg-brand-cyan/5';
 
   return (
-    <div className={`bg-gray-900 rounded-xl p-4 border ${bg}`}>
-      <div className="text-xs text-gray-500 mb-3">Week {game.week}</div>
+    <div className={`rounded-2xl p-4 border ${bg} backdrop-blur-sm transition-all hover:bg-white/5`}>
+      <div className="text-xs font-semibold text-gray-500 mb-3 tracking-wider uppercase">Week {game.week}</div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-white text-sm truncate">{game.winner.teamName}</div>
-          <div className="text-xs text-gray-400">Winner</div>
+          <div className="font-bold text-white text-sm truncate">{game.winner.teamName}</div>
+          <div className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">Winner</div>
         </div>
-        <div className="text-center shrink-0">
-          <div className="flex items-center gap-1 text-lg font-bold tabular-nums">
-            <span className="text-white">{game.winner.points.toFixed(2)}</span>
-            <span className="text-gray-600 text-sm">–</span>
-            <span className="text-gray-400">{game.loser.points.toFixed(2)}</span>
+        <div className="text-center shrink-0 px-2">
+          <div className="flex items-center justify-center gap-1.5 text-lg font-black tabular-nums tracking-tight">
+            <span className="text-white drop-shadow-sm">{game.winner.points.toFixed(2)}</span>
+            <span className="text-gray-600 text-sm font-normal">–</span>
+            <span className="text-gray-400 drop-shadow-sm">{game.loser.points.toFixed(2)}</span>
           </div>
-          <div className={`text-xs font-semibold ${accent}`}>
+          <div className={`text-[11px] font-bold mt-1 tracking-wide ${accent}`}>
             {variant === 'blowout' ? (
-              <span>+{game.margin.toFixed(2)} margin</span>
+              <span className="drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]">+{game.margin.toFixed(2)} margin</span>
             ) : (
-              <span>{game.margin.toFixed(2)} apart</span>
+              <span className="drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">{game.margin.toFixed(2)} apart</span>
             )}
           </div>
         </div>
         <div className="flex-1 min-w-0 text-right">
           <div className="font-semibold text-gray-400 text-sm truncate">{game.loser.teamName}</div>
-          <div className="text-xs text-gray-500">Loser</div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Loser</div>
         </div>
       </div>
     </div>
@@ -46,13 +46,14 @@ export function BlowoutsAndClose({ blowouts, closest, hideHeaders }: BlowoutsPro
   return (
     <div className={`grid grid-cols-1 ${closest.length > 0 ? 'lg:grid-cols-2' : ''} gap-8`}>
       {blowouts.length > 0 && (
-        <div>
+        <div className="bg-card-bg rounded-2xl p-5 border border-card-border shadow-lg relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-red-500/10"></div>
           {!hideHeaders && (
-            <h3 className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-4">
-              <Flame size={14} /> Biggest Blowouts
+            <h3 className="text-sm font-bold text-red-400 flex items-center gap-2 mb-5 tracking-wide relative z-10">
+              <Flame size={16} className="drop-shadow-[0_0_5px_rgba(248,113,113,0.6)]" /> Biggest Blowouts
             </h3>
           )}
-          <div className="space-y-3">
+          <div className="space-y-3 relative z-10">
             {blowouts.map((g, i) => (
               <GameCard key={i} game={g} variant="blowout" />
             ))}
@@ -61,13 +62,14 @@ export function BlowoutsAndClose({ blowouts, closest, hideHeaders }: BlowoutsPro
       )}
 
       {closest.length > 0 && (
-        <div>
+        <div className="bg-card-bg rounded-2xl p-5 border border-card-border shadow-lg relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-cyan/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-brand-cyan/10"></div>
           {!hideHeaders && (
-            <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2 mb-4">
-              <Zap size={14} /> Closest Games
+            <h3 className="text-sm font-bold text-brand-cyan flex items-center gap-2 mb-5 tracking-wide relative z-10">
+              <Zap size={16} className="drop-shadow-[0_0_5px_rgba(0,229,255,0.6)]" /> Closest Games
             </h3>
           )}
-          <div className="space-y-3">
+          <div className="space-y-3 relative z-10">
             {closest.map((g, i) => (
               <GameCard key={i} game={g} variant="close" />
             ))}

@@ -7,11 +7,11 @@ interface StandingsProps {
 
 export function Standings({ standings }: StandingsProps) {
   return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
+    <div className="glass-panel rounded-2xl overflow-hidden shadow-lg border border-card-border">
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[480px]">
           <thead>
-            <tr className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
+            <tr className="text-gray-400 border-b border-card-border text-[10px] font-semibold uppercase tracking-wider bg-black/20">
               <th className="text-left py-4 px-3 pl-5">#</th>
               <th className="text-left py-4 px-3">Team</th>
               <th className="text-center py-4 px-3">W</th>
@@ -27,36 +27,39 @@ export function Standings({ standings }: StandingsProps) {
               return (
                 <tr
                   key={team.rosterId}
-                  className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                  className="border-b border-card-border/50 hover:bg-white/5 transition-colors group"
                 >
-                  <td className="py-3.5 px-3 pl-5">
+                  <td className="py-4 px-3 pl-5">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400 w-4 text-center">{i + 1}</span>
+                      <span className={`w-5 text-center font-medium ${i < 3 ? 'text-brand-cyan glow-text-cyan' : 'text-gray-500'}`}>{i + 1}</span>
                       {isPlayoff && (
-                        <span className="w-1 h-4 rounded-full bg-green-500 inline-block" title="Playoff position" />
+                        <span className="w-1.5 h-4 rounded-full bg-brand-green/80 shadow-[0_0_8px_rgba(185,251,192,0.4)] inline-block" title="Playoff position" />
                       )}
                     </div>
                   </td>
-                  <td className="py-3.5 px-3">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
+                  <td className="py-4 px-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
+                        {i === 0 && <div className="absolute -inset-1 border border-brand-cyan/50 rounded-full animate-pulse pointer-events-none"></div>}
+                      </div>
                       <div className="min-w-0">
-                        <div className="font-medium text-white leading-tight truncate max-w-[120px] sm:max-w-none">{team.teamName}</div>
+                        <div className="font-semibold text-white leading-tight truncate max-w-[120px] sm:max-w-none group-hover:text-brand-cyan transition-colors">{team.teamName}</div>
                         <div className="text-gray-500 text-xs truncate max-w-[120px] sm:max-w-none">{team.displayName}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</td>
-                  <td className="py-3.5 px-3 text-center text-red-400">{team.losses}</td>
-                  <td className="py-3.5 px-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</td>
-                  <td className="py-3.5 px-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
-                  <td className="py-3.5 px-3 pr-5 text-right">
+                  <td className="py-4 px-3 text-center font-bold text-brand-green">{team.wins}</td>
+                  <td className="py-4 px-3 text-center font-bold text-gray-400">{team.losses}</td>
+                  <td className="py-4 px-3 text-right text-white font-medium tabular-nums">{team.pointsFor.toFixed(2)}</td>
+                  <td className="py-4 px-3 text-right text-gray-500 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
+                  <td className="py-4 px-3 pr-5 text-right">
                     {team.streak ? (
                       <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${
                           team.streak.startsWith('W')
-                            ? 'bg-green-900/50 text-green-400'
-                            : 'bg-red-900/50 text-red-400'
+                            ? 'bg-brand-green/10 text-brand-green border-brand-green/20'
+                            : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}
                       >
                         {team.streak}
@@ -71,8 +74,8 @@ export function Standings({ standings }: StandingsProps) {
           </tbody>
         </table>
       </div>
-      <div className="py-3.5 px-5 text-xs text-gray-500 flex items-center gap-2">
-        <span className="w-1 h-3 rounded-full bg-green-500 inline-block" />
+      <div className="py-3 px-5 text-[11px] font-medium text-gray-500 flex items-center gap-2 bg-black/10">
+        <span className="w-1.5 h-3 rounded-full bg-brand-green/80 shadow-[0_0_8px_rgba(185,251,192,0.4)] inline-block" />
         Playoff position
       </div>
     </div>
