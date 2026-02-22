@@ -6,6 +6,7 @@ interface TradeHistoryProps {
   rosterMap: Map<number, { teamName: string; displayName: string }>;
   /** Player name map built from draft picks: player_id → { name, position } */
   playerMap: Map<string, { name: string; position: string }>;
+  limit?: number;
 }
 
 const POSITION_COLORS: Record<string, string> = {
@@ -25,12 +26,18 @@ function formatTimestamp(ms: number) {
   });
 }
 
-export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistoryProps) {
-  const trades = transactions
+export function TradeHistory({ transactions, rosterMap, playerMap, limit }: TradeHistoryProps) {
+  let trades = transactions
     .filter((t) => t.type === 'trade' && t.status === 'complete')
     .sort((a, b) => b.created - a.created);
 
-  if (trades.length === 0) {
+  const totalTrades = trades.length;
+
+  if (limit) {
+    trades = trades.slice(0, limit);
+  }
+
+  if (totalTrades === 0) {
     return (
       <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500">
         No trades recorded this season.
@@ -40,7 +47,7 @@ export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistor
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500 mb-5">{trades.length} trades completed this season</p>
+      {!limit && <p className="text-xs text-gray-500 mb-5">{totalTrades} trades completed this season</p>}
 
       {trades.map((trade) => {
         const [id1, id2] = trade.roster_ids;
