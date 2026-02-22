@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, Trophy, TrendingUp } from 'lucide-react';
 import { PowerRankings } from './PowerRankings';
-import { BlowoutsAndClose } from './BlowoutsAndClose';
 import { Avatar } from './Avatar';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats } from '../utils/calculations';
@@ -112,17 +111,10 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Power Rankings */}
-        <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+      {/* Power Rankings */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
+          <div className="flex items-center mb-3">
             <h3 className="font-semibold text-white">Power Rankings</h3>
-            <button
-              onClick={() => onNavigate('power')}
-              className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center transition-colors"
-            >
-              View All <ChevronRight size={14} />
-            </button>
           </div>
 
           {/* Toggle */}
@@ -155,11 +147,13 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
                 <p className="text-xs text-gray-500 mb-3">
                   Ranked by championships, then win percentage
                 </p>
-                {allTimeRankings.slice(0, 3).map((mgr, idx) => {
-                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+                {allTimeRankings.map((mgr, idx) => {
+                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
                   return (
                     <div key={mgr.userId} className="flex items-center gap-3 bg-gray-800/50 rounded-xl px-4 py-3">
-                      <span className="text-sm w-5 text-center flex-shrink-0">{medal}</span>
+                      <span className="text-sm w-5 text-center flex-shrink-0">
+                        {medal ?? <span className="text-gray-500 text-xs font-medium">{idx + 1}</span>}
+                      </span>
                       <Avatar avatar={mgr.avatar} name={mgr.displayName} size="sm" />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-white text-sm truncate">{mgr.displayName}</div>
@@ -184,31 +178,10 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
                 })}
               </div>
             ) : (
-              <PowerRankings rankings={computed.powerRankings.slice(0, 3)} standings={computed.standings} onSelectManager={onSelectManager} />
+              <PowerRankings rankings={computed.powerRankings} standings={computed.standings} onSelectManager={onSelectManager} />
             )}
           </div>
         </div>
-
-        {/* Biggest Blowout */}
-        <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white">Biggest Blowout</h3>
-            <button
-              onClick={() => onNavigate('games')}
-              className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center transition-colors"
-            >
-              View All <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="flex-1">
-            {computed.blowouts.length > 0 ? (
-              <BlowoutsAndClose blowouts={computed.blowouts.slice(0, 1)} closest={[]} hideHeaders={true} onSelectManager={onSelectManager} />
-            ) : (
-              <div className="text-gray-500 text-sm">No blowouts recorded yet.</div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
