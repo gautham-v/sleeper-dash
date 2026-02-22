@@ -517,10 +517,8 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
     }
   }
 
-  // Compute streaks
-  let longestWin: { userId: string; name: string; avatar: string | null; value: number } | null = null;
-  let longestLoss: { userId: string; name: string; avatar: string | null; value: number } | null = null;
-
+  // Compute streaks - collect all user data to detect ties
+  const userStreakData = new Map<string, { name: string; avatar: string | null; maxWin: number; maxLoss: number }>();
   for (const [userId, results] of userResults) {
     const info = userInfoMap.get(userId) ?? { name: '', avatar: null };
     let maxW = 0, curW = 0, maxL = 0, curL = 0;
@@ -529,12 +527,11 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
       if (curW > maxW) maxW = curW;
       if (curL > maxL) maxL = curL;
     }
-    if (!longestWin || maxW > longestWin.value) longestWin = { userId, name: info.name, avatar: info.avatar, value: maxW };
-    if (!longestLoss || maxL > longestLoss.value) longestLoss = { userId, name: info.name, avatar: info.avatar, value: maxL };
+    userStreakData.set(userId, { name: info.name, avatar: info.avatar, maxWin: maxW, maxLoss: maxL });
   }
 
-  // Title drought
-  let longestDrought: { userId: string; name: string; avatar: string | null; value: number } | null = null;
+  // Title drought - collect all user data to detect ties
+  const userDroughtData = new Map<string, { name: string; avatar: string | null; value: number }>();
   for (const [userId, seasons] of userSeasonList) {
     const wonSet = new Set(titleSeasons.get(userId) ?? []);
     const sorted = [...seasons].sort((a, b) => Number(a) - Number(b));
@@ -542,70 +539,166 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
     for (const s of sorted) {
       if (wonSet.has(s)) { curD = 0; } else { curD++; if (curD > maxD) maxD = curD; }
     }
-    // Also include trailing drought (current streak without a title)
-    maxD = Math.max(maxD, curD);
     const info = userInfoMap.get(userId) ?? { name: '', avatar: null };
-    if (!longestDrought || maxD > longestDrought.value) longestDrought = { userId, name: info.name, avatar: info.avatar, value: maxD };
+    userDroughtData.set(userId, { name: info.name, avatar: info.avatar, value: Math.max(maxD, curD) });
   }
 
   const records: AllTimeRecordEntry[] = [];
 
-  const topCW = [...careerWins.values()].sort((a, b) => b.wins - a.wins)[0];
-  if (topCW) {
-    const userId = [...careerWins.entries()].find(([, v]) => v === topCW)?.[0] ?? null;
-    records.push({ id: 'career-wins', category: 'Most Career Wins', holderId: userId, holder: topCW.name, avatar: topCW.avatar, value: `${topCW.wins} wins`, rawValue: topCW.wins, context: 'All-time record' });
+  type CoHolder = { holderId: string | null; holder: string; avatar: string | null };
+  const toCoHolders = (entries: [string, { name: string; avatar: string | null }][]): CoHolder[] =>
+    entries.map(([uid, v]) => ({ holderId: uid, holder: v.name, avatar: v.avatar }));
+
+  // Career wins
+  if (careerWins.size > 0) {
+    const maxWins = Math.max(...[...careerWins.values()].map(v => v.wins));
+    const [[uid0, cw0], ...rest] = [...careerWins.entries()].filter(([, v]) => v.wins === maxWins);
+    const coHolders = toCoHolders(rest);
+    records.push({
+      id: 'career-wins', category: 'Most Career Wins', holderId: uid0, holder: cw0.name,
+      avatar: cw0.avatar, value: `${maxWins} wins`, rawValue: maxWins, context: 'All-time record',
+      ...(coHolders.length > 0 && { coHolders }),
+    });
   }
 
   if (highestSeasonPts) {
-    records.push({ id: 'highest-season-pts', category: 'Highest Single-Season Points', holderId: highestSeasonPts.userId, holder: highestSeasonPts.name, avatar: highestSeasonPts.avatar, value: `${highestSeasonPts.pts.toFixed(1)} pts`, rawValue: highestSeasonPts.pts, context: `${highestSeasonPts.season} Season`, season: highestSeasonPts.season });
+    records.push({
+      id: 'highest-season-pts', category: 'Highest Single-Season Points', holderId: highestSeasonPts.userId,
+      holder: highestSeasonPts.name, avatar: highestSeasonPts.avatar,
+      value: `${highestSeasonPts.pts.toFixed(1)} pts`, rawValue: highestSeasonPts.pts,
+      context: `${highestSeasonPts.season} Season`, season: highestSeasonPts.season,
+    });
   }
 
-  const topTitles = [...titlesMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-  if (topTitles) {
-    const [uid, t] = topTitles;
-    records.push({ id: 'most-titles', category: 'Most Championships', holderId: uid, holder: t.name, avatar: t.avatar, value: `${t.count} title${t.count !== 1 ? 's' : ''}`, rawValue: t.count, context: t.years.join(', ') });
+  // Most championships
+  if (titlesMap.size > 0) {
+    const maxTitles = Math.max(...[...titlesMap.values()].map(v => v.count));
+    const [[uid0, t0], ...rest] = [...titlesMap.entries()].filter(([, v]) => v.count === maxTitles);
+    const coHolders = toCoHolders(rest);
+    records.push({
+      id: 'most-titles', category: 'Most Championships', holderId: uid0, holder: t0.name,
+      avatar: t0.avatar, value: `${maxTitles} title${maxTitles !== 1 ? 's' : ''}`, rawValue: maxTitles,
+      context: t0.years.join(', '),
+      ...(coHolders.length > 0 && { coHolders }),
+    });
   }
 
-  const topLP = [...lastPlacesMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-  if (topLP) {
-    const [uid, lp] = topLP;
-    records.push({ id: 'most-last-place', category: 'Most Last-Place Finishes', holderId: uid, holder: lp.name, avatar: lp.avatar, value: `${lp.count} time${lp.count !== 1 ? 's' : ''}`, rawValue: lp.count, context: lp.years.join(', ') });
+  // Most last-place finishes
+  if (lastPlacesMap.size > 0) {
+    const maxLP = Math.max(...[...lastPlacesMap.values()].map(v => v.count));
+    const [[uid0, lp0], ...rest] = [...lastPlacesMap.entries()].filter(([, v]) => v.count === maxLP);
+    const coHolders = toCoHolders(rest);
+    records.push({
+      id: 'most-last-place', category: 'Most Last-Place Finishes', holderId: uid0, holder: lp0.name,
+      avatar: lp0.avatar, value: `${maxLP} time${maxLP !== 1 ? 's' : ''}`, rawValue: maxLP,
+      context: lp0.years.join(', '),
+      ...(coHolders.length > 0 && { coHolders }),
+    });
   }
 
-  if (longestWin) {
-    records.push({ id: 'longest-win-streak', category: 'Longest Winning Streak', holderId: longestWin.userId, holder: longestWin.name, avatar: longestWin.avatar, value: `${longestWin.value} straight wins`, rawValue: longestWin.value, context: 'Consecutive wins across seasons' });
+  // Longest winning streak
+  if (userStreakData.size > 0) {
+    const maxWin = Math.max(...[...userStreakData.values()].map(v => v.maxWin));
+    if (maxWin > 0) {
+      const [[uid0, s0], ...rest] = [...userStreakData.entries()].filter(([, v]) => v.maxWin === maxWin);
+      const coHolders = toCoHolders(rest);
+      records.push({
+        id: 'longest-win-streak', category: 'Longest Winning Streak', holderId: uid0, holder: s0.name,
+        avatar: s0.avatar, value: `${maxWin} straight wins`, rawValue: maxWin,
+        context: 'Consecutive wins across seasons',
+        ...(coHolders.length > 0 && { coHolders }),
+      });
+    }
   }
 
-  if (longestDrought) {
-    records.push({ id: 'title-drought', category: 'Longest Championship Drought', holderId: longestDrought.userId, holder: longestDrought.name, avatar: longestDrought.avatar, value: `${longestDrought.value} season${longestDrought.value !== 1 ? 's' : ''}`, rawValue: longestDrought.value, context: 'Consecutive seasons without a title' });
+  // Longest championship drought
+  if (userDroughtData.size > 0) {
+    const maxD = Math.max(...[...userDroughtData.values()].map(v => v.value));
+    if (maxD > 0) {
+      const [[uid0, d0], ...rest] = [...userDroughtData.entries()].filter(([, v]) => v.value === maxD);
+      const coHolders = toCoHolders(rest);
+      records.push({
+        id: 'title-drought', category: 'Longest Championship Drought', holderId: uid0, holder: d0.name,
+        avatar: d0.avatar, value: `${maxD} season${maxD !== 1 ? 's' : ''}`, rawValue: maxD,
+        context: 'Consecutive seasons without a title',
+        ...(coHolders.length > 0 && { coHolders }),
+      });
+    }
   }
 
-  if (longestLoss) {
-    records.push({ id: 'longest-loss-streak', category: 'Longest Losing Streak', holderId: longestLoss.userId, holder: longestLoss.name, avatar: longestLoss.avatar, value: `${longestLoss.value} straight losses`, rawValue: longestLoss.value, context: 'Consecutive losses across seasons' });
+  // Longest losing streak
+  if (userStreakData.size > 0) {
+    const maxLoss = Math.max(...[...userStreakData.values()].map(v => v.maxLoss));
+    if (maxLoss > 0) {
+      const [[uid0, s0], ...rest] = [...userStreakData.entries()].filter(([, v]) => v.maxLoss === maxLoss);
+      const coHolders = toCoHolders(rest);
+      records.push({
+        id: 'longest-loss-streak', category: 'Longest Losing Streak', holderId: uid0, holder: s0.name,
+        avatar: s0.avatar, value: `${maxLoss} straight losses`, rawValue: maxLoss,
+        context: 'Consecutive losses across seasons',
+        ...(coHolders.length > 0 && { coHolders }),
+      });
+    }
   }
 
   if (highestWeek) {
-    records.push({ id: 'highest-weekly', category: 'Highest Single-Week Score', holderId: highestWeek.userId, holder: highestWeek.name, avatar: highestWeek.avatar, value: `${highestWeek.pts.toFixed(2)} pts`, rawValue: highestWeek.pts, context: `${highestWeek.season} Season, Week ${highestWeek.week}`, season: highestWeek.season, week: highestWeek.week });
+    records.push({
+      id: 'highest-weekly', category: 'Highest Single-Week Score', holderId: highestWeek.userId,
+      holder: highestWeek.name, avatar: highestWeek.avatar,
+      value: `${highestWeek.pts.toFixed(2)} pts`, rawValue: highestWeek.pts,
+      context: `${highestWeek.season} Season, Week ${highestWeek.week}`,
+      season: highestWeek.season, week: highestWeek.week,
+    });
   }
 
   if (lowestWeek) {
-    records.push({ id: 'lowest-weekly', category: 'Lowest Single-Week Score', holderId: lowestWeek.userId, holder: lowestWeek.name, avatar: lowestWeek.avatar, value: `${lowestWeek.pts.toFixed(2)} pts`, rawValue: lowestWeek.pts, context: `${lowestWeek.season} Season, Week ${lowestWeek.week}`, season: lowestWeek.season, week: lowestWeek.week });
+    records.push({
+      id: 'lowest-weekly', category: 'Lowest Single-Week Score', holderId: lowestWeek.userId,
+      holder: lowestWeek.name, avatar: lowestWeek.avatar,
+      value: `${lowestWeek.pts.toFixed(2)} pts`, rawValue: lowestWeek.pts,
+      context: `${lowestWeek.season} Season, Week ${lowestWeek.week}`,
+      season: lowestWeek.season, week: lowestWeek.week,
+    });
   }
 
   if (biggestBlowout) {
-    records.push({ id: 'biggest-blowout', category: 'Biggest Blowout in League History', holderId: biggestBlowout.winnerUserId, holder: biggestBlowout.winnerName, avatar: biggestBlowout.winnerAvatar, value: `+${biggestBlowout.margin.toFixed(2)} pts`, rawValue: biggestBlowout.margin, context: `${biggestBlowout.season} Wk ${biggestBlowout.week} · def. ${biggestBlowout.loserName}`, season: biggestBlowout.season, week: biggestBlowout.week });
+    records.push({
+      id: 'biggest-blowout', category: 'Biggest Blowout in League History', holderId: biggestBlowout.winnerUserId,
+      holder: biggestBlowout.winnerName, avatar: biggestBlowout.winnerAvatar,
+      value: `+${biggestBlowout.margin.toFixed(2)} pts`, rawValue: biggestBlowout.margin,
+      context: `${biggestBlowout.season} Wk ${biggestBlowout.week} · def. ${biggestBlowout.loserName}`,
+      season: biggestBlowout.season, week: biggestBlowout.week,
+    });
   }
 
-  const topBW = [...blowoutWinsMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
-  if (topBW) {
-    const [uid, bw] = topBW;
-    records.push({ id: 'blowout-wins', category: 'Most Career Blowout Wins', holderId: uid, holder: bw.name, avatar: bw.avatar, value: `${bw.count} blowout${bw.count !== 1 ? 's' : ''}`, rawValue: bw.count, context: 'Wins by 30+ points' });
+  // Most career blowout wins
+  if (blowoutWinsMap.size > 0) {
+    const maxBW = Math.max(...[...blowoutWinsMap.values()].map(v => v.count));
+    if (maxBW > 0) {
+      const [[uid0, bw0], ...rest] = [...blowoutWinsMap.entries()].filter(([, v]) => v.count === maxBW);
+      const coHolders = toCoHolders(rest);
+      records.push({
+        id: 'blowout-wins', category: 'Most Career Blowout Wins', holderId: uid0, holder: bw0.name,
+        avatar: bw0.avatar, value: `${maxBW} blowout${maxBW !== 1 ? 's' : ''}`, rawValue: maxBW,
+        context: 'Wins by 30+ points',
+        ...(coHolders.length > 0 && { coHolders }),
+      });
+    }
   }
 
-  const topPW = [...playoffWinsAllTimeMap.entries()].sort((a, b) => b[1].wins - a[1].wins)[0];
-  if (topPW && topPW[1].wins > 0) {
-    const [uid, pw] = topPW;
-    records.push({ id: 'playoff-wins', category: 'Most Career Playoff Wins', holderId: uid, holder: pw.name, avatar: pw.avatar, value: `${pw.wins} win${pw.wins !== 1 ? 's' : ''}`, rawValue: pw.wins, context: `${pw.wins}–${pw.losses} all-time in the playoffs` });
+  // Most career playoff wins
+  if (playoffWinsAllTimeMap.size > 0) {
+    const maxPW = Math.max(...[...playoffWinsAllTimeMap.values()].map(v => v.wins));
+    if (maxPW > 0) {
+      const [[uid0, pw0], ...rest] = [...playoffWinsAllTimeMap.entries()].filter(([, v]) => v.wins === maxPW);
+      const coHolders = toCoHolders(rest);
+      records.push({
+        id: 'playoff-wins', category: 'Most Career Playoff Wins', holderId: uid0, holder: pw0.name,
+        avatar: pw0.avatar, value: `${maxPW} win${maxPW !== 1 ? 's' : ''}`, rawValue: maxPW,
+        context: `${pw0.wins}–${pw0.losses} all-time in the playoffs`,
+        ...(coHolders.length > 0 && { coHolders }),
+      });
+    }
   }
 
   return records;
