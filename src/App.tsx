@@ -5,13 +5,12 @@ import {
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData } from './hooks/useLeagueData';
 import { buildUserMap } from './hooks/useLeagueData';
 import { Overview } from './components/Overview';
 import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
-import { HistoryPage } from './components/HistoryPage';
 import { TeamComparison } from './components/TeamComparison';
 import { LuckIndex } from './components/LuckIndex';
 import { Standings } from './components/Standings';
@@ -27,7 +26,6 @@ const TABS = [
   { id: 'records',   label: 'Records',      icon: BookOpen },
   { id: 'managers',  label: 'Managers',     icon: Users },
   { id: 'h2h',       label: 'Head-to-Head', icon: Scale },
-  { id: 'history',   label: 'History',      icon: BarChart2 },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -49,7 +47,6 @@ function LeagueDashboard({
 
   const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
     useDashboardData(leagueId);
-  const yoy = useYearOverYear(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
   const multipleSeasons = sortedSeasons.length > 1;
@@ -253,7 +250,6 @@ function LeagueDashboard({
                     onNavigate={(tab) => {
                       // Map legacy tab IDs to new ones
                       if (tab === 'compare') handleTabChange('h2h');
-                      else if (tab === 'history') handleTabChange('history');
                       else if (tab === 'records') handleTabChange('records');
                       else handleTabChange(tab as TabId);
                     }}
@@ -316,21 +312,6 @@ function LeagueDashboard({
                 </div>
               )}
 
-              {/* HISTORY */}
-              {activeTab === 'history' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-6 tracking-tight">History</h2>
-                  <HistoryPage
-                    leagueId={leagueId}
-                    yoyData={yoy.data ?? []}
-                    yoyIsLoading={yoy.isLoading}
-                    transactions={transactions}
-                    rosterMap={computed.rosterMap ?? rosterMap}
-                    playerMap={draftData.playerMap}
-                    standings={computed.standings}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </main>
