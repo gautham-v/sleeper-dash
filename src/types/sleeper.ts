@@ -327,6 +327,7 @@ export interface AllTimeRecordEntry {
   context: string;
   season?: string;
   week?: number;
+  coHolders?: Array<{ holderId: string | null; holder: string; avatar: string | null }>;
 }
 
 export interface BlowoutGame {
