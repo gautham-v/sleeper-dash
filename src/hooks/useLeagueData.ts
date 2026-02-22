@@ -114,6 +114,19 @@ export function useAllTransactions(leagueId: string | null) {
   });
 }
 
+/**
+ * Fetch all NFL players once (large payload, cached for 24 hours).
+ * Used as a fallback to resolve player names for non-drafted players (waiver/FA pickups).
+ */
+export function useAllPlayers() {
+  return useQuery({
+    queryKey: ['all-players'],
+    queryFn: sleeperApi.getAllPlayers,
+    staleTime: 1000 * 60 * 60 * 24,
+    gcTime: 1000 * 60 * 60 * 24,
+  });
+}
+
 export function useDraftData(leagueId: string | null) {
   const draftsQuery = useQuery({
     queryKey: ['drafts', leagueId],
@@ -129,16 +142,27 @@ export function useDraftData(leagueId: string | null) {
     enabled: !!draftId,
   });
 
-  // Build a player name map from draft picks for use in trade history
-  const playerMap = new Map(
-    (picksQuery.data ?? []).map((p) => [
-      p.player_id,
-      {
-        name: `${p.metadata.first_name} ${p.metadata.last_name}`,
-        position: p.metadata.position,
-      },
-    ])
-  );
+  const allPlayersQuery = useAllPlayers();
+
+  // Build a player name map: start with all NFL players as a base, then
+  // override with draft pick metadata (which has current-season accuracy).
+  const playerMap = new Map<string, { name: string; position: string }>();
+
+  for (const [id, p] of Object.entries(allPlayersQuery.data ?? {})) {
+    if (p.first_name && p.last_name && p.position) {
+      playerMap.set(id, {
+        name: `${p.first_name} ${p.last_name}`,
+        position: p.position,
+      });
+    }
+  }
+
+  for (const p of picksQuery.data ?? []) {
+    playerMap.set(p.player_id, {
+      name: `${p.metadata.first_name} ${p.metadata.last_name}`,
+      position: p.metadata.position,
+    });
+  }
 
   return {
     draft: draftsQuery.data?.[0] ?? null,

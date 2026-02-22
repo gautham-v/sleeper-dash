@@ -132,6 +132,14 @@ export interface SleeperNFLState {
   previous_season: string;
 }
 
+export interface SleeperPlayer {
+  player_id: string;
+  first_name: string;
+  last_name: string;
+  position: string | null;
+  team: string | null;
+}
+
 // Computed types for our dashboard
 export interface TeamStanding {
   rosterId: number;
