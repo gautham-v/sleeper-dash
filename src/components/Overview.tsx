@@ -2,25 +2,21 @@ import { useMemo, useState } from 'react';
 import { ChevronRight, Trophy, TrendingUp } from 'lucide-react';
 import { PowerRankings } from './PowerRankings';
 import { Avatar } from './Avatar';
-import { LuckIndex } from './LuckIndex';
 import { useLeagueHistory } from '../hooks/useLeagueData';
-import { calcAllTimeStats, calcAllTimeLuckIndex } from '../utils/calculations';
-import type { LuckEntry } from '../types/sleeper';
+import { calcAllTimeStats } from '../utils/calculations';
 
 interface OverviewProps {
   computed: any;
   leagueId: string;
   userId: string;
-  luckIndex: LuckEntry[];
   onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "records" | "compare") => void;
   onViewMyProfile: () => void;
   onSelectManager?: (userId: string) => void;
 }
 
-export function Overview({ computed, leagueId, userId, luckIndex, onViewMyProfile, onSelectManager }: OverviewProps) {
+export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelectManager }: OverviewProps) {
   const { data: history } = useLeagueHistory(leagueId);
   const [rankingMode, setRankingMode] = useState<'alltime' | 'season'>('alltime');
-  const [luckMode, setLuckMode] = useState<'alltime' | 'season'>('alltime');
 
   const myStats = useMemo(() => {
     if (!history) return null;
@@ -43,15 +39,6 @@ export function Overview({ computed, leagueId, userId, luckIndex, onViewMyProfil
 
   const allTimePts = myStats?.seasons.reduce((sum, s) => sum + s.pointsFor, 0) ?? 0;
 
-  const allTimeLuck = useMemo(() => {
-    if (!history) return [];
-    return calcAllTimeLuckIndex(history);
-  }, [history]);
-
-  const mostRecentSeason = history?.[history.length - 1]?.season ?? '';
-  const activeLuck = luckMode === 'alltime' ? allTimeLuck : luckIndex;
-  const showLuck = activeLuck.length > 0;
-
   return (
     <div className="space-y-6">
       {/* Champion Hero */}
@@ -65,13 +52,17 @@ export function Overview({ computed, leagueId, userId, luckIndex, onViewMyProfil
             <div className="flex-shrink-0 w-16 h-16 rounded-full bg-yellow-900/50 border border-yellow-600/40 flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.15)]">
               <Trophy size={30} className="text-yellow-400" />
             </div>
-            <div className="flex-1 min-w-0">
+            <button
+              className="flex-1 min-w-0 text-left group"
+              onClick={() => computed.champion.userId && onSelectManager?.(computed.champion.userId)}
+              disabled={!computed.champion.userId || !onSelectManager}
+            >
               <div className="text-xs font-semibold uppercase tracking-widest text-yellow-500/80 mb-1">Reigning Champion</div>
-              <div className="text-2xl sm:text-3xl font-bold text-white leading-tight truncate">
+              <div className={`text-2xl sm:text-3xl font-bold text-white leading-tight truncate ${computed.champion.userId && onSelectManager ? 'group-hover:text-yellow-300 transition-colors' : ''}`}>
                 {computed.champion.teamName}
               </div>
               <div className="text-gray-400 text-sm mt-0.5">{computed.champion.displayName}</div>
-            </div>
+            </button>
             <Avatar avatar={computed.champion.avatar} name={computed.champion.displayName} size="xl" />
           </div>
         </div>
@@ -121,41 +112,6 @@ export function Overview({ computed, leagueId, userId, luckIndex, onViewMyProfil
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Luck Index */}
-      {showLuck && (
-        <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white">Luck Index</h3>
-              <span className="text-xs text-gray-500">actual vs. expected wins</span>
-            </div>
-          </div>
-          <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start w-fit">
-            <button
-              onClick={() => setLuckMode('alltime')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                luckMode === 'alltime'
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              All-Time
-            </button>
-            <button
-              onClick={() => setLuckMode('season')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                luckMode === 'season'
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
-            </button>
-          </div>
-          <LuckIndex entries={activeLuck} onSelectManager={onSelectManager} />
         </div>
       )}
 

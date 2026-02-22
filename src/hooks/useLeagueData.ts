@@ -252,7 +252,7 @@ export function useDashboardData(leagueId: string | null) {
 
     // Determine champion from winners bracket
     const typedBracket = (bracket.data ?? []) as BracketMatch[];
-    let champion: { teamName: string; displayName: string; avatar: string | null } | null = null;
+    let champion: { teamName: string; displayName: string; avatar: string | null; userId: string } | null = null;
     if (typedBracket.length > 0) {
       let finalMatch = typedBracket.find((b) => b.p === 1);
       if (!finalMatch) {
@@ -266,6 +266,7 @@ export function useDashboardData(leagueId: string | null) {
             teamName: rosterInfo.teamName,
             displayName: rosterInfo.displayName,
             avatar: userMap.get(rosterInfo.userId)?.avatar ?? null,
+            userId: rosterInfo.userId,
           };
         }
       }

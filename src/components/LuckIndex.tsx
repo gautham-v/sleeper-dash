@@ -48,7 +48,7 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
       <div className="bg-gray-900 rounded-xl overflow-hidden">
         {entries.map((entry, i) => (
           <div
-            key={entry.rosterId}
+            key={entry.userId || entry.rosterId}
             className="flex items-center gap-4 px-5 py-4 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
           >
             <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
