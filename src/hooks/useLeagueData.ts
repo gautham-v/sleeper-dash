@@ -465,9 +465,10 @@ export function useLeagueHistory(leagueId: string | null) {
 
       for (const { league_id, season } of leagueChain) {
         const weekNums = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
-        const [rosters, users, ...weekMatchupResults] = await Promise.all([
+        const [rosters, users, bracket, ...weekMatchupResults] = await Promise.all([
           sleeperApi.getRosters(league_id),
           sleeperApi.getLeagueUsers(league_id),
+          sleeperApi.getWinnersBracket(league_id),
           ...weekNums.map((w) => sleeperApi.getMatchups(league_id, w)),
         ]);
 
@@ -504,13 +505,26 @@ export function useLeagueHistory(leagueId: string | null) {
           ),
         );
 
+        const typedBracket = bracket as BracketMatch[];
+        let championUserId: string | null = null;
+        if (typedBracket && typedBracket.length > 0) {
+          let finalMatch = typedBracket.find((b) => b.p === 1);
+          if (!finalMatch) {
+            const maxRound = Math.max(...typedBracket.map((b) => b.r));
+            finalMatch = typedBracket.find((b) => b.r === maxRound);
+          }
+          if (finalMatch?.w != null) {
+            championUserId = rosterToUser.get(finalMatch.w) ?? null;
+          }
+        }
+
         seasons.push({
           season,
           leagueId: league_id,
           teams: teamsMap,
           matchups: allMatchups,
           rosterToUser,
-          championUserId: sorted[0]?.owner_id ?? null,
+          championUserId,
         });
       }
 

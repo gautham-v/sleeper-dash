@@ -237,7 +237,7 @@ export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamA
           totalWins: team.wins,
           totalLosses: team.losses,
           totalSeasons: 1,
-          titles: team.rank === 1 ? 1 : 0,
+          titles: userId === season.championUserId ? 1 : 0,
           avgPointsFor: team.pointsFor,
           winPct: 0,
           tier: 'Average',
@@ -247,7 +247,7 @@ export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamA
         existing.totalWins += team.wins;
         existing.totalLosses += team.losses;
         existing.totalSeasons += 1;
-        existing.titles += team.rank === 1 ? 1 : 0;
+        existing.titles += userId === season.championUserId ? 1 : 0;
         existing.avgPointsFor += team.pointsFor;
         existing.displayName = team.displayName; // keep most recent name
         existing.seasons.push({ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank });
