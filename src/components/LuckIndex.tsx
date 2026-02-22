@@ -13,26 +13,22 @@ function LuckBar({ value, max }: { value: number; max: number }) {
   return (
     <div className="flex items-center gap-2 flex-1">
       {/* Left (unlucky) side */}
-      <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden flex justify-end relative">
+      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden flex justify-end">
         {!isLucky && (
           <div
-            className="h-full bg-red-500 rounded-full shadow-[0_0_10px_rgba(248,113,113,0.5)] relative"
+            className="h-full bg-red-500 rounded-full"
             style={{ width: `${pct * 100}%` }}
-          >
-            <div className="absolute inset-0 bg-white/20 w-full rounded-full"></div>
-          </div>
+          />
         )}
       </div>
-      <div className="w-px h-4 bg-card-border shrink-0" />
+      <div className="w-px h-4 bg-gray-600 shrink-0" />
       {/* Right (lucky) side */}
-      <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden relative">
+      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
         {isLucky && (
           <div
-            className="h-full bg-brand-green rounded-full shadow-[0_0_10px_rgba(185,251,192,0.5)] relative"
+            className="h-full bg-green-500 rounded-full"
             style={{ width: `${pct * 100}%` }}
-          >
-            <div className="absolute inset-0 bg-white/20 w-full rounded-full"></div>
-          </div>
+          />
         )}
       </div>
     </div>
@@ -43,38 +39,35 @@ export function LuckIndex({ entries }: LuckIndexProps) {
   const maxLuck = Math.max(...entries.map((e) => Math.abs(e.luckScore)));
 
   return (
-    <div className="space-y-4">
-      <p className="text-[11px] text-gray-500 mb-5 uppercase tracking-wider font-medium">
+    <div>
+      <p className="text-xs text-gray-500 mb-5">
         Luck = Actual wins minus expected wins (if you played every team each week).
         Positive = lucky, Negative = unlucky.
       </p>
-      <div className="bg-card-bg rounded-2xl overflow-hidden border border-card-border shadow-lg">
+      <div className="bg-gray-900 rounded-xl overflow-hidden">
         {entries.map((entry, i) => (
           <div
             key={entry.rosterId}
-            className="flex items-center gap-4 px-5 py-4 border-b border-card-border/50 last:border-0 hover:bg-white/5 transition-colors group"
+            className="flex items-center gap-4 px-5 py-4 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
           >
-            <span className={`w-5 text-center font-bold text-sm ${i < 3 ? 'text-brand-cyan glow-text-cyan' : 'text-gray-500'}`}>{i + 1}</span>
-            <div className="relative">
-              <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
-              {i === 0 && <div className="absolute -inset-1 border border-brand-cyan/50 rounded-full animate-pulse pointer-events-none"></div>}
-            </div>
+            <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
+            <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
             <div className="w-24 sm:w-32 shrink-0">
-              <div className="font-bold text-white text-sm leading-tight truncate group-hover:text-brand-cyan transition-colors">
+              <div className="font-medium text-white text-sm leading-tight truncate">
                 {entry.teamName}
               </div>
-              <div className="text-gray-500 text-xs mt-0.5 font-medium">
+              <div className="text-gray-500 text-xs">
                 {entry.actualWins}W · {entry.expectedWins}exp
               </div>
             </div>
             <LuckBar value={entry.luckScore} max={maxLuck} />
             <div
-              className={`w-14 text-right font-black tabular-nums text-sm shrink-0 drop-shadow-sm ${
+              className={`w-14 text-right font-bold tabular-nums text-sm shrink-0 ${
                 entry.luckScore > 0
-                  ? 'text-brand-green'
+                  ? 'text-green-400'
                   : entry.luckScore < 0
                   ? 'text-red-400'
-                  : 'text-gray-500'
+                  : 'text-gray-400'
               }`}
             >
               {entry.luckScore > 0 ? '+' : ''}
@@ -83,9 +76,9 @@ export function LuckIndex({ entries }: LuckIndexProps) {
           </div>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500 px-2 mt-2">
-        <span className="text-red-400/80">Most Unlucky</span>
-        <span className="text-brand-green/80">Most Lucky</span>
+      <div className="flex justify-between text-xs text-gray-600 px-1 mt-1">
+        <span>Most Unlucky</span>
+        <span>Most Lucky</span>
       </div>
     </div>
   );

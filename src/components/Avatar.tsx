@@ -21,7 +21,7 @@ export function Avatar({ avatar, name, size = 'md' }: AvatarProps) {
       <img
         src={url}
         alt={name}
-        className={`${sizes[size]} rounded-full object-cover flex-shrink-0 border border-white/10 shadow-sm`}
+        className={`${sizes[size]} rounded-full object-cover flex-shrink-0`}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = 'none';
         }}
@@ -31,7 +31,7 @@ export function Avatar({ avatar, name, size = 'md' }: AvatarProps) {
 
   return (
     <div
-      className={`${sizes[size]} rounded-full bg-brand-cyan/10 flex items-center justify-center text-brand-cyan font-bold flex-shrink-0 border border-brand-cyan/30 shadow-[0_0_10px_rgba(0,229,255,0.2)]`}
+      className={`${sizes[size]} rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0`}
     >
       {initials}
     </div>
