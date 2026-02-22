@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2,
+  Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2, BookOpen,
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle,
 } from 'lucide-react';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear, useLeagueRecords } from './hooks/useLeagueData';
 import { buildUserMap } from './hooks/useLeagueData';
 import { Standings } from './components/Standings';
 import { PowerRankings } from './components/PowerRankings';
@@ -14,6 +14,7 @@ import { BlowoutsAndClose } from './components/BlowoutsAndClose';
 import { TradeHistory } from './components/TradeHistory';
 import { DraftGrades } from './components/DraftGrades';
 import { YearOverYear } from './components/YearOverYear';
+import { LeagueRecords } from './components/LeagueRecords';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
@@ -29,6 +30,7 @@ const TABS = [
   { id: 'trades', label: 'Trades', icon: ArrowLeftRight },
   { id: 'draft', label: 'Draft Grades', icon: BarChart2 },
   { id: 'history', label: 'Year Over Year', icon: BarChart2 },
+  { id: 'records', label: 'Records', icon: BookOpen },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -50,6 +52,7 @@ function LeagueDashboard({
   const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
     useDashboardData(leagueId);
   const yoy = useYearOverYear(leagueId);
+  const records = useLeagueRecords(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
   const multipleSeasons = sortedSeasons.length > 1;
@@ -209,6 +212,19 @@ function LeagueDashboard({
               </div>
             ) : (
               <YearOverYear data={yoy.data ?? []} />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'records' && (
+          <div>
+            {records.isLoading ? (
+              <div className="flex items-center justify-center h-48 text-gray-400">
+                <Loader2 className="animate-spin mr-2" size={18} />
+                Building records book…
+              </div>
+            ) : (
+              <LeagueRecords data={records.data ?? []} />
             )}
           </div>
         )}
