@@ -12,7 +12,6 @@ import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
 import { TeamComparison } from './components/TeamComparison';
-import { LuckIndex } from './components/LuckIndex';
 import { StandingsSection } from './components/StandingsSection';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
@@ -256,6 +255,7 @@ function LeagueDashboard({
                     computed={computed}
                     leagueId={leagueId}
                     userId={userId}
+                    luckIndex={computed.luckIndex}
                     onNavigate={(tab) => {
                       // Map legacy tab IDs to new ones
                       if (tab === 'compare') handleTabChange('h2h');
@@ -282,22 +282,6 @@ function LeagueDashboard({
                     }}
                   />
 
-                  {/* Luck Index widget */}
-                  {computed.luckIndex.length > 0 && (
-                    <section>
-                      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        ⭐ Luck Index
-                        <span className="text-xs font-normal text-gray-500 ml-1">actual wins vs. expected wins</span>
-                      </h3>
-                      <LuckIndex
-                        entries={computed.luckIndex}
-                        onSelectManager={(uid) => {
-                          handleSelectManager(uid);
-                          handleTabChange('managers');
-                        }}
-                      />
-                    </section>
-                  )}
                 </div>
               )}
 

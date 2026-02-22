@@ -129,6 +129,67 @@ export function calcLuckIndex(
   }).sort((a, b) => b.luckScore - a.luckScore);
 }
 
+/** All-Time Luck Index: aggregate luck scores across all historical seasons */
+export function calcAllTimeLuckIndex(history: HistoricalSeason[]): LuckEntry[] {
+  const acc = new Map<string, {
+    userId: string;
+    displayName: string;
+    avatar: string | null;
+    totalActualWins: number;
+    totalExpectedWins: number;
+  }>();
+
+  for (const season of history) {
+    const regularMatchups = season.matchups.filter((m) => !m.isPlayoff);
+    if (regularMatchups.length === 0) continue;
+
+    const standings: TeamStanding[] = [];
+    for (const [, team] of season.teams) {
+      standings.push({
+        rosterId: team.rosterId,
+        userId: team.userId,
+        teamName: team.displayName,
+        displayName: team.displayName,
+        avatar: team.avatar,
+        wins: team.wins,
+        losses: team.losses,
+        ties: 0,
+        pointsFor: team.pointsFor,
+        pointsAgainst: 0,
+        pointsForDecimal: 0,
+      });
+    }
+
+    const seasonLuck = calcLuckIndex(regularMatchups, standings);
+    for (const entry of seasonLuck) {
+      if (!entry.userId) continue;
+      const prev = acc.get(entry.userId) ?? {
+        userId: entry.userId,
+        displayName: entry.displayName,
+        avatar: entry.avatar,
+        totalActualWins: 0,
+        totalExpectedWins: 0,
+      };
+      prev.totalActualWins += entry.actualWins;
+      prev.totalExpectedWins += entry.expectedWins;
+      prev.displayName = entry.displayName;
+      prev.avatar = entry.avatar;
+      acc.set(entry.userId, prev);
+    }
+  }
+
+  return [...acc.values()].map((v) => ({
+    rosterId: 0,
+    userId: v.userId,
+    teamName: v.displayName,
+    displayName: v.displayName,
+    avatar: v.avatar,
+    actualWins: v.totalActualWins,
+    expectedWins: Math.round(v.totalExpectedWins * 10) / 10,
+    luckScore: Math.round((v.totalActualWins - v.totalExpectedWins) * 10) / 10,
+  })).sort((a, b) => b.luckScore - a.luckScore);
+}
+
 /** Power Rankings: weighted score from recent games + overall performance */
 export function calcPowerRankings(
   allMatchups: WeeklyMatchup[],
