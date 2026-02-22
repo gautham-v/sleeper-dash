@@ -32,10 +32,12 @@ type TabId = (typeof TABS)[number]['id'];
 function LeagueDashboard({
   initialLeagueId,
   allSeasons,
+  userId,
   onBack,
 }: {
   initialLeagueId: string;
   allSeasons: SleeperLeague[];
+  userId: string;
   onBack: () => void;
 }) {
   const [leagueId, setLeagueId] = useState(initialLeagueId);
@@ -44,7 +46,7 @@ function LeagueDashboard({
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { league, currentWeek, isLoading, computed } =
+  const { league, currentWeek, isOffseason, isLoading, computed } =
     useDashboardData(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
@@ -184,7 +186,9 @@ function LeagueDashboard({
                   ) : (
                     <span className="text-xs text-gray-500">{league?.season}</span>
                   )}
-                  <span className="text-gray-600 text-xs">• Wk {currentWeek}</span>
+                  <span className="text-gray-600 text-xs">
+                    {isOffseason ? '• Offseason' : `• Wk ${currentWeek}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -224,12 +228,14 @@ function LeagueDashboard({
                 <Trophy size={16} className="text-yellow-500" /> League Record Book
               </div>
               <div className="flex items-center gap-2">
-                <BookOpen size={16} /> Wk {currentWeek}
+                <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
               </div>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4 ml-auto">
-              <div className="text-xs text-gray-400 font-medium sm:hidden">Wk {currentWeek}</div>
+              <div className="text-xs text-gray-400 font-medium sm:hidden">
+                {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
+              </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-purple to-brand-cyan p-[2px]">
                 <div className="w-full h-full rounded-full bg-base-bg flex items-center justify-center">
                   <UserCircle size={20} className="text-white" />
@@ -247,11 +253,17 @@ function LeagueDashboard({
                 <div className="space-y-8">
                   <Overview
                     computed={computed}
+                    leagueId={leagueId}
+                    userId={userId}
                     onNavigate={(tab) => {
                       // Map legacy tab IDs to new ones
                       if (tab === 'compare') handleTabChange('h2h');
                       else if (tab === 'records') handleTabChange('records');
                       else handleTabChange(tab as TabId);
+                    }}
+                    onViewMyProfile={() => {
+                      handleSelectManager(userId);
+                      handleTabChange('managers');
                     }}
                   />
 
@@ -347,6 +359,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
       <LeagueDashboard
         initialLeagueId={selectedLeagueId}
         allSeasons={selectedGroup}
+        userId={user.user_id}
         onBack={() => {
           setSelectedLeagueId(null);
           setSelectedGroup([]);
