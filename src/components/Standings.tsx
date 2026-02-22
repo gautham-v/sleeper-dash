@@ -12,13 +12,13 @@ export function Standings({ standings }: StandingsProps) {
         <table className="w-full text-sm min-w-[480px]">
           <thead>
             <tr className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
-              <th className="text-left p-3 pl-4">#</th>
-              <th className="text-left p-3">Team</th>
-              <th className="text-center p-3">W</th>
-              <th className="text-center p-3">L</th>
-              <th className="text-right p-3">PF</th>
-              <th className="text-right p-3 hidden sm:table-cell">PA</th>
-              <th className="text-right p-3 pr-4">Streak</th>
+              <th className="text-left py-4 px-3 pl-5">#</th>
+              <th className="text-left py-4 px-3">Team</th>
+              <th className="text-center py-4 px-3">W</th>
+              <th className="text-center py-4 px-3">L</th>
+              <th className="text-right py-4 px-3">PF</th>
+              <th className="text-right py-4 px-3 hidden sm:table-cell">PA</th>
+              <th className="text-right py-4 px-3 pr-5">Streak</th>
             </tr>
           </thead>
           <tbody>
@@ -29,7 +29,7 @@ export function Standings({ standings }: StandingsProps) {
                   key={team.rosterId}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="p-3 pl-4">
+                  <td className="py-3.5 px-3 pl-5">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 w-4 text-center">{i + 1}</span>
                       {isPlayoff && (
@@ -37,8 +37,8 @@ export function Standings({ standings }: StandingsProps) {
                       )}
                     </div>
                   </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
+                  <td className="py-3.5 px-3">
+                    <div className="flex items-center gap-2.5">
                       <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
                       <div className="min-w-0">
                         <div className="font-medium text-white leading-tight truncate max-w-[120px] sm:max-w-none">{team.teamName}</div>
@@ -46,11 +46,11 @@ export function Standings({ standings }: StandingsProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-3 text-center font-semibold text-green-400">{team.wins}</td>
-                  <td className="p-3 text-center text-red-400">{team.losses}</td>
-                  <td className="p-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</td>
-                  <td className="p-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
-                  <td className="p-3 pr-4 text-right">
+                  <td className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</td>
+                  <td className="py-3.5 px-3 text-center text-red-400">{team.losses}</td>
+                  <td className="py-3.5 px-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</td>
+                  <td className="py-3.5 px-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
+                  <td className="py-3.5 px-3 pr-5 text-right">
                     {team.streak ? (
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -71,7 +71,7 @@ export function Standings({ standings }: StandingsProps) {
           </tbody>
         </table>
       </div>
-      <div className="p-3 pl-4 text-xs text-gray-500 flex items-center gap-2">
+      <div className="py-3.5 px-5 text-xs text-gray-500 flex items-center gap-2">
         <span className="w-1 h-3 rounded-full bg-green-500 inline-block" />
         Playoff position
       </div>

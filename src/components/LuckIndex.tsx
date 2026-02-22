@@ -39,8 +39,8 @@ export function LuckIndex({ entries }: LuckIndexProps) {
   const maxLuck = Math.max(...entries.map((e) => Math.abs(e.luckScore)));
 
   return (
-    <div className="space-y-1">
-      <p className="text-xs text-gray-500 mb-4">
+    <div>
+      <p className="text-xs text-gray-500 mb-5">
         Luck = Actual wins minus expected wins (if you played every team each week).
         Positive = lucky, Negative = unlucky.
       </p>
@@ -48,7 +48,7 @@ export function LuckIndex({ entries }: LuckIndexProps) {
         {entries.map((entry, i) => (
           <div
             key={entry.rosterId}
-            className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
+            className="flex items-center gap-4 px-5 py-4 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
           >
             <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
             <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />

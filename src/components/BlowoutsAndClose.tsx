@@ -43,12 +43,12 @@ function GameCard({ game, variant }: { game: BlowoutGame; variant: 'blowout' | '
 
 export function BlowoutsAndClose({ blowouts, closest }: BlowoutsProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div>
-        <h3 className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-4">
           <Flame size={14} /> Biggest Blowouts
         </h3>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {blowouts.map((g, i) => (
             <GameCard key={i} game={g} variant="blowout" />
           ))}
@@ -56,10 +56,10 @@ export function BlowoutsAndClose({ blowouts, closest }: BlowoutsProps) {
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2 mb-4">
           <Zap size={14} /> Closest Games
         </h3>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {closest.map((g, i) => (
             <GameCard key={i} game={g} variant="close" />
           ))}

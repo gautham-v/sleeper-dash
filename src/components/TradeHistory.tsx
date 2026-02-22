@@ -39,8 +39,8 @@ export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistor
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-gray-500 mb-4">{trades.length} trades completed this season</p>
+    <div className="space-y-4">
+      <p className="text-xs text-gray-500 mb-5">{trades.length} trades completed this season</p>
       {trades.map((trade) => {
         const [id1, id2] = trade.roster_ids;
         const team1 = rosterMap.get(id1);
@@ -64,14 +64,14 @@ export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistor
           trade.draft_picks?.filter((p) => p.owner_id === id2 && p.previous_owner_id === id1) ?? [];
 
         return (
-          <div key={trade.transaction_id} className="bg-gray-900 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+          <div key={trade.transaction_id} className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
               <ArrowLeftRight size={12} />
               <span>Trade · {formatTimestamp(trade.created)}</span>
             </div>
 
             {/* Mobile: stacked */}
-            <div className="flex flex-col gap-3 sm:hidden">
+            <div className="flex flex-col gap-4 sm:hidden">
               <TradeSide
                 teamName={team1?.teamName ?? `Team ${id1}`}
                 receivedPlayers={t1Receives}
@@ -92,7 +92,7 @@ export function TradeHistory({ transactions, rosterMap, playerMap }: TradeHistor
             </div>
 
             {/* Desktop: side-by-side */}
-            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
               <TradeSide
                 teamName={team1?.teamName ?? `Team ${id1}`}
                 receivedPlayers={t1Receives}
