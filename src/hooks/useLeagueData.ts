@@ -319,12 +319,20 @@ export function useLeagueRecords(leagueId: string | null) {
           })
         );
 
-        // Champion: winner of the highest-round match (m=1) in the winners bracket
+        // Champion: winner of the championship match (p=1)
         const typedBracket = bracket as BracketMatch[];
         let champion: SeasonTeamRecord | null = null;
         if (typedBracket.length > 0) {
-          const maxRound = Math.max(...typedBracket.map((b) => b.r));
-          const finalMatch = typedBracket.find((b) => b.r === maxRound && b.m === 1);
+          // In Sleeper, the championship match typically has p: 1
+          let finalMatch = typedBracket.find((b) => b.p === 1);
+          
+          if (!finalMatch) {
+            // Fallback: find the match in the final round
+            const maxRound = Math.max(...typedBracket.map((b) => b.r));
+            // In absence of p: 1, the championship is usually the first match returned for the final round, or we can just find any in the max round.
+            finalMatch = typedBracket.find((b) => b.r === maxRound);
+          }
+          
           if (finalMatch?.w != null) {
             champion = rosterInfoMap.get(finalMatch.w) ?? null;
           }
