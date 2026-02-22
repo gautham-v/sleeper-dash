@@ -17,7 +17,7 @@ interface OverviewProps {
   onSelectManager?: (userId: string) => void;
 }
 
-export function Overview({ computed, leagueId, userId, luckIndex, onNavigate, onViewMyProfile, onSelectManager }: OverviewProps) {
+export function Overview({ computed, leagueId, userId, luckIndex, onViewMyProfile, onSelectManager }: OverviewProps) {
   const { data: history } = useLeagueHistory(leagueId);
   const [rankingMode, setRankingMode] = useState<'alltime' | 'season'>('alltime');
   const [luckMode, setLuckMode] = useState<'alltime' | 'season'>('alltime');
