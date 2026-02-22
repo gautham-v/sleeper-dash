@@ -7,7 +7,14 @@ import {
   calcPowerRankings,
   getBlowoutsAndClose,
 } from '../utils/calculations';
-import type { SleeperLeagueUser, SleeperRoster } from '../types/sleeper';
+import type {
+  SleeperLeagueUser,
+  SleeperMatchup,
+  SleeperRoster,
+  BracketMatch,
+  LeagueSeasonRecord,
+  SeasonTeamRecord,
+} from '../types/sleeper';
 
 const REGULAR_SEASON_WEEKS = 14; // Regular season weeks for matchup calculations
 const TOTAL_SEASON_WEEKS = 18;   // Full season (incl. playoffs) for transactions
@@ -254,6 +261,175 @@ export function useDashboardData(leagueId: string | null) {
     users: users.data ?? [],
     rosters: rosters.data ?? [],
   };
+}
+
+/**
+ * League Records Book: for each season in the chain, compute champion, last place,
+ * highest/lowest scoring team, biggest blowout, and highest/lowest weekly score.
+ */
+export function useLeagueRecords(leagueId: string | null) {
+  return useQuery({
+    queryKey: ['league-records', leagueId],
+    queryFn: async () => {
+      // Walk the previous_league_id chain
+      const leagueChain: { league_id: string; season: string; playoff_week_start: number }[] = [];
+      let currentId = leagueId!;
+
+      for (let i = 0; i < 10; i++) {
+        const league = await sleeperApi.getLeague(currentId);
+        leagueChain.push({
+          league_id: league.league_id,
+          season: league.season,
+          playoff_week_start: league.settings.playoff_week_start || 15,
+        });
+        if (!league.previous_league_id) break;
+        currentId = league.previous_league_id;
+      }
+
+      leagueChain.reverse(); // oldest first
+
+      const records: LeagueSeasonRecord[] = [];
+
+      for (const { league_id, season, playoff_week_start } of leagueChain) {
+        const regularSeasonWeeks = playoff_week_start - 1;
+
+        const [rosters, users, bracket] = await Promise.all([
+          sleeperApi.getRosters(league_id),
+          sleeperApi.getLeagueUsers(league_id),
+          sleeperApi.getWinnersBracket(league_id),
+        ]);
+
+        // Build lookup: rosterId → display info + record
+        const userMap = new Map(users.map((u) => [u.user_id, u]));
+        const rosterInfoMap = new Map<number, SeasonTeamRecord>(
+          rosters.map((r) => {
+            const u = r.owner_id ? userMap.get(r.owner_id) : undefined;
+            return [
+              r.roster_id,
+              {
+                displayName: u?.display_name ?? `Team ${r.roster_id}`,
+                teamName: u?.metadata?.team_name ?? u?.display_name ?? `Team ${r.roster_id}`,
+                wins: r.settings.wins,
+                losses: r.settings.losses,
+                pointsFor: r.settings.fpts + (r.settings.fpts_decimal ?? 0) / 100,
+              },
+            ];
+          })
+        );
+
+        // Champion: winner of the highest-round match (m=1) in the winners bracket
+        const typedBracket = bracket as BracketMatch[];
+        let champion: SeasonTeamRecord | null = null;
+        if (typedBracket.length > 0) {
+          const maxRound = Math.max(...typedBracket.map((b) => b.r));
+          const finalMatch = typedBracket.find((b) => b.r === maxRound && b.m === 1);
+          if (finalMatch?.w != null) {
+            champion = rosterInfoMap.get(finalMatch.w) ?? null;
+          }
+        }
+
+        // Last place: fewest wins, then fewest points
+        const sortedWorst = [...rosters]
+          .filter((r) => r.owner_id)
+          .sort((a, b) => {
+            if (a.settings.wins !== b.settings.wins) return a.settings.wins - b.settings.wins;
+            const ptA = a.settings.fpts + (a.settings.fpts_decimal ?? 0) / 100;
+            const ptB = b.settings.fpts + (b.settings.fpts_decimal ?? 0) / 100;
+            return ptA - ptB;
+          });
+        const lastPlace = sortedWorst.length > 0
+          ? rosterInfoMap.get(sortedWorst[0].roster_id) ?? null
+          : null;
+
+        // Highest / lowest scoring team by total season points
+        const sortedByPoints = [...rosters]
+          .filter((r) => r.owner_id)
+          .sort((a, b) => {
+            const ptA = a.settings.fpts + (a.settings.fpts_decimal ?? 0) / 100;
+            const ptB = b.settings.fpts + (b.settings.fpts_decimal ?? 0) / 100;
+            return ptB - ptA;
+          });
+        const highestScoringTeam = sortedByPoints.length > 0
+          ? rosterInfoMap.get(sortedByPoints[0].roster_id) ?? null
+          : null;
+        const lowestScoringTeam = sortedByPoints.length > 0
+          ? rosterInfoMap.get(sortedByPoints[sortedByPoints.length - 1].roster_id) ?? null
+          : null;
+
+        // Fetch all regular season matchups
+        const weekNums = Array.from({ length: regularSeasonWeeks }, (_, i) => i + 1);
+        const weeklyData = await Promise.all(
+          weekNums.map((w) => sleeperApi.getMatchups(league_id, w))
+        );
+
+        // Compute blowout, high/low weekly scores
+        let biggestBlowout: LeagueSeasonRecord['biggestBlowout'] = null;
+        let highestWeeklyScore: LeagueSeasonRecord['highestWeeklyScore'] = null;
+        let lowestWeeklyScore: LeagueSeasonRecord['lowestWeeklyScore'] = null;
+
+        for (let wi = 0; wi < weekNums.length; wi++) {
+          const week = weekNums[wi];
+          const matchups: SleeperMatchup[] = weeklyData[wi];
+
+          const byMatchupId = new Map<number, SleeperMatchup[]>();
+          for (const m of matchups) {
+            const arr = byMatchupId.get(m.matchup_id) ?? [];
+            arr.push(m);
+            byMatchupId.set(m.matchup_id, arr);
+          }
+
+          for (const [, pair] of byMatchupId) {
+            if (pair.length !== 2) continue;
+            const [a, b] = pair;
+            const aPts = a.points ?? 0;
+            const bPts = b.points ?? 0;
+            if (aPts === 0 && bPts === 0) continue;
+
+            const margin = Math.abs(aPts - bPts);
+            const [winner, loser, winnerPts, loserPts] =
+              aPts >= bPts ? [a, b, aPts, bPts] : [b, a, bPts, aPts];
+
+            if (!biggestBlowout || margin > biggestBlowout.margin) {
+              biggestBlowout = {
+                week,
+                winnerName: rosterInfoMap.get(winner.roster_id)?.teamName ?? `Team ${winner.roster_id}`,
+                loserName: rosterInfoMap.get(loser.roster_id)?.teamName ?? `Team ${loser.roster_id}`,
+                winnerPts,
+                loserPts,
+                margin: Math.round(margin * 100) / 100,
+              };
+            }
+
+            for (const [rosterId, pts] of [[a.roster_id, aPts], [b.roster_id, bPts]] as [number, number][]) {
+              if (pts === 0) continue;
+              const teamName = rosterInfoMap.get(rosterId)?.teamName ?? `Team ${rosterId}`;
+              if (!highestWeeklyScore || pts > highestWeeklyScore.points) {
+                highestWeeklyScore = { week, teamName, points: pts };
+              }
+              if (!lowestWeeklyScore || pts < lowestWeeklyScore.points) {
+                lowestWeeklyScore = { week, teamName, points: pts };
+              }
+            }
+          }
+        }
+
+        records.push({
+          season,
+          champion,
+          lastPlace,
+          highestScoringTeam,
+          lowestScoringTeam,
+          biggestBlowout,
+          highestWeeklyScore,
+          lowestWeeklyScore,
+        });
+      }
+
+      return records.reverse(); // newest season first
+    },
+    enabled: !!leagueId,
+    staleTime: 1000 * 60 * 30,
+  });
 }
 
 /**
