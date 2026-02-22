@@ -118,6 +118,7 @@ export function calcLuckIndex(
     const expected = expectedWinsMap.get(s.rosterId) ?? 0;
     return {
       rosterId: s.rosterId,
+      userId: s.userId,
       teamName: s.teamName,
       displayName: s.displayName,
       avatar: s.avatar,
@@ -165,6 +166,7 @@ export function calcPowerRankings(
 
     return {
       rosterId: s.rosterId,
+      userId: s.userId,
       teamName: s.teamName,
       displayName: s.displayName,
       avatar: s.avatar,
@@ -185,7 +187,7 @@ export function calcPowerRankings(
 /** Biggest blowouts and closest games from all matchups */
 export function getBlowoutsAndClose(
   allMatchups: WeeklyMatchup[],
-  rosterMap: Map<number, { teamName: string }>,
+  rosterMap: Map<number, { teamName: string; userId?: string }>,
   count = 5,
 ): { blowouts: BlowoutGame[]; closest: BlowoutGame[] } {
   const games: BlowoutGame[] = allMatchups.map((m) => {
@@ -198,11 +200,13 @@ export function getBlowoutsAndClose(
       week: m.week,
       winner: {
         rosterId: winner.rosterId,
+        userId: rosterMap.get(winner.rosterId)?.userId,
         teamName: rosterMap.get(winner.rosterId)?.teamName ?? `Team ${winner.rosterId}`,
         points: winner.points,
       },
       loser: {
         rosterId: loser.rosterId,
+        userId: rosterMap.get(loser.rosterId)?.userId,
         teamName: rosterMap.get(loser.rosterId)?.teamName ?? `Team ${loser.rosterId}`,
         points: loser.points,
       },

@@ -237,6 +237,7 @@ export interface WeeklyMatchup {
 
 export interface PowerRanking {
   rosterId: number;
+  userId: string;
   teamName: string;
   displayName: string;
   avatar: string | null;
@@ -250,6 +251,7 @@ export interface PowerRanking {
 
 export interface LuckEntry {
   rosterId: number;
+  userId: string;
   teamName: string;
   displayName: string;
   avatar: string | null;
@@ -333,8 +335,8 @@ export interface AllTimeRecordEntry {
 export interface BlowoutGame {
   week: number;
   season?: string;
-  winner: { rosterId: number; teamName: string; points: number };
-  loser: { rosterId: number; teamName: string; points: number };
+  winner: { rosterId: number; userId?: string; teamName: string; points: number };
+  loser: { rosterId: number; userId?: string; teamName: string; points: number };
   margin: number;
   isPlayoff: boolean;
 }

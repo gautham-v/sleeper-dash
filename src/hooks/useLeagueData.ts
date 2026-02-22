@@ -657,3 +657,130 @@ export function useYearOverYear(leagueId: string | null) {
     staleTime: 1000 * 60 * 30,
   });
 }
+
+export interface CrossLeagueUserStats {
+  totalWins: number;
+  totalLosses: number;
+  playoffWins: number;
+  playoffLosses: number;
+  titles: number;
+  totalSeasons: number;
+  avgPointsFor: number;
+}
+
+/**
+ * Aggregates a user's stats across all their leagues by walking each root
+ * league's previous_league_id chain and summing wins, losses, championships,
+ * playoff records, and points.
+ */
+export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: string[]) {
+  const stableKey = [...rootLeagueIds].sort().join(',');
+  return useQuery({
+    queryKey: ['cross-league-stats', userId, stableKey],
+    queryFn: async (): Promise<CrossLeagueUserStats | null> => {
+      if (!userId || rootLeagueIds.length === 0) return null;
+
+      // Walk each root league's chain to collect all seasons
+      const allSeasons: { league_id: string; playoff_week_start: number }[] = [];
+      const visitedIds = new Set<string>();
+
+      for (const rootId of rootLeagueIds) {
+        let currentId = rootId;
+        for (let i = 0; i < 10; i++) {
+          if (visitedIds.has(currentId)) break;
+          visitedIds.add(currentId);
+          const lg = await sleeperApi.getLeague(currentId);
+          allSeasons.push({ league_id: lg.league_id, playoff_week_start: lg.settings.playoff_week_start || 15 });
+          if (!lg.previous_league_id) break;
+          currentId = lg.previous_league_id;
+        }
+      }
+
+      // Fetch per-season data in parallel
+      const seasonResults = await Promise.all(
+        allSeasons.map(async ({ league_id, playoff_week_start }) => {
+          const [rosters, users, bracket] = await Promise.all([
+            sleeperApi.getRosters(league_id),
+            sleeperApi.getLeagueUsers(league_id),
+            sleeperApi.getWinnersBracket(league_id),
+          ]);
+
+          const userRoster = rosters.find((r) => r.owner_id === userId);
+          if (!userRoster) return null;
+
+          // Determine champion from winners bracket
+          const rosterToUser = new Map(rosters.filter((r) => r.owner_id).map((r) => [r.roster_id, r.owner_id!]));
+          const typedBracket = bracket as BracketMatch[];
+          let championUserId: string | null = null;
+          if (typedBracket.length > 0) {
+            let finalMatch = typedBracket.find((b) => b.p === 1);
+            if (!finalMatch) {
+              const maxRound = Math.max(...typedBracket.map((b) => b.r));
+              finalMatch = typedBracket.find((b) => b.r === maxRound);
+            }
+            if (finalMatch?.w != null) championUserId = rosterToUser.get(finalMatch.w) ?? null;
+          }
+
+          // Fetch only playoff weeks for playoff record calculation
+          const playoffWeeks = Array.from(
+            { length: TOTAL_SEASON_WEEKS - playoff_week_start + 1 },
+            (_, i) => playoff_week_start + i,
+          );
+          const playoffData = await Promise.all(playoffWeeks.map((w) => sleeperApi.getMatchups(league_id, w)));
+
+          let pWins = 0;
+          let pLosses = 0;
+          const userRosterId = userRoster.roster_id;
+          for (const weekMatchups of playoffData) {
+            const byMatchupId = new Map<number, SleeperMatchup[]>();
+            for (const m of weekMatchups) {
+              const arr = byMatchupId.get(m.matchup_id) ?? [];
+              arr.push(m);
+              byMatchupId.set(m.matchup_id, arr);
+            }
+            for (const [, pair] of byMatchupId) {
+              if (pair.length !== 2) continue;
+              const [a, b] = pair;
+              const isA = a.roster_id === userRosterId;
+              const isB = b.roster_id === userRosterId;
+              if (!isA && !isB) continue;
+              const uPts = isA ? (a.points ?? 0) : (b.points ?? 0);
+              const oPts = isA ? (b.points ?? 0) : (a.points ?? 0);
+              if (uPts === 0 && oPts === 0) continue;
+              if (uPts >= oPts) pWins++; else pLosses++;
+            }
+          }
+
+          return {
+            wins: userRoster.settings.wins,
+            losses: userRoster.settings.losses,
+            pointsFor: userRoster.settings.fpts + (userRoster.settings.fpts_decimal ?? 0) / 100,
+            isChampion: championUserId === userId,
+            playoffWins: pWins,
+            playoffLosses: pLosses,
+          };
+        }),
+      );
+
+      let totalWins = 0, totalLosses = 0, playoffWins = 0, playoffLosses = 0;
+      let titles = 0, totalSeasons = 0, totalPointsFor = 0;
+
+      for (const r of seasonResults) {
+        if (!r) continue;
+        totalWins += r.wins;
+        totalLosses += r.losses;
+        totalPointsFor += r.pointsFor;
+        if (r.isChampion) titles++;
+        playoffWins += r.playoffWins;
+        playoffLosses += r.playoffLosses;
+        totalSeasons++;
+      }
+
+      if (totalSeasons === 0) return null;
+
+      return { totalWins, totalLosses, playoffWins, playoffLosses, titles, totalSeasons, avgPointsFor: totalPointsFor / totalSeasons };
+    },
+    enabled: !!userId && rootLeagueIds.length > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+}

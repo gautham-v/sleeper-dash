@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ChevronRight, Trophy } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronRight, Trophy, TrendingUp } from 'lucide-react';
 import { PowerRankings } from './PowerRankings';
 import { BlowoutsAndClose } from './BlowoutsAndClose';
 import { Avatar } from './Avatar';
@@ -16,11 +16,21 @@ interface OverviewProps {
 
 export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfile }: OverviewProps) {
   const { data: history } = useLeagueHistory(leagueId);
+  const [rankingMode, setRankingMode] = useState<'alltime' | 'season'>('alltime');
 
   const myStats = useMemo(() => {
     if (!history) return null;
     return calcAllTimeStats(history).get(userId) ?? null;
   }, [history, userId]);
+
+  const allTimeRankings = useMemo(() => {
+    if (!history) return [];
+    const stats = calcAllTimeStats(history);
+    return [...stats.values()].sort((a, b) => {
+      if (b.titles !== a.titles) return b.titles - a.titles;
+      return b.winPct - a.winPct;
+    });
+  }, [history]);
 
   const champYears = useMemo(() => {
     if (!history || !myStats) return [];
@@ -104,7 +114,7 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Power Rankings */}
         <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-white">Power Rankings</h3>
             <button
               onClick={() => onNavigate('power')}
@@ -113,8 +123,68 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
               View All <ChevronRight size={14} />
             </button>
           </div>
+
+          {/* Toggle */}
+          <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start">
+            <button
+              onClick={() => setRankingMode('alltime')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                rankingMode === 'alltime'
+                  ? 'bg-gray-700 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              All-Time
+            </button>
+            <button
+              onClick={() => setRankingMode('season')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                rankingMode === 'season'
+                  ? 'bg-gray-700 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              This Season
+            </button>
+          </div>
+
           <div className="flex-1">
-            <PowerRankings rankings={computed.powerRankings.slice(0, 3)} standings={computed.standings} />
+            {rankingMode === 'alltime' ? (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 mb-3">
+                  Ranked by championships, then win percentage
+                </p>
+                {allTimeRankings.slice(0, 3).map((mgr, idx) => {
+                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+                  return (
+                    <div key={mgr.userId} className="flex items-center gap-3 bg-gray-800/50 rounded-xl px-4 py-3">
+                      <span className="text-sm w-5 text-center flex-shrink-0">{medal}</span>
+                      <Avatar avatar={mgr.avatar} name={mgr.displayName} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-white text-sm truncate">{mgr.displayName}</div>
+                        <div className="text-xs text-gray-500">
+                          {mgr.totalWins}–{mgr.totalLosses} · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      {mgr.titles > 0 && (
+                        <div className="flex items-center gap-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-2 py-1 flex-shrink-0">
+                          <Trophy size={10} className="text-yellow-400" />
+                          <span className="text-yellow-400 font-bold text-xs">{mgr.titles}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <TrendingUp size={11} className="text-brand-cyan" />
+                        <span className="text-brand-cyan font-bold text-sm">
+                          {(mgr.winPct * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <PowerRankings rankings={computed.powerRankings.slice(0, 3)} standings={computed.standings} />
+            )}
           </div>
         </div>
 
