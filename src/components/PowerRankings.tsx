@@ -4,15 +4,19 @@ import { Avatar } from './Avatar';
 interface PowerRankingsProps {
   rankings: PowerRanking[];
   standings: { rosterId: number; wins: number; losses: number }[];
+  compact?: boolean;
 }
 
-export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
+export function PowerRankings({ rankings, standings, compact = false }: PowerRankingsProps) {
   const standingsByRoster = new Map(standings.map((s) => [s.rosterId, s]));
   const maxScore = Math.max(...rankings.map((r) => r.score));
+  const cardPadding = compact ? 'p-4' : 'p-5';
+  const statPadding = compact ? 'p-2.5' : 'p-3';
+  const scoreText = compact ? 'text-lg' : 'text-xl';
 
   return (
     <div className="space-y-4">
-      <p className="text-[11px] text-gray-500 mb-5 font-medium uppercase tracking-wider">
+      <p className={`text-[11px] text-gray-500 font-medium uppercase tracking-wider ${compact ? 'mb-3' : 'mb-5'}`}>
         Weighted score: 50% recent 3-week avg · 30% season avg · 20% win %
       </p>
       {rankings.map((r, i) => {
@@ -22,10 +26,10 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
 
         return (
-          <div key={r.rosterId} className="bg-card-bg rounded-2xl p-5 border border-card-border hover:border-brand-purple/30 transition-all group hover:shadow-[0_0_20px_rgba(176,132,233,0.05)] relative overflow-hidden">
+          <div key={r.rosterId} className={`bg-card-bg rounded-2xl border border-card-border hover:border-brand-purple/30 transition-all group hover:shadow-[0_0_20px_rgba(176,132,233,0.05)] relative overflow-hidden ${cardPadding}`}>
             {i === 0 && <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>}
             
-            <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className={`flex items-center gap-4 relative z-10 ${compact ? 'mb-3' : 'mb-4'}`}>
               <span className={`font-bold w-6 text-center text-sm ${i < 3 ? 'text-brand-purple' : 'text-gray-500'}`}>
                 {medal ?? `${i + 1}`}
               </span>
@@ -38,7 +42,7 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
                 <div className="text-gray-500 text-xs">{r.displayName}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-xl font-bold text-brand-purple drop-shadow-[0_0_8px_rgba(176,132,233,0.3)]">{r.score.toFixed(1)}</div>
+                <div className={`${scoreText} font-bold text-brand-purple drop-shadow-[0_0_8px_rgba(176,132,233,0.3)]`}>{r.score.toFixed(1)}</div>
                 {standing && (
                   <div className="text-xs font-medium text-gray-500">
                     {standing.wins}–{standing.losses}
@@ -48,7 +52,7 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
             </div>
 
             {/* Score bar */}
-            <div className="h-1.5 bg-black/40 rounded-full overflow-hidden mb-4 relative z-10">
+            <div className={`h-1.5 bg-black/40 rounded-full overflow-hidden relative z-10 ${compact ? 'mb-3' : 'mb-4'}`}>
               <div
                 className="h-full bg-gradient-to-r from-brand-cyan to-brand-purple rounded-full transition-all relative"
                 style={{ width: `${barWidth}%` }}
@@ -59,21 +63,21 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
 
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-3 text-center text-xs relative z-10">
-              <div className="bg-black/20 border border-card-border rounded-xl p-3 hover:bg-black/30 transition-colors">
+              <div className={`bg-black/20 border border-card-border rounded-xl hover:bg-black/30 transition-colors ${statPadding}`}>
                 <div className="text-gray-500 font-medium mb-1">
                   <span className="sm:hidden">L3</span>
                   <span className="hidden sm:inline">Last 3 Avg</span>
                 </div>
                 <div className="text-white font-bold">{r.recentAvg.toFixed(1)}</div>
               </div>
-              <div className="bg-black/20 border border-card-border rounded-xl p-3 hover:bg-black/30 transition-colors">
+              <div className={`bg-black/20 border border-card-border rounded-xl hover:bg-black/30 transition-colors ${statPadding}`}>
                 <div className="text-gray-500 font-medium mb-1">
                   <span className="sm:hidden">Avg</span>
                   <span className="hidden sm:inline">Season Avg</span>
                 </div>
                 <div className="text-white font-bold">{r.seasonAvg.toFixed(1)}</div>
               </div>
-              <div className="bg-black/20 border border-card-border rounded-xl p-3 hover:bg-black/30 transition-colors">
+              <div className={`bg-black/20 border border-card-border rounded-xl hover:bg-black/30 transition-colors ${statPadding}`}>
                 <div className="text-gray-500 font-medium mb-1">Win %</div>
                 <div className="text-white font-bold">{r.winPct.toFixed(1)}%</div>
               </div>

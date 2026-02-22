@@ -90,12 +90,16 @@ function LeagueDashboard({
   }
 
   const { rosterMap } = buildUserMap(users, rosters);
+  const activeTabMeta = TABS.find((tab) => tab.id === activeTab);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-base-bg text-white font-sans">
-      {/* Sidebar Navigation */}
-      <aside className="md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-card-border bg-[#0a0d14] flex flex-col z-20 md:h-screen md:sticky md:top-0">
-        <div className="p-5 flex items-center justify-between">
+    <div className="relative min-h-screen bg-base-bg text-white font-sans">
+      <div className="pointer-events-none absolute -top-28 left-8 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[120px]" />
+      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-brand-purple/10 blur-[140px]" />
+      <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
+        {/* Sidebar Navigation */}
+        <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-[#0a0d14]/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
+          <div className="p-4 sm:p-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
               <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
@@ -107,7 +111,7 @@ function LeagueDashboard({
           </button>
         </div>
 
-        <div className="px-5 mb-6">
+        <div className="px-4 sm:px-5 mb-4 sm:mb-6">
           <div className="flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border">
             {league?.avatar ? (
               <img
@@ -163,42 +167,46 @@ function LeagueDashboard({
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="flex-1 overflow-y-auto no-scrollbar px-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-6">
-          <div className="px-3 mb-2 mt-2 text-[10px] font-semibold text-gray-500 tracking-wider">MAIN</div>
+        <nav className="flex-1 overflow-y-auto no-scrollbar px-3 sm:px-4 pb-4 sm:pb-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-1.5">
+          <div className="col-span-full px-2 mb-1 mt-1 text-[10px] font-semibold text-gray-500 tracking-wider">
+            MAIN
+          </div>
           {TABS.slice(0, 6).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 flex-shrink-0 md:flex-shrink ${
+              className={`flex items-center gap-2.5 xl:gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 justify-start ${
                 activeTab === id
-                  ? 'bg-brand-cyan/10 text-brand-cyan relative before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full glow-box-cyan'
+                  ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full glow-box-cyan'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
               }`}
             >
               <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
-              {label}
+              <span className="truncate">{label}</span>
             </button>
           ))}
           
-          <div className="px-3 mb-2 mt-6 text-[10px] font-semibold text-gray-500 tracking-wider">ANALYSIS</div>
+          <div className="col-span-full px-2 mb-1 mt-3 sm:mt-5 text-[10px] font-semibold text-gray-500 tracking-wider">
+            ANALYSIS
+          </div>
           {TABS.slice(6).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 flex-shrink-0 md:flex-shrink ${
+              className={`flex items-center gap-2.5 xl:gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 justify-start ${
                 activeTab === id
-                  ? 'bg-brand-cyan/10 text-brand-cyan relative before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full glow-box-cyan'
+                  ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full glow-box-cyan'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
               }`}
             >
               <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
-              {label}
+              <span className="truncate">{label}</span>
             </button>
           ))}
         </nav>
 
         {/* Upgrade to Pro Box */}
-        <div className="p-4 mt-auto">
+        <div className="p-4 mt-auto hidden xl:block">
           <div className="bg-gradient-to-br from-brand-cyan/20 to-transparent border border-brand-cyan/20 rounded-2xl p-4 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 w-16 h-16 bg-brand-cyan/20 rounded-full blur-xl pointer-events-none group-hover:bg-brand-cyan/30 transition-colors"></div>
             <div className="flex items-center gap-2 mb-2 relative z-10">
@@ -219,13 +227,17 @@ function LeagueDashboard({
               </button>
             </div>
           </div>
-        </div>
-      </aside>
+          </div>
+        </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-20 border-b border-card-border px-6 sm:px-8 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="h-16 sm:h-20 border-b border-card-border px-4 sm:px-8 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
+          <div className="sm:hidden min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Dashboard</div>
+            <div className="text-sm font-bold text-white truncate">{activeTabMeta?.label ?? 'Overview'}</div>
+          </div>
           <div className="flex items-center gap-6 hidden sm:flex text-sm font-medium text-gray-400">
             <button className="hover:text-white flex items-center gap-2 transition-colors">
               <BarChart2 size={16} /> Reports
@@ -250,7 +262,8 @@ function LeagueDashboard({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-3 sm:gap-4 ml-auto">
+            <div className="text-xs text-gray-400 font-medium sm:hidden">Wk {currentWeek}</div>
             <button className="w-10 h-10 rounded-full border border-card-border bg-card-bg flex items-center justify-center text-gray-400 hover:text-white transition-colors">
               <Zap size={18} />
             </button>
@@ -263,8 +276,8 @@ function LeagueDashboard({
         </header>
 
         {/* Dynamic Content */}
-        <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto">
+        <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 flex-1 overflow-y-auto">
+          <div className="max-w-[1200px] mx-auto">
             {activeTab === 'overview' && (
               <Overview 
                 computed={computed} 
@@ -362,6 +375,7 @@ function LeagueDashboard({
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }

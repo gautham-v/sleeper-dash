@@ -3,13 +3,21 @@ import { Avatar } from './Avatar';
 
 interface StandingsProps {
   standings: TeamStanding[];
+  compact?: boolean;
+  embedded?: boolean;
 }
 
-export function Standings({ standings }: StandingsProps) {
+export function Standings({ standings, compact = false, embedded = false }: StandingsProps) {
+  const wrapperClass = embedded
+    ? 'overflow-hidden'
+    : 'glass-panel rounded-2xl overflow-hidden shadow-lg border border-card-border';
+  const rowPadding = compact ? 'py-3.5' : 'py-4';
+  const bodyTextSize = compact ? 'text-xs' : 'text-sm';
+
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden shadow-lg border border-card-border">
+    <div className={wrapperClass}>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[480px]">
+        <table className={`w-full min-w-[460px] ${bodyTextSize}`}>
           <thead>
             <tr className="text-gray-400 border-b border-card-border text-[10px] font-semibold uppercase tracking-wider bg-black/20">
               <th className="text-left py-4 px-3 pl-5">#</th>
@@ -29,7 +37,7 @@ export function Standings({ standings }: StandingsProps) {
                   key={team.rosterId}
                   className="border-b border-card-border/50 hover:bg-white/5 transition-colors group"
                 >
-                  <td className="py-4 px-3 pl-5">
+                  <td className={`${rowPadding} px-3 pl-5`}>
                     <div className="flex items-center gap-2">
                       <span className={`w-5 text-center font-medium ${i < 3 ? 'text-brand-cyan glow-text-cyan' : 'text-gray-500'}`}>{i + 1}</span>
                       {isPlayoff && (
@@ -37,7 +45,7 @@ export function Standings({ standings }: StandingsProps) {
                       )}
                     </div>
                   </td>
-                  <td className="py-4 px-3">
+                  <td className={`${rowPadding} px-3`}>
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
@@ -49,11 +57,11 @@ export function Standings({ standings }: StandingsProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-3 text-center font-bold text-brand-green">{team.wins}</td>
-                  <td className="py-4 px-3 text-center font-bold text-gray-400">{team.losses}</td>
-                  <td className="py-4 px-3 text-right text-white font-medium tabular-nums">{team.pointsFor.toFixed(2)}</td>
-                  <td className="py-4 px-3 text-right text-gray-500 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
-                  <td className="py-4 px-3 pr-5 text-right">
+                  <td className={`${rowPadding} px-3 text-center font-bold text-brand-green`}>{team.wins}</td>
+                  <td className={`${rowPadding} px-3 text-center font-bold text-gray-400`}>{team.losses}</td>
+                  <td className={`${rowPadding} px-3 text-right text-white font-medium tabular-nums`}>{team.pointsFor.toFixed(2)}</td>
+                  <td className={`${rowPadding} px-3 text-right text-gray-500 tabular-nums hidden sm:table-cell`}>{team.pointsAgainst.toFixed(2)}</td>
+                  <td className={`${rowPadding} px-3 pr-5 text-right`}>
                     {team.streak ? (
                       <span
                         className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${
@@ -74,7 +82,7 @@ export function Standings({ standings }: StandingsProps) {
           </tbody>
         </table>
       </div>
-      <div className="py-3 px-5 text-[11px] font-medium text-gray-500 flex items-center gap-2 bg-black/10">
+      <div className={`px-5 text-[11px] font-medium text-gray-500 flex items-center gap-2 bg-black/10 ${compact ? 'py-2.5' : 'py-3'}`}>
         <span className="w-1.5 h-3 rounded-full bg-brand-green/80 shadow-[0_0_8px_rgba(185,251,192,0.4)] inline-block" />
         Playoff position
       </div>
