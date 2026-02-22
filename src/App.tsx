@@ -44,7 +44,7 @@ function LeagueDashboard({
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { league, currentWeek, isLoading, computed, transactions, draftData } =
+  const { league, currentWeek, isLoading, computed } =
     useDashboardData(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
