@@ -303,9 +303,12 @@ export function useDashboardData(leagueId: string | null) {
     return { standings: standingsWithPlayoff, powerRankings, luckIndex, blowouts, closest, rosterMap, champion };
   })();
 
+  const isOffseason = league.data?.status === 'complete';
+
   return {
     league: league.data ?? null,
     currentWeek,
+    isOffseason,
     isLoading,
     computed,
     transactions: transactions.data ?? [],
