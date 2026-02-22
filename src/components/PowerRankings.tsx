@@ -4,9 +4,10 @@ import { Avatar } from './Avatar';
 interface PowerRankingsProps {
   rankings: PowerRanking[];
   standings: { rosterId: number; wins: number; losses: number }[];
+  onSelectManager?: (userId: string) => void;
 }
 
-export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
+export function PowerRankings({ rankings, standings, onSelectManager }: PowerRankingsProps) {
   const standingsByRoster = new Map(standings.map((s) => [s.rosterId, s]));
   const maxScore = Math.max(...rankings.map((r) => r.score));
 
@@ -28,10 +29,16 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
                 {medal ?? `${i + 1}`}
               </span>
               <Avatar avatar={r.avatar} name={r.displayName} size="md" />
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-white truncate">{r.teamName}</div>
+              <button
+                className="flex-1 min-w-0 text-left group"
+                onClick={() => r.userId && onSelectManager?.(r.userId)}
+                disabled={!r.userId || !onSelectManager}
+              >
+                <div className={`font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
+                  {r.teamName}
+                </div>
                 <div className="text-gray-500 text-xs">{r.displayName}</div>
-              </div>
+              </button>
               <div className="text-right shrink-0">
                 <div className="text-lg font-bold text-indigo-400">{r.score.toFixed(1)}</div>
                 {standing && (

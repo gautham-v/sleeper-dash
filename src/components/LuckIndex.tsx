@@ -3,6 +3,7 @@ import { Avatar } from './Avatar';
 
 interface LuckIndexProps {
   entries: LuckEntry[];
+  onSelectManager?: (userId: string) => void;
 }
 
 function LuckBar({ value, max }: { value: number; max: number }) {
@@ -35,7 +36,7 @@ function LuckBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-export function LuckIndex({ entries }: LuckIndexProps) {
+export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
   const maxLuck = Math.max(...entries.map((e) => Math.abs(e.luckScore)));
 
   return (
@@ -52,14 +53,18 @@ export function LuckIndex({ entries }: LuckIndexProps) {
           >
             <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
             <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
-            <div className="w-24 sm:w-32 shrink-0">
-              <div className="font-medium text-white text-sm leading-tight truncate">
+            <button
+              className="w-24 sm:w-32 shrink-0 text-left group"
+              onClick={() => entry.userId && onSelectManager?.(entry.userId)}
+              disabled={!entry.userId || !onSelectManager}
+            >
+              <div className={`font-medium text-white text-sm leading-tight truncate ${entry.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
                 {entry.teamName}
               </div>
               <div className="text-gray-500 text-xs">
                 {entry.actualWins}W · {entry.expectedWins}exp
               </div>
-            </div>
+            </button>
             <LuckBar value={entry.luckScore} max={maxLuck} />
             <div
               className={`w-14 text-right font-bold tabular-nums text-sm shrink-0 ${

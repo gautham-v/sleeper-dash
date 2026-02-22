@@ -3,9 +3,10 @@ import { Avatar } from './Avatar';
 
 interface StandingsProps {
   standings: TeamStanding[];
+  onSelectManager?: (userId: string) => void;
 }
 
-export function Standings({ standings }: StandingsProps) {
+export function Standings({ standings, onSelectManager }: StandingsProps) {
   const hasPlayoffData = standings.some(
     (s) => (s.playoffWins ?? 0) > 0 || (s.playoffLosses ?? 0) > 0
   );
@@ -45,13 +46,19 @@ export function Standings({ standings }: StandingsProps) {
                     </div>
                   </td>
                   <td className="py-3.5 px-3">
-                    <div className="flex items-center gap-2.5">
+                    <button
+                      className="flex items-center gap-2.5 text-left group w-full"
+                      onClick={() => team.userId && onSelectManager?.(team.userId)}
+                      disabled={!team.userId || !onSelectManager}
+                    >
                       <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
                       <div className="min-w-0">
-                        <div className="font-medium text-white leading-tight truncate max-w-[120px] sm:max-w-none">{team.teamName}</div>
+                        <div className={`font-medium text-white leading-tight truncate max-w-[120px] sm:max-w-none ${team.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
+                          {team.teamName}
+                        </div>
                         <div className="text-gray-500 text-xs truncate max-w-[120px] sm:max-w-none">{team.displayName}</div>
                       </div>
-                    </div>
+                    </button>
                   </td>
                   <td className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</td>
                   <td className="py-3.5 px-3 text-center text-red-400">{team.losses}</td>

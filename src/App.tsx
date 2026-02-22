@@ -5,14 +5,15 @@ import {
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats } from './hooks/useLeagueData';
+import { CrossLeagueStats } from './components/CrossLeagueStats';
 import { Overview } from './components/Overview';
 import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
 import { TeamComparison } from './components/TeamComparison';
 import { LuckIndex } from './components/LuckIndex';
-import { Standings } from './components/Standings';
+import { StandingsSection } from './components/StandingsSection';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
@@ -268,12 +269,7 @@ function LeagueDashboard({
                   />
 
                   {/* Standings widget */}
-                  <section>
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Trophy size={16} className="text-yellow-500" /> Current Standings
-                    </h3>
-                    <Standings standings={computed.standings} />
-                  </section>
+                  <StandingsSection currentStandings={computed.standings} leagueId={leagueId} />
 
                   {/* Luck Index widget */}
                   {computed.luckIndex.length > 0 && (
@@ -338,6 +334,28 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
   const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
   const leagues = useUserLeaguesAllSeasons(user.user_id);
 
+  const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
+    (acc[league.name] ??= []).push(league);
+    return acc;
+  }, {}) ?? {};
+
+  const sortedGroups = Object.entries(grouped).sort(([, a], [, b]) => {
+    const maxA = Math.max(...a.map((l) => Number(l.season)));
+    const maxB = Math.max(...b.map((l) => Number(l.season)));
+    return maxB - maxA;
+  });
+
+  // One root league ID per group (most recent) — used to walk history chains
+  const rootLeagueIds = sortedGroups.map(([, group]) => {
+    const sorted = [...group].sort((a, b) => Number(b.season) - Number(a.season));
+    return sorted[0].league_id;
+  });
+
+  const crossStats = useCrossLeagueStats(
+    leagues.isLoading ? undefined : user.user_id,
+    rootLeagueIds,
+  );
+
   if (leagues.isLoading) {
     return (
       <div className="min-h-screen bg-base-bg flex items-center justify-center">
@@ -348,11 +366,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
       </div>
     );
   }
-
-  const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
-    (acc[league.name] ??= []).push(league);
-    return acc;
-  }, {}) ?? {};
 
   if (selectedLeagueId) {
     return (
@@ -367,12 +380,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
       />
     );
   }
-
-  const sortedGroups = Object.entries(grouped).sort(([, a], [, b]) => {
-    const maxA = Math.max(...a.map((l) => Number(l.season)));
-    const maxB = Math.max(...b.map((l) => Number(l.season)));
-    return maxB - maxA;
-  });
 
   const totalLeagues = sortedGroups.length;
 
