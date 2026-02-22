@@ -14,7 +14,7 @@ import type {
 } from '../types/sleeper';
 
 /** Build paired matchups from a week's flat matchup list */
-export function pairMatchups(matchups: SleeperMatchup[], week: number): WeeklyMatchup[] {
+export function pairMatchups(matchups: SleeperMatchup[], week: number, isPlayoff = false): WeeklyMatchup[] {
   const byMatchupId = new Map<number, SleeperMatchup[]>();
   for (const m of matchups) {
     const arr = byMatchupId.get(m.matchup_id) ?? [];
@@ -32,21 +32,20 @@ export function pairMatchups(matchups: SleeperMatchup[], week: number): WeeklyMa
       team1: { rosterId: a.roster_id, points: a.points ?? 0 },
       team2: { rosterId: b.roster_id, points: b.points ?? 0 },
       margin: Math.abs((a.points ?? 0) - (b.points ?? 0)),
+      isPlayoff,
     });
   }
   return result;
 }
 
-/** Build all-season matchup list from per-week results */
+/** Build all-season matchup list from per-week results, tagging playoff weeks */
 export function buildAllMatchups(
   weeklyMatchups: Map<number, SleeperMatchup[]>,
   regularSeasonWeeks: number,
 ): WeeklyMatchup[] {
   const all: WeeklyMatchup[] = [];
   for (const [week, matchups] of weeklyMatchups) {
-    if (week <= regularSeasonWeeks) {
-      all.push(...pairMatchups(matchups, week));
-    }
+    all.push(...pairMatchups(matchups, week, week > regularSeasonWeeks));
   }
   return all;
 }
@@ -208,6 +207,7 @@ export function getBlowoutsAndClose(
         points: loser.points,
       },
       margin: Math.round(m.margin * 100) / 100,
+      isPlayoff: m.isPlayoff,
     };
   }).filter((g) => g.margin > 0);
 
@@ -293,7 +293,7 @@ export function calcH2H(
   userIdA: string,
   userIdB: string,
 ): H2HRecord {
-  const record: H2HRecord = { teamAWins: 0, teamBWins: 0, teamAPoints: 0, teamBPoints: 0, games: [] };
+  const record: H2HRecord = { teamAWins: 0, teamBWins: 0, teamAPoints: 0, teamBPoints: 0, playoffAWins: 0, playoffBWins: 0, games: [] };
 
   for (const season of history) {
     const teamA = season.teams.get(userIdA);
@@ -320,8 +320,13 @@ export function calcH2H(
 
       record.teamAPoints += aPoints;
       record.teamBPoints += bPoints;
-      if (aPoints > bPoints) record.teamAWins++;
-      else if (bPoints > aPoints) record.teamBWins++;
+      if (aPoints > bPoints) {
+        record.teamAWins++;
+        if (matchup.isPlayoff) record.playoffAWins++;
+      } else if (bPoints > aPoints) {
+        record.teamBWins++;
+        if (matchup.isPlayoff) record.playoffBWins++;
+      }
 
       record.games.push({
         season: season.season,
@@ -329,6 +334,7 @@ export function calcH2H(
         teamAPoints: Math.round(aPoints * 100) / 100,
         teamBPoints: Math.round(bPoints * 100) / 100,
         winner: aPoints > bPoints ? 'A' : bPoints > aPoints ? 'B' : 'tie',
+        isPlayoff: matchup.isPlayoff,
       });
     }
   }

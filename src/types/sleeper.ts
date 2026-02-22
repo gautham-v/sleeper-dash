@@ -186,12 +186,15 @@ export interface H2HRecord {
   teamBWins: number;
   teamAPoints: number;
   teamBPoints: number;
+  playoffAWins: number;
+  playoffBWins: number;
   games: {
     season: string;
     week: number;
     teamAPoints: number;
     teamBPoints: number;
     winner: 'A' | 'B' | 'tie';
+    isPlayoff: boolean;
   }[];
 }
 
@@ -223,6 +226,7 @@ export interface WeeklyMatchup {
     points: number;
   };
   margin: number;
+  isPlayoff: boolean;
 }
 
 export interface PowerRanking {
@@ -285,12 +289,14 @@ export interface SeasonGameRecord {
   winnerPts: number;
   loserPts: number;
   margin: number;
+  isPlayoff?: boolean;
 }
 
 export interface SeasonScoreRecord {
   week: number;
   teamName: string;
   points: number;
+  isPlayoff?: boolean;
 }
 
 export interface LeagueSeasonRecord {
@@ -323,4 +329,5 @@ export interface BlowoutGame {
   winner: { rosterId: number; teamName: string; points: number };
   loser: { rosterId: number; teamName: string; points: number };
   margin: number;
+  isPlayoff: boolean;
 }

@@ -230,13 +230,26 @@ export function TeamComparison({ leagueId }: Props) {
                 <p className="text-sm text-gray-500 text-center py-2">These teams have never faced each other.</p>
               ) : (
                 <div className="space-y-4">
-                  {/* Win count */}
+                  {/* Overall win count */}
                   <CompareBar
                     valueA={h2h.teamAWins}
                     valueB={h2h.teamBWins}
                     labelA={`${teamAInfo?.displayName} Wins`}
                     labelB={`${teamBInfo?.displayName} Wins`}
                   />
+
+                  {/* Playoff breakdown (if any playoff matchups exist) */}
+                  {(h2h.playoffAWins > 0 || h2h.playoffBWins > 0) && (
+                    <div className="flex items-center justify-between text-xs bg-yellow-950/40 border border-yellow-800/30 rounded-lg px-3 py-2">
+                      <span className={`font-semibold tabular-nums ${h2h.playoffAWins > h2h.playoffBWins ? 'text-indigo-400' : 'text-gray-300'}`}>
+                        {h2h.playoffAWins}
+                      </span>
+                      <span className="text-yellow-500/80 text-center flex-1 text-center">🏆 Playoff record</span>
+                      <span className={`font-semibold tabular-nums ${h2h.playoffBWins > h2h.playoffAWins ? 'text-emerald-400' : 'text-gray-300'}`}>
+                        {h2h.playoffBWins}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Points */}
                   <div>
@@ -256,9 +269,15 @@ export function TeamComparison({ leagueId }: Props) {
                       {[...h2h.games].reverse().map((g, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between bg-gray-800/60 rounded-lg px-3 py-2 text-sm"
+                          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${g.isPlayoff ? 'bg-yellow-950/30 border border-yellow-800/20' : 'bg-gray-800/60'}`}
                         >
-                          <span className="text-gray-400 text-xs w-20">{g.season} Wk {g.week}</span>
+                          <span className="text-xs w-24 shrink-0">
+                            {g.isPlayoff ? (
+                              <span className="text-yellow-500/80">{g.season} Playoffs</span>
+                            ) : (
+                              <span className="text-gray-400">{g.season} Wk {g.week}</span>
+                            )}
+                          </span>
                           <div className="flex items-center gap-2 flex-1 justify-center">
                             <span className={`tabular-nums font-medium ${g.winner === 'A' ? 'text-indigo-400' : 'text-gray-300'}`}>
                               {g.teamAPoints}
@@ -373,7 +392,7 @@ export function TeamComparison({ leagueId }: Props) {
               </table>
             </div>
             <div className="px-5 py-3 text-xs text-gray-500">
-              Rank is based on regular-season record &amp; points. 🏆 = finished 1st in the league.
+              Record reflects the full season (regular season + playoffs). 🏆 = won the championship.
             </div>
           </div>
         </>
