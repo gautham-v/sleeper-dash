@@ -5,7 +5,7 @@ import {
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear, useLeagueRecords } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData, useLeagueRecords } from './hooks/useLeagueData';
 import { buildUserMap } from './hooks/useLeagueData';
 import { Overview } from './components/Overview';
 import { Standings } from './components/Standings';
@@ -14,7 +14,6 @@ import { LuckIndex } from './components/LuckIndex';
 import { BlowoutsAndClose } from './components/BlowoutsAndClose';
 import { TradeHistory } from './components/TradeHistory';
 import { DraftGrades } from './components/DraftGrades';
-import { YearOverYear } from './components/YearOverYear';
 import { LeagueRecords } from './components/LeagueRecords';
 import { TeamComparison } from './components/TeamComparison';
 import { avatarUrl } from './utils/calculations';
@@ -32,7 +31,6 @@ const TABS = [
   { id: 'games', label: 'Blowouts & Close', icon: Zap },
   { id: 'trades', label: 'Trades', icon: ArrowLeftRight },
   { id: 'draft', label: 'Draft Grades', icon: BarChart2 },
-  { id: 'history', label: 'Year Over Year', icon: BarChart2 },
   { id: 'records', label: 'Records', icon: BookOpen },
   { id: 'compare', label: 'Compare Teams', icon: Scale },
 ] as const;
@@ -55,7 +53,6 @@ function LeagueDashboard({
 
   const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
     useDashboardData(leagueId);
-  const yoy = useYearOverYear(leagueId);
   const records = useLeagueRecords(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
@@ -338,19 +335,6 @@ function LeagueDashboard({
               </div>
             )}
 
-            {activeTab === 'history' && (
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-6 tracking-tight">Year Over Year</h2>
-                {yoy.isLoading ? (
-                  <div className="flex items-center justify-center h-48 text-brand-cyan">
-                    <Loader2 className="animate-spin mr-2" size={18} />
-                    Fetching multi-season data…
-                  </div>
-                ) : (
-                  <YearOverYear data={yoy.data ?? []} />
-                )}
-              </div>
-            )}
 
             {activeTab === 'records' && (
               <div>

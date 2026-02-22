@@ -9,7 +9,7 @@ interface OverviewProps {
   computed: any;
   transactions: SleeperTransaction[];
   draftData: any;
-  onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "history" | "records" | "compare") => void;
+  onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "records" | "compare") => void;
 }
 
 export function Overview({ computed, transactions, draftData, onNavigate }: OverviewProps) {
