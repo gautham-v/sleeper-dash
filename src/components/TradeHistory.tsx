@@ -39,7 +39,7 @@ export function TradeHistory({ transactions, rosterMap, playerMap, limit }: Trad
 
   if (totalTrades === 0) {
     return (
-      <div className="bg-card-bg rounded-2xl p-8 text-center text-gray-500 border border-card-border border-dashed">
+      <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500">
         No trades recorded this season.
       </div>
     );
@@ -47,7 +47,7 @@ export function TradeHistory({ transactions, rosterMap, playerMap, limit }: Trad
 
   return (
     <div className="space-y-4">
-      {!limit && <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-5">{totalTrades} trades completed this season</p>}
+      {!limit && <p className="text-xs text-gray-500 mb-5">{totalTrades} trades completed this season</p>}
 
       {trades.map((trade) => {
         const [id1, id2] = trade.roster_ids;
@@ -74,8 +74,8 @@ export function TradeHistory({ transactions, rosterMap, playerMap, limit }: Trad
           trade.draft_picks?.filter((p) => p.owner_id === id2 && p.previous_owner_id === id1) ?? [];
 
         return (
-          <div key={trade.transaction_id} className="bg-black/20 rounded-2xl p-5 border border-card-border hover:border-brand-cyan/20 transition-all hover:bg-black/30">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-brand-cyan/70 mb-4">
+          <div key={trade.transaction_id} className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
               <ArrowLeftRight size={12} />
               <span>Trade · {formatTimestamp(trade.created)}</span>
             </div>
@@ -88,10 +88,10 @@ export function TradeHistory({ transactions, rosterMap, playerMap, limit }: Trad
                 receivedPicks={t1ReceivesPicks.map((p) => `${p.season} Rd${p.round}`)}
                 playerMap={playerMap}
               />
-              <div className="flex items-center gap-2 text-brand-cyan/30">
-                <div className="flex-1 h-px bg-card-border" />
-                <ArrowLeftRight size={14} className="text-brand-cyan drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]" />
-                <div className="flex-1 h-px bg-card-border" />
+              <div className="flex items-center gap-2 text-gray-700">
+                <div className="flex-1 h-px bg-gray-800" />
+                <ArrowLeftRight size={12} />
+                <div className="flex-1 h-px bg-gray-800" />
               </div>
               <TradeSide
                 teamName={team2Name}
@@ -102,17 +102,15 @@ export function TradeHistory({ transactions, rosterMap, playerMap, limit }: Trad
             </div>
 
             {/* Desktop: side-by-side */}
-            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-6 items-start">
+            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr] gap-4 items-start">
               <TradeSide
                 teamName={team1Name}
                 receivedPlayers={t1Receives}
                 receivedPicks={t1ReceivesPicks.map((p) => `${p.season} Rd${p.round}`)}
                 playerMap={playerMap}
               />
-              <div className="pt-2 text-brand-cyan self-center px-4">
-                <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/30 glow-box-cyan">
-                  <ArrowLeftRight size={14} className="drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]" />
-                </div>
+              <div className="pt-1 text-gray-600 self-center">
+                <ArrowLeftRight size={16} />
               </div>
               <TradeSide
                 teamName={team2Name}
@@ -147,10 +145,10 @@ function TradeSide({
 
   return (
     <div className={align === 'right' ? 'text-right' : 'text-left'}>
-      <div className="font-bold text-white text-base tracking-tight mb-1">{teamName}</div>
-      <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-widest font-semibold">Receives</div>
+      <div className="font-semibold text-white text-sm mb-1.5">{teamName}</div>
+      <div className="text-xs text-gray-400 mb-1 uppercase tracking-wide">Receives</div>
       {hasContent ? (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {receivedPlayers.map((id) => {
             const player = playerMap.get(id);
             const posColor = player
@@ -159,13 +157,13 @@ function TradeSide({
             return (
               <div
                 key={id}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5"
                 style={{ justifyContent: rowJustify }}
               >
                 {player ? (
                   <>
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${posColor} bg-white/5 px-1.5 py-0.5 rounded`}>{player.position}</span>
-                    <span className="text-gray-200 font-medium">{player.name}</span>
+                    <span className={`text-xs font-semibold ${posColor}`}>{player.position}</span>
+                    <span className="text-gray-200">{player.name}</span>
                   </>
                 ) : (
                   <span className="text-gray-500 font-mono text-xs">ID:{id.slice(-6)}</span>
@@ -176,7 +174,7 @@ function TradeSide({
           {receivedPicks.map((p) => (
             <div
               key={p}
-              className="text-brand-yellow font-bold text-sm drop-shadow-[0_0_2px_rgba(240,246,0,0.5)]"
+              className="text-yellow-400 font-medium"
               style={{ textAlign: align === 'right' ? 'right' : 'left' }}
             >
               {p} Pick

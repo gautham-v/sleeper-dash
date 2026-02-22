@@ -10,17 +10,17 @@ interface Props {
 }
 
 const TIER_STYLES: Record<TeamTier, { label: string; bg: string; text: string; border: string }> = {
-  Elite:          { label: 'Elite',          bg: 'bg-[#F0F600]/10',  text: 'text-[#F0F600] drop-shadow-[0_0_5px_rgba(240,246,0,0.8)]',  border: 'border-[#F0F600]/30' },
-  Contender:      { label: 'Contender',      bg: 'bg-brand-cyan/10',  text: 'text-brand-cyan drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]',  border: 'border-brand-cyan/30' },
-  Average:        { label: 'Average',        bg: 'bg-white/5',    text: 'text-gray-300',    border: 'border-white/10'   },
-  Rebuilding:     { label: 'Rebuilding',     bg: 'bg-orange-500/10',  text: 'text-orange-400 drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]',  border: 'border-orange-500/30' },
-  'Cellar Dweller': { label: 'Cellar Dweller', bg: 'bg-red-500/10',  text: 'text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.8)]',     border: 'border-red-500/30'    },
+  Elite:          { label: 'Elite',          bg: 'bg-yellow-900/40',  text: 'text-yellow-400',  border: 'border-yellow-700' },
+  Contender:      { label: 'Contender',      bg: 'bg-indigo-900/40',  text: 'text-indigo-400',  border: 'border-indigo-700' },
+  Average:        { label: 'Average',        bg: 'bg-gray-800/60',    text: 'text-gray-300',    border: 'border-gray-600'   },
+  Rebuilding:     { label: 'Rebuilding',     bg: 'bg-orange-900/40',  text: 'text-orange-400',  border: 'border-orange-700' },
+  'Cellar Dweller': { label: 'Cellar Dweller', bg: 'bg-red-900/40',  text: 'text-red-400',     border: 'border-red-700'    },
 };
 
 function TierBadge({ tier }: { tier: TeamTier }) {
   const s = TIER_STYLES[tier];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${s.bg} ${s.text} ${s.border}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${s.bg} ${s.text} ${s.border}`}>
       <Shield size={10} />
       {s.label}
     </span>
@@ -37,25 +37,21 @@ function CompareBar({ valueA, valueB, labelA, labelB }: { valueA: number; valueB
 
   return (
     <div className="w-full">
-      <div className="flex justify-between text-[11px] font-bold tracking-wider mb-1">
-        <span className={aLeads ? 'text-brand-cyan drop-shadow-sm' : 'text-gray-500'}>{valueA}</span>
-        <span className={bLeads ? 'text-brand-purple drop-shadow-sm' : 'text-gray-500'}>{valueB}</span>
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span className={aLeads ? 'text-indigo-400 font-semibold' : ''}>{valueA}</span>
+        <span className={bLeads ? 'text-emerald-400 font-semibold' : ''}>{valueB}</span>
       </div>
-      <div className="flex h-2 rounded-full overflow-hidden bg-black/40">
+      <div className="flex h-2 rounded-full overflow-hidden">
         <div
-          className={`transition-all relative ${aLeads ? 'bg-brand-cyan shadow-[0_0_10px_rgba(0,229,255,0.5)]' : 'bg-brand-cyan/30'}`}
+          className={`transition-all ${aLeads ? 'bg-indigo-500' : 'bg-indigo-800'}`}
           style={{ width: `${pctA}%` }}
-        >
-           {aLeads && <div className="absolute inset-0 bg-white/20 w-full rounded-full"></div>}
-        </div>
+        />
         <div
-          className={`transition-all relative ${bLeads ? 'bg-brand-purple shadow-[0_0_10px_rgba(176,132,233,0.5)]' : 'bg-brand-purple/30'}`}
+          className={`transition-all ${bLeads ? 'bg-emerald-500' : 'bg-emerald-800'}`}
           style={{ width: `${pctB}%` }}
-        >
-          {bLeads && <div className="absolute inset-0 bg-white/20 w-full rounded-full"></div>}
-        </div>
+        />
       </div>
-      <div className="flex justify-between text-[10px] font-semibold text-gray-500 mt-1 uppercase tracking-widest">
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
         <span className="truncate max-w-[45%]">{labelA}</span>
         <span className="truncate max-w-[45%] text-right">{labelB}</span>
       </div>
@@ -75,12 +71,12 @@ function StatRow({ label, valueA, valueB, higherIsBetter = true }: {
   const bWins = !isNaN(numA) && !isNaN(numB) && (higherIsBetter ? numB > numA : numB < numA);
 
   return (
-    <div className="flex items-center py-3 border-b border-card-border/50 last:border-0 hover:bg-white/5 transition-colors -mx-2 px-2 rounded-lg">
-      <div className={`w-1/3 text-right text-sm font-bold tabular-nums ${aWins ? 'text-brand-cyan drop-shadow-sm' : 'text-gray-500'}`}>
+    <div className="flex items-center py-3 border-b border-gray-800 last:border-0">
+      <div className={`w-1/3 text-right text-sm font-medium tabular-nums ${aWins ? 'text-indigo-400' : 'text-gray-300'}`}>
         {valueA}
       </div>
-      <div className="w-1/3 text-center text-[10px] font-semibold uppercase tracking-widest text-gray-500 px-2">{label}</div>
-      <div className={`w-1/3 text-left text-sm font-bold tabular-nums ${bWins ? 'text-brand-purple drop-shadow-sm' : 'text-gray-500'}`}>
+      <div className="w-1/3 text-center text-xs text-gray-500 px-2">{label}</div>
+      <div className={`w-1/3 text-left text-sm font-medium tabular-nums ${bWins ? 'text-emerald-400' : 'text-gray-300'}`}>
         {valueB}
       </div>
     </div>
@@ -148,20 +144,18 @@ export function TeamComparison({ leagueId }: Props) {
   const seasons = [...history].map((s) => s.season).sort();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Team selectors */}
-      <div className="bg-card-bg rounded-2xl p-6 border border-card-border shadow-lg relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
-        <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-5 relative z-10">Select Teams to Compare</h3>
-        <div className="grid grid-cols-2 gap-6 relative z-10">
+      <div className="bg-gray-900 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Select Teams to Compare</h3>
+        <div className="grid grid-cols-2 gap-4">
           {/* Team A */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold text-brand-cyan mb-2 tracking-wider">TEAM A</label>
-            <div className="absolute -inset-0.5 bg-brand-cyan/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1.5">Team A</label>
             <select
               value={teamAId}
               onChange={(e) => setTeamAId(e.target.value)}
-              className="relative w-full bg-black/40 border border-card-border rounded-xl px-4 py-3 text-white text-sm font-semibold focus:outline-none focus:border-brand-cyan/50 focus:ring-1 focus:ring-brand-cyan/50 transition-all appearance-none cursor-pointer"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
             >
               <option value="">— Select team —</option>
               {allUsers.map((u) => (
@@ -170,18 +164,14 @@ export function TeamComparison({ leagueId }: Props) {
                 </option>
               ))}
             </select>
-            <div className="absolute right-4 bottom-3.5 pointer-events-none text-gray-500 group-hover:text-brand-cyan transition-colors">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
           </div>
           {/* Team B */}
-          <div className="relative group">
-            <label className="block text-[11px] font-bold text-brand-purple mb-2 tracking-wider">TEAM B</label>
-            <div className="absolute -inset-0.5 bg-brand-purple/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1.5">Team B</label>
             <select
               value={teamBId}
               onChange={(e) => setTeamBId(e.target.value)}
-              className="relative w-full bg-black/40 border border-card-border rounded-xl px-4 py-3 text-white text-sm font-semibold focus:outline-none focus:border-brand-purple/50 focus:ring-1 focus:ring-brand-purple/50 transition-all appearance-none cursor-pointer"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
             >
               <option value="">— Select team —</option>
               {allUsers.map((u) => (
@@ -190,16 +180,13 @@ export function TeamComparison({ leagueId }: Props) {
                 </option>
               ))}
             </select>
-            <div className="absolute right-4 bottom-3.5 pointer-events-none text-gray-500 group-hover:text-brand-purple transition-colors">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Prompt when not both selected */}
       {(!teamAId || !teamBId || teamAId === teamBId) && (
-        <div className="bg-card-bg border border-card-border border-dashed rounded-2xl p-10 text-center text-gray-500 font-medium tracking-wide shadow-lg">
+        <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
           Select two different teams above to see the comparison.
         </div>
       )}
@@ -208,24 +195,23 @@ export function TeamComparison({ leagueId }: Props) {
       {teamAId && teamBId && teamAId !== teamBId && statsA && statsB && (
         <>
           {/* Team headers */}
-          <div className="grid grid-cols-2 gap-6">
-            {[{ info: teamAInfo, stats: statsA, color: 'cyan' }, { info: teamBInfo, stats: statsB, color: 'purple' }].map(
+          <div className="grid grid-cols-2 gap-4">
+            {[{ info: teamAInfo, stats: statsA, color: 'indigo' }, { info: teamBInfo, stats: statsB, color: 'emerald' }].map(
               ({ info, stats, color }, idx) => (
                 <div
                   key={idx}
-                  className={`bg-card-bg rounded-2xl p-6 border shadow-lg relative overflow-hidden group ${color === 'cyan' ? 'border-brand-cyan/30 hover:border-brand-cyan/50' : 'border-brand-purple/30 hover:border-brand-purple/50'} transition-all`}
+                  className={`bg-gray-900 rounded-xl p-5 border ${color === 'indigo' ? 'border-indigo-800/50' : 'border-emerald-800/50'}`}
                 >
-                  <div className={`absolute top-0 ${color === 'cyan' ? 'right-0 bg-brand-cyan/10' : 'left-0 bg-brand-purple/10'} w-32 h-32 rounded-full blur-3xl -mt-10 ${color === 'cyan' ? '-mr-10' : '-ml-10'} pointer-events-none transition-all group-hover:opacity-70 opacity-40`}></div>
-                  <div className="flex items-center gap-4 mb-4 relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
                     <Avatar avatar={info?.avatar ?? null} name={info?.displayName ?? ''} size="lg" />
-                    <div className="min-w-0 flex-1">
-                      <div className={`font-black text-xl truncate tracking-tight mb-1 ${color === 'cyan' ? 'text-brand-cyan drop-shadow-sm' : 'text-brand-purple drop-shadow-sm'}`}>{info?.displayName}</div>
-                      <div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-white truncate">{info?.displayName}</div>
+                      <div className="mt-1">
                         <TierBadge tier={stats.tier} />
                       </div>
                     </div>
                   </div>
-                  <div className="text-[11px] font-bold uppercase tracking-widest text-gray-500 relative z-10 bg-black/20 inline-block px-3 py-1.5 rounded-lg border border-white/5">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in league</div>
+                  <div className="text-xs text-gray-500">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in league</div>
                 </div>
               ),
             )}
@@ -233,17 +219,17 @@ export function TeamComparison({ leagueId }: Props) {
 
           {/* Head-to-Head */}
           {h2h && (
-            <div className="bg-card-bg rounded-2xl p-6 border border-card-border shadow-lg">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-card-border">
-                <Swords size={18} className="text-gray-400" />
-                <h3 className="font-bold text-white tracking-tight">Head-to-Head</h3>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-auto bg-black/20 px-2.5 py-1 rounded-md">{h2h.games.length} matchup{h2h.games.length !== 1 ? 's' : ''} all-time</span>
+            <div className="bg-gray-900 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Swords size={16} className="text-gray-400" />
+                <h3 className="font-semibold text-white">Head-to-Head</h3>
+                <span className="text-xs text-gray-500 ml-auto">{h2h.games.length} matchup{h2h.games.length !== 1 ? 's' : ''} all-time</span>
               </div>
 
               {h2h.games.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6 font-medium bg-black/10 rounded-xl border border-white/5">These teams have never faced each other.</p>
+                <p className="text-sm text-gray-500 text-center py-2">These teams have never faced each other.</p>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Win count */}
                   <CompareBar
                     valueA={h2h.teamAWins}
@@ -254,7 +240,7 @@ export function TeamComparison({ leagueId }: Props) {
 
                   {/* Points */}
                   <div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2 text-center">Total Points Scored (H2H)</div>
+                    <div className="text-xs text-gray-500 mb-1 text-center">Total Points Scored (H2H)</div>
                     <CompareBar
                       valueA={h2h.teamAPoints}
                       valueB={h2h.teamBPoints}
@@ -264,31 +250,31 @@ export function TeamComparison({ leagueId }: Props) {
                   </div>
 
                   {/* Game log */}
-                  <div className="mt-6 pt-4 border-t border-card-border/50">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">All-time matchups</div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar pr-1">
+                  <div className="mt-3">
+                    <div className="text-xs text-gray-500 mb-2">All-time matchups</div>
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto">
                       {[...h2h.games].reverse().map((g, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between bg-black/20 border border-card-border hover:bg-white/5 transition-colors rounded-xl px-4 py-3 text-sm group"
+                          className="flex items-center justify-between bg-gray-800/60 rounded-lg px-3 py-2 text-sm"
                         >
-                          <span className="text-gray-500 font-bold text-[11px] tracking-wider uppercase w-24 group-hover:text-gray-400 transition-colors">{g.season} Wk {g.week}</span>
-                          <div className="flex items-center gap-3 flex-1 justify-center bg-black/30 py-1.5 px-4 rounded-lg">
-                            <span className={`tabular-nums font-bold text-[15px] ${g.winner === 'A' ? 'text-brand-cyan drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]' : 'text-gray-500'}`}>
+                          <span className="text-gray-400 text-xs w-20">{g.season} Wk {g.week}</span>
+                          <div className="flex items-center gap-2 flex-1 justify-center">
+                            <span className={`tabular-nums font-medium ${g.winner === 'A' ? 'text-indigo-400' : 'text-gray-300'}`}>
                               {g.teamAPoints}
                             </span>
-                            <span className="text-gray-600 text-[10px] font-bold uppercase tracking-wider">vs</span>
-                            <span className={`tabular-nums font-bold text-[15px] ${g.winner === 'B' ? 'text-brand-purple drop-shadow-[0_0_5px_rgba(176,132,233,0.5)]' : 'text-gray-500'}`}>
+                            <span className="text-gray-600 text-xs">vs</span>
+                            <span className={`tabular-nums font-medium ${g.winner === 'B' ? 'text-emerald-400' : 'text-gray-300'}`}>
                               {g.teamBPoints}
                             </span>
                           </div>
-                          <span className="text-[11px] w-20 text-right uppercase tracking-wider">
+                          <span className="text-xs w-16 text-right">
                             {g.winner === 'A' ? (
-                              <span className="text-brand-cyan font-black bg-brand-cyan/10 px-2 py-1 rounded border border-brand-cyan/20">{teamAInfo?.displayName?.split(' ')[0]} W</span>
+                              <span className="text-indigo-400 font-semibold">{teamAInfo?.displayName?.split(' ')[0]} W</span>
                             ) : g.winner === 'B' ? (
-                              <span className="text-brand-purple font-black bg-brand-purple/10 px-2 py-1 rounded border border-brand-purple/20">{teamBInfo?.displayName?.split(' ')[0]} W</span>
+                              <span className="text-emerald-400 font-semibold">{teamBInfo?.displayName?.split(' ')[0]} W</span>
                             ) : (
-                              <span className="text-gray-500 font-bold">Tie</span>
+                              <span className="text-gray-500">Tie</span>
                             )}
                           </span>
                         </div>
@@ -301,35 +287,33 @@ export function TeamComparison({ leagueId }: Props) {
           )}
 
           {/* All-time stats comparison */}
-          <div className="bg-card-bg rounded-2xl p-6 border border-card-border shadow-lg">
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-card-border">
-              <TrendingUp size={18} className="text-gray-400" />
-              <h3 className="font-bold text-white tracking-tight">All-Time Stats</h3>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-auto bg-black/20 px-2.5 py-1 rounded-md">Across {seasons.length} season{seasons.length !== 1 ? 's' : ''}</span>
+          <div className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={16} className="text-gray-400" />
+              <h3 className="font-semibold text-white">All-Time Stats</h3>
+              <span className="text-xs text-gray-500 ml-auto">Across {seasons.length} season{seasons.length !== 1 ? 's' : ''}</span>
             </div>
 
             {/* Column headers */}
-            <div className="flex items-center pb-3 mb-2">
+            <div className="flex items-center pb-2 mb-1 border-b border-gray-800">
               <div className="w-1/3 text-right">
-                <span className="text-xs font-bold text-brand-cyan uppercase tracking-wider truncate block drop-shadow-sm">{teamAInfo?.displayName}</span>
+                <span className="text-xs font-semibold text-indigo-400 truncate block">{teamAInfo?.displayName}</span>
               </div>
               <div className="w-1/3" />
               <div className="w-1/3 text-left">
-                <span className="text-xs font-bold text-brand-purple uppercase tracking-wider truncate block drop-shadow-sm">{teamBInfo?.displayName}</span>
+                <span className="text-xs font-semibold text-emerald-400 truncate block">{teamBInfo?.displayName}</span>
               </div>
             </div>
 
-            <div className="bg-black/20 border border-card-border rounded-xl px-2 py-1">
-              <StatRow label="Total Wins" valueA={statsA.totalWins} valueB={statsB.totalWins} />
-              <StatRow label="Total Losses" valueA={statsA.totalLosses} valueB={statsB.totalLosses} higherIsBetter={false} />
-              <StatRow label="Win %" valueA={`${(statsA.winPct * 100).toFixed(1)}%`} valueB={`${(statsB.winPct * 100).toFixed(1)}%`} />
-              <StatRow label="Avg Pts/Season" valueA={statsA.avgPointsFor.toFixed(1)} valueB={statsB.avgPointsFor.toFixed(1)} />
-              <StatRow label="Titles 🏆" valueA={statsA.titles} valueB={statsB.titles} />
-              <StatRow label="Seasons" valueA={statsA.totalSeasons} valueB={statsB.totalSeasons} />
-            </div>
+            <StatRow label="Total Wins" valueA={statsA.totalWins} valueB={statsB.totalWins} />
+            <StatRow label="Total Losses" valueA={statsA.totalLosses} valueB={statsB.totalLosses} higherIsBetter={false} />
+            <StatRow label="Win %" valueA={`${(statsA.winPct * 100).toFixed(1)}%`} valueB={`${(statsB.winPct * 100).toFixed(1)}%`} />
+            <StatRow label="Avg Pts/Season" valueA={statsA.avgPointsFor.toFixed(1)} valueB={statsB.avgPointsFor.toFixed(1)} />
+            <StatRow label="Titles 🏆" valueA={statsA.titles} valueB={statsB.titles} />
+            <StatRow label="Seasons" valueA={statsA.totalSeasons} valueB={statsB.totalSeasons} />
 
             {/* Win bar */}
-            <div className="mt-6 pt-6 border-t border-card-border/50">
+            <div className="mt-4">
               <CompareBar
                 valueA={statsA.totalWins}
                 valueB={statsB.totalWins}
@@ -340,20 +324,20 @@ export function TeamComparison({ leagueId }: Props) {
           </div>
 
           {/* Season-by-season breakdown */}
-          <div className="bg-card-bg rounded-2xl overflow-hidden border border-card-border shadow-lg">
-            <div className="flex items-center gap-2 px-6 pt-6 pb-4 border-b border-card-border bg-black/20">
-              <Trophy size={18} className="text-gray-400" />
-              <h3 className="font-bold text-white tracking-tight">Season-by-Season</h3>
+          <div className="bg-gray-900 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 pt-5 pb-3">
+              <Trophy size={16} className="text-gray-400" />
+              <h3 className="font-semibold text-white">Season-by-Season</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[500px]">
+              <table className="w-full text-sm min-w-[480px]">
                 <thead>
-                  <tr className="text-gray-500 text-[10px] font-bold uppercase tracking-widest border-b border-card-border bg-black/40">
-                    <th className="text-left py-4 px-6">Season</th>
-                    <th className="text-center py-4 px-4 text-brand-cyan">{teamAInfo?.displayName}</th>
-                    <th className="text-center py-4 px-3 text-brand-cyan/50">Rank</th>
-                    <th className="text-center py-4 px-4 text-brand-purple">{teamBInfo?.displayName}</th>
-                    <th className="text-center py-4 px-3 text-brand-purple/50">Rank</th>
+                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <th className="text-left py-3 px-5">Season</th>
+                    <th className="text-center py-3 px-3 text-indigo-400">{teamAInfo?.displayName}</th>
+                    <th className="text-center py-3 px-3 text-indigo-400/60">Rank</th>
+                    <th className="text-center py-3 px-3 text-emerald-400">{teamBInfo?.displayName}</th>
+                    <th className="text-center py-3 px-3 text-emerald-400/60">Rank</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -368,18 +352,18 @@ export function TeamComparison({ leagueId }: Props) {
                     const bBetter = sA && sB && sB.rank < sA.rank;
 
                     return (
-                      <tr key={season} className="border-b border-card-border/50 hover:bg-white/5 transition-colors">
-                        <td className="py-4 px-6 text-gray-400 font-bold text-xs tracking-wider">{season}</td>
-                        <td className={`py-4 px-4 text-center font-black tabular-nums tracking-wide ${aBetter ? 'text-brand-cyan drop-shadow-sm' : 'text-gray-500'}`}>
+                      <tr key={season} className="border-b border-gray-800 hover:bg-gray-800/40 transition-colors">
+                        <td className="py-3 px-5 text-gray-400 font-medium">{season}</td>
+                        <td className={`py-3 px-3 text-center font-semibold tabular-nums ${aBetter ? 'text-indigo-400' : 'text-gray-300'}`}>
                           {aRecord}
                         </td>
-                        <td className={`py-4 px-3 text-center text-[11px] font-bold uppercase tracking-wider ${aBetter ? 'text-brand-cyan/80' : 'text-gray-600'}`}>
+                        <td className={`py-3 px-3 text-center text-xs ${aBetter ? 'text-indigo-400' : 'text-gray-500'}`}>
                           {aRankDisplay}
                         </td>
-                        <td className={`py-4 px-4 text-center font-black tabular-nums tracking-wide ${bBetter ? 'text-brand-purple drop-shadow-sm' : 'text-gray-500'}`}>
+                        <td className={`py-3 px-3 text-center font-semibold tabular-nums ${bBetter ? 'text-emerald-400' : 'text-gray-300'}`}>
                           {bRecord}
                         </td>
-                        <td className={`py-4 px-3 text-center text-[11px] font-bold uppercase tracking-wider ${bBetter ? 'text-brand-purple/80' : 'text-gray-600'}`}>
+                        <td className={`py-3 px-3 text-center text-xs ${bBetter ? 'text-emerald-400' : 'text-gray-500'}`}>
                           {bRankDisplay}
                         </td>
                       </tr>
@@ -388,7 +372,7 @@ export function TeamComparison({ leagueId }: Props) {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-4 text-[10px] uppercase tracking-widest font-semibold text-gray-500 bg-black/20 border-t border-card-border">
+            <div className="px-5 py-3 text-xs text-gray-500">
               Rank is based on regular-season record &amp; points. 🏆 = finished 1st in the league.
             </div>
           </div>
