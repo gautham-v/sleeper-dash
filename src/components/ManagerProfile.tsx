@@ -8,9 +8,10 @@ interface Props {
   leagueId: string;
   userId: string;
   onBack: () => void;
+  onSelectManager?: (userId: string) => void;
 }
 
-export function ManagerProfile({ leagueId, userId, onBack }: Props) {
+export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
   const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons'>('overview');
   const { data: history, isLoading } = useLeagueHistory(leagueId);
 
@@ -285,10 +286,16 @@ export function ManagerProfile({ leagueId, userId, onBack }: Props) {
                     return (
                       <tr key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
                         <td className="py-3 px-5">
-                          <div className="flex items-center gap-2">
+                          <button
+                            className="flex items-center gap-2 group text-left"
+                            onClick={() => onSelectManager?.(opponent.userId)}
+                            disabled={!onSelectManager}
+                          >
                             <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
-                            <span className="text-white font-medium">{opponent.displayName}</span>
-                          </div>
+                            <span className={`font-medium ${onSelectManager ? 'text-white group-hover:text-brand-cyan transition-colors' : 'text-white'}`}>
+                              {opponent.displayName}
+                            </span>
+                          </button>
                         </td>
                         <td className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</td>
                         <td className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</td>

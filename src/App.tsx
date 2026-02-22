@@ -1,19 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, BookOpen, Scale, Users,
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats, useLeagueHistory } from './hooks/useLeagueData';
 import { CrossLeagueStats } from './components/CrossLeagueStats';
+import { LuckIndex } from './components/LuckIndex';
 import { Overview } from './components/Overview';
 import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
 import { TeamComparison } from './components/TeamComparison';
 import { StandingsSection } from './components/StandingsSection';
-import { avatarUrl } from './utils/calculations';
+import { avatarUrl, calcAllTimeLuckIndex } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
 const queryClient = new QueryClient({
@@ -44,10 +45,21 @@ function LeagueDashboard({
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [luckMode, setLuckMode] = useState<'alltime' | 'season'>('alltime');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { league, currentWeek, isOffseason, isLoading, computed } =
     useDashboardData(leagueId);
+  const { data: history } = useLeagueHistory(leagueId);
+
+  const allTimeLuck = useMemo(() => {
+    if (!history) return [];
+    return calcAllTimeLuckIndex(history);
+  }, [history]);
+
+  const mostRecentSeason = history?.[history.length - 1]?.season ?? '';
+  const activeLuck = luckMode === 'alltime' ? allTimeLuck : (computed?.luckIndex ?? []);
+  const showLuck = activeLuck.length > 0;
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
   const multipleSeasons = sortedSeasons.length > 1;
@@ -255,9 +267,7 @@ function LeagueDashboard({
                     computed={computed}
                     leagueId={leagueId}
                     userId={userId}
-                    luckIndex={computed.luckIndex}
                     onNavigate={(tab) => {
-                      // Map legacy tab IDs to new ones
                       if (tab === 'compare') handleTabChange('h2h');
                       else if (tab === 'records') handleTabChange('records');
                       else handleTabChange(tab as TabId);
@@ -282,6 +292,47 @@ function LeagueDashboard({
                     }}
                   />
 
+                  {/* Luck Index */}
+                  {showLuck && (
+                    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-white">Luck Index</h3>
+                          <span className="text-xs text-gray-500">actual vs. expected wins</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start w-fit">
+                        <button
+                          onClick={() => setLuckMode('alltime')}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                            luckMode === 'alltime'
+                              ? 'bg-gray-700 text-white shadow-sm'
+                              : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          All-Time
+                        </button>
+                        <button
+                          onClick={() => setLuckMode('season')}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                            luckMode === 'season'
+                              ? 'bg-gray-700 text-white shadow-sm'
+                              : 'text-gray-500 hover:text-gray-300'
+                          }`}
+                        >
+                          {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
+                        </button>
+                      </div>
+                      <LuckIndex
+                        entries={activeLuck}
+                        onSelectManager={(uid) => {
+                          handleSelectManager(uid);
+                          handleTabChange('managers');
+                        }}
+                      />
+                    </div>
+                  )}
+
                 </div>
               )}
 
@@ -301,6 +352,7 @@ function LeagueDashboard({
                       leagueId={leagueId}
                       userId={selectedManagerId}
                       onBack={handleBackFromProfile}
+                      onSelectManager={handleSelectManager}
                     />
                   ) : (
                     <div>
