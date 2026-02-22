@@ -28,6 +28,7 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
   }, [history, userId, myStats]);
 
   const allTimePts = myStats?.seasons.reduce((sum, s) => sum + s.pointsFor, 0) ?? 0;
+
   return (
     <div className="space-y-6">
       {/* Champion Hero */}
