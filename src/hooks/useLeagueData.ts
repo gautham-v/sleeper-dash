@@ -83,20 +83,22 @@ export function useLeagueUsers(leagueId: string | null) {
 }
 
 /**
- * Always fetch all REGULAR_SEASON_WEEKS weeks of matchups — don't rely on
- * NFL state's current week, which can be wrong during offseason/new year.
- * Filter out weeks where no team scored (bye weeks / future weeks).
+ * Fetch all matchups for the season including playoffs.
+ * Determines playoff_week_start from the league settings to tag games correctly.
+ * Filters out weeks where no team scored (bye weeks / future weeks).
  */
 export function useAllMatchups(leagueId: string | null) {
   return useQuery({
     queryKey: ['all-matchups', leagueId],
     queryFn: async () => {
-      const weeks = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
+      const league = await sleeperApi.getLeague(leagueId!);
+      const playoffStart = league.settings.playoff_week_start || 15;
+      const weeks = Array.from({ length: TOTAL_SEASON_WEEKS }, (_, i) => i + 1);
       const results = await Promise.all(
         weeks.map((w) => sleeperApi.getMatchups(leagueId!, w))
       );
       const map = new Map(weeks.map((w, i) => [w, results[i]]));
-      const all = buildAllMatchups(map, REGULAR_SEASON_WEEKS);
+      const all = buildAllMatchups(map, playoffStart - 1);
       // Filter out weeks where no scores exist yet (future weeks)
       return all.filter((m) => m.team1.points > 0 || m.team2.points > 0);
     },
@@ -246,8 +248,9 @@ export function useDashboardData(leagueId: string | null) {
       return { standings, powerRankings: [], luckIndex: [], blowouts: [], closest: [], rosterMap };
     }
 
-    const powerRankings = calcPowerRankings(allMatchups.data, standings, currentWeek);
-    const luckIndex = calcLuckIndex(allMatchups.data, standings);
+    const regularMatchups = allMatchups.data.filter((m) => !m.isPlayoff);
+    const powerRankings = calcPowerRankings(regularMatchups, standings, currentWeek);
+    const luckIndex = calcLuckIndex(regularMatchups, standings);
     const { blowouts, closest } = getBlowoutsAndClose(allMatchups.data, rosterMap);
 
     return { standings, powerRankings, luckIndex, blowouts, closest, rosterMap };
@@ -366,19 +369,20 @@ export function useLeagueRecords(leagueId: string | null) {
           ? rosterInfoMap.get(sortedByPoints[sortedByPoints.length - 1].roster_id) ?? null
           : null;
 
-        // Fetch all regular season matchups
-        const weekNums = Array.from({ length: regularSeasonWeeks }, (_, i) => i + 1);
+        // Fetch all matchups including postseason
+        const weekNums = Array.from({ length: TOTAL_SEASON_WEEKS }, (_, i) => i + 1);
         const weeklyData = await Promise.all(
           weekNums.map((w) => sleeperApi.getMatchups(league_id, w))
         );
 
-        // Compute blowout, high/low weekly scores
+        // Compute blowout, high/low weekly scores (including postseason)
         let biggestBlowout: LeagueSeasonRecord['biggestBlowout'] = null;
         let highestWeeklyScore: LeagueSeasonRecord['highestWeeklyScore'] = null;
         let lowestWeeklyScore: LeagueSeasonRecord['lowestWeeklyScore'] = null;
 
         for (let wi = 0; wi < weekNums.length; wi++) {
           const week = weekNums[wi];
+          const isPlayoff = week >= playoff_week_start;
           const matchups: SleeperMatchup[] = weeklyData[wi];
 
           const byMatchupId = new Map<number, SleeperMatchup[]>();
@@ -407,6 +411,7 @@ export function useLeagueRecords(leagueId: string | null) {
                 winnerPts,
                 loserPts,
                 margin: Math.round(margin * 100) / 100,
+                isPlayoff,
               };
             }
 
@@ -414,10 +419,10 @@ export function useLeagueRecords(leagueId: string | null) {
               if (pts === 0) continue;
               const teamName = rosterInfoMap.get(rosterId)?.teamName ?? `Team ${rosterId}`;
               if (!highestWeeklyScore || pts > highestWeeklyScore.points) {
-                highestWeeklyScore = { week, teamName, points: pts };
+                highestWeeklyScore = { week, teamName, points: pts, isPlayoff };
               }
               if (!lowestWeeklyScore || pts < lowestWeeklyScore.points) {
-                lowestWeeklyScore = { week, teamName, points: pts };
+                lowestWeeklyScore = { week, teamName, points: pts, isPlayoff };
               }
             }
           }
@@ -451,11 +456,15 @@ export function useLeagueHistory(leagueId: string | null) {
     queryKey: ['league-history', leagueId],
     queryFn: async () => {
       // Walk the chain (oldest → newest)
-      const leagueChain: { league_id: string; season: string }[] = [];
+      const leagueChain: { league_id: string; season: string; playoff_week_start: number }[] = [];
       let currentId = leagueId!;
       for (let i = 0; i < 8; i++) {
         const league = await sleeperApi.getLeague(currentId);
-        leagueChain.push({ league_id: league.league_id, season: league.season });
+        leagueChain.push({
+          league_id: league.league_id,
+          season: league.season,
+          playoff_week_start: league.settings.playoff_week_start || 15,
+        });
         if (!league.previous_league_id) break;
         currentId = league.previous_league_id;
       }
@@ -463,8 +472,8 @@ export function useLeagueHistory(leagueId: string | null) {
 
       const seasons: HistoricalSeason[] = [];
 
-      for (const { league_id, season } of leagueChain) {
-        const weekNums = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
+      for (const { league_id, season, playoff_week_start } of leagueChain) {
+        const weekNums = Array.from({ length: TOTAL_SEASON_WEEKS }, (_, i) => i + 1);
         const [rosters, users, bracket, ...weekMatchupResults] = await Promise.all([
           sleeperApi.getRosters(league_id),
           sleeperApi.getLeagueUsers(league_id),
@@ -500,7 +509,7 @@ export function useLeagueHistory(leagueId: string | null) {
         });
 
         const allMatchups = weekNums.flatMap((week, idx) =>
-          pairMatchups(weekMatchupResults[idx], week).filter(
+          pairMatchups(weekMatchupResults[idx], week, week >= playoff_week_start).filter(
             (m) => m.team1.points > 0 || m.team2.points > 0,
           ),
         );
