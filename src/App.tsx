@@ -12,7 +12,7 @@ import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
 import { TeamComparison } from './components/TeamComparison';
 import { LuckIndex } from './components/LuckIndex';
-import { Standings } from './components/Standings';
+import { StandingsSection } from './components/StandingsSection';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
@@ -268,12 +268,7 @@ function LeagueDashboard({
                   />
 
                   {/* Standings widget */}
-                  <section>
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Trophy size={16} className="text-yellow-500" /> Current Standings
-                    </h3>
-                    <Standings standings={computed.standings} />
-                  </section>
+                  <StandingsSection currentStandings={computed.standings} leagueId={leagueId} />
 
                   {/* Luck Index widget */}
                   {computed.luckIndex.length > 0 && (
