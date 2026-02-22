@@ -171,6 +171,8 @@ export interface TeamAllTimeStats {
   titles: number;
   avgPointsFor: number;
   winPct: number;
+  playoffWins: number;
+  playoffLosses: number;
   tier: TeamTier;
   seasons: {
     season: string;
@@ -178,6 +180,8 @@ export interface TeamAllTimeStats {
     losses: number;
     pointsFor: number;
     rank: number;
+    playoffWins: number;
+    playoffLosses: number;
   }[];
 }
 

@@ -44,7 +44,7 @@ export function ManagerProfile({ leagueId, userId, onBack }: Props) {
     return allUsers.map((opponent) => {
       const h2h = calcH2H(history, userId, opponent.userId);
       const total = h2h.teamAWins + h2h.teamBWins;
-      return { opponent, wins: h2h.teamAWins, losses: h2h.teamBWins, total, winPct: total > 0 ? h2h.teamAWins / total : 0 };
+      return { opponent, wins: h2h.teamAWins, losses: h2h.teamBWins, total, winPct: total > 0 ? h2h.teamAWins / total : 0, playoffWins: h2h.playoffAWins, playoffLosses: h2h.playoffBWins };
     }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
   }, [history, userId, allUsers]);
 
@@ -136,6 +136,12 @@ export function ManagerProfile({ leagueId, userId, onBack }: Props) {
                 <div className="text-2xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
                 <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
               </div>
+              {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
+                <div>
+                  <div className="text-2xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
+                  <div className="text-xs text-gray-500">Playoff Record</div>
+                </div>
+              )}
               <div>
                 <div className="text-2xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
                 <div className="text-xs text-gray-500">All-Time Points</div>
@@ -259,42 +265,55 @@ export function ManagerProfile({ leagueId, userId, onBack }: Props) {
           </div>
           {h2hRecords.length === 0 ? (
             <div className="px-5 pb-5 text-sm text-gray-500">No H2H matchup data available.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                  <th className="text-left py-3 px-5">Opponent</th>
-                  <th className="text-center py-3 px-3">W</th>
-                  <th className="text-center py-3 px-3">L</th>
-                  <th className="text-center py-3 px-3">Win %</th>
-                  <th className="text-right py-3 px-5">Games</th>
-                </tr>
-              </thead>
-              <tbody>
-                {h2hRecords.map(({ opponent, wins, losses, total, winPct }) => {
-                  const wPct = winPct * 100;
-                  return (
-                    <tr key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
-                      <td className="py-3 px-5">
-                        <div className="flex items-center gap-2">
-                          <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
-                          <span className="text-white font-medium">{opponent.displayName}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</td>
-                      <td className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</td>
-                      <td className="py-3 px-3 text-center">
-                        <span className={`font-semibold tabular-nums ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
-                          {wPct.toFixed(0)}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-5 text-right text-gray-500 tabular-nums">{total}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+          ) : (() => {
+            const hasPlayoffH2H = h2hRecords.some(r => r.playoffWins > 0 || r.playoffLosses > 0);
+            return (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <th className="text-left py-3 px-5">Opponent</th>
+                    <th className="text-center py-3 px-3">W</th>
+                    <th className="text-center py-3 px-3">L</th>
+                    <th className="text-center py-3 px-3">Win %</th>
+                    {hasPlayoffH2H && <th className="text-center py-3 px-3 text-yellow-500/70">Playoffs</th>}
+                    <th className="text-right py-3 px-5">Games</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {h2hRecords.map(({ opponent, wins, losses, total, winPct, playoffWins, playoffLosses }) => {
+                    const wPct = winPct * 100;
+                    return (
+                      <tr key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                        <td className="py-3 px-5">
+                          <div className="flex items-center gap-2">
+                            <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
+                            <span className="text-white font-medium">{opponent.displayName}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</td>
+                        <td className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</td>
+                        <td className="py-3 px-3 text-center">
+                          <span className={`font-semibold tabular-nums ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
+                            {wPct.toFixed(0)}%
+                          </span>
+                        </td>
+                        {hasPlayoffH2H && (
+                          <td className="py-3 px-3 text-center">
+                            {(playoffWins > 0 || playoffLosses > 0) ? (
+                              <span className="text-xs font-semibold text-yellow-400 tabular-nums">{playoffWins}–{playoffLosses}</span>
+                            ) : (
+                              <span className="text-xs text-gray-700">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="py-3 px-5 text-right text-gray-500 tabular-nums">{total}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       )}
 
@@ -307,38 +326,54 @@ export function ManagerProfile({ leagueId, userId, onBack }: Props) {
               <h3 className="font-semibold text-white">Season-by-Season Log</h3>
             </div>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                <th className="text-left py-3 px-5">Season</th>
-                <th className="text-center py-3 px-3">Record</th>
-                <th className="text-center py-3 px-3">Rank</th>
-                <th className="text-right py-3 px-5">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...stats.seasons].sort((a, b) => Number(b.season) - Number(a.season)).map((s) => {
-                const isChamp = champYears.includes(s.season);
-                const isLP = lastPlaceFinishes.includes(s.season);
-                return (
-                  <tr key={s.season} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
-                    <td className="py-3 px-5 font-medium text-white">{s.season}</td>
-                    <td className="py-3 px-3 text-center tabular-nums text-gray-300 font-semibold">{s.wins}–{s.losses}</td>
-                    <td className="py-3 px-3 text-center">
-                      {isChamp ? (
-                        <span className="text-yellow-400 font-bold">🏆 1st</span>
-                      ) : isLP ? (
-                        <span className="text-red-400 font-bold">💀 Last</span>
-                      ) : (
-                        <span className="text-gray-400">#{s.rank}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-5 text-right tabular-nums text-gray-300">{s.pointsFor.toFixed(1)}</td>
+          {(() => {
+            const sortedSeasons = [...stats.seasons].sort((a, b) => Number(b.season) - Number(a.season));
+            const hasPlayoffData = sortedSeasons.some(s => s.playoffWins > 0 || s.playoffLosses > 0);
+            return (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <th className="text-left py-3 px-5">Season</th>
+                    <th className="text-center py-3 px-3">Record</th>
+                    {hasPlayoffData && <th className="text-center py-3 px-3 text-yellow-500/70">Playoffs</th>}
+                    <th className="text-center py-3 px-3">Rank</th>
+                    <th className="text-right py-3 px-5">Points</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {sortedSeasons.map((s) => {
+                    const isChamp = champYears.includes(s.season);
+                    const isLP = lastPlaceFinishes.includes(s.season);
+                    return (
+                      <tr key={s.season} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                        <td className="py-3 px-5 font-medium text-white">{s.season}</td>
+                        <td className="py-3 px-3 text-center tabular-nums text-gray-300 font-semibold">{s.wins}–{s.losses}</td>
+                        {hasPlayoffData && (
+                          <td className="py-3 px-3 text-center">
+                            {(s.playoffWins > 0 || s.playoffLosses > 0) ? (
+                              <span className="text-xs font-semibold text-yellow-400 tabular-nums">{s.playoffWins}–{s.playoffLosses}</span>
+                            ) : (
+                              <span className="text-xs text-gray-700">—</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="py-3 px-3 text-center">
+                          {isChamp ? (
+                            <span className="text-yellow-400 font-bold">🏆 1st</span>
+                          ) : isLP ? (
+                            <span className="text-red-400 font-bold">💀 Last</span>
+                          ) : (
+                            <span className="text-gray-400">#{s.rank}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-5 text-right tabular-nums text-gray-300">{s.pointsFor.toFixed(1)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       )}
     </div>

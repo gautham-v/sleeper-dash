@@ -228,7 +228,30 @@ export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamA
   const statsMap = new Map<string, TeamAllTimeStats>();
 
   for (const season of history) {
+    // Compute playoff records from matchups for this season
+    const playoffRecPerUser = new Map<string, { wins: number; losses: number }>();
+    for (const matchup of season.matchups) {
+      if (!matchup.isPlayoff) continue;
+      if (matchup.team1.points === 0 && matchup.team2.points === 0) continue;
+      const [winner, loser] = matchup.team1.points >= matchup.team2.points
+        ? [matchup.team1, matchup.team2]
+        : [matchup.team2, matchup.team1];
+      const wUid = season.rosterToUser.get(winner.rosterId);
+      const lUid = season.rosterToUser.get(loser.rosterId);
+      if (wUid) {
+        const rec = playoffRecPerUser.get(wUid) ?? { wins: 0, losses: 0 };
+        rec.wins++;
+        playoffRecPerUser.set(wUid, rec);
+      }
+      if (lUid) {
+        const rec = playoffRecPerUser.get(lUid) ?? { wins: 0, losses: 0 };
+        rec.losses++;
+        playoffRecPerUser.set(lUid, rec);
+      }
+    }
+
     for (const [userId, team] of season.teams) {
+      const playoffRec = playoffRecPerUser.get(userId) ?? { wins: 0, losses: 0 };
       const existing = statsMap.get(userId);
       if (!existing) {
         statsMap.set(userId, {
@@ -241,8 +264,10 @@ export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamA
           titles: userId === season.championUserId ? 1 : 0,
           avgPointsFor: team.pointsFor,
           winPct: 0,
+          playoffWins: playoffRec.wins,
+          playoffLosses: playoffRec.losses,
           tier: 'Average',
-          seasons: [{ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank }],
+          seasons: [{ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank, playoffWins: playoffRec.wins, playoffLosses: playoffRec.losses }],
         });
       } else {
         existing.totalWins += team.wins;
@@ -251,7 +276,9 @@ export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamA
         existing.titles += userId === season.championUserId ? 1 : 0;
         existing.avgPointsFor += team.pointsFor;
         existing.displayName = team.displayName; // keep most recent name
-        existing.seasons.push({ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank });
+        existing.playoffWins += playoffRec.wins;
+        existing.playoffLosses += playoffRec.losses;
+        existing.seasons.push({ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank, playoffWins: playoffRec.wins, playoffLosses: playoffRec.losses });
       }
     }
   }
@@ -359,6 +386,7 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
   let lowestWeek: { userId: string; name: string; avatar: string | null; pts: number; season: string; week: number } | null = null;
   let biggestBlowout: { winnerUserId: string; winnerName: string; winnerAvatar: string | null; loserName: string; margin: number; season: string; week: number } | null = null;
   const blowoutWinsMap = new Map<string, { name: string; avatar: string | null; count: number }>();
+  const playoffWinsAllTimeMap = new Map<string, { name: string; avatar: string | null; wins: number; losses: number }>();
   const userInfoMap = new Map<string, { name: string; avatar: string | null }>();
   // Chronological W/L per user for streak computation
   const userResults = new Map<string, ('W' | 'L')[]>();
@@ -474,6 +502,18 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
         bw.name = winnerName;
         blowoutWinsMap.set(winnerUserId, bw);
       }
+
+      // Playoff wins tracking
+      if (matchup.isPlayoff) {
+        const pw = playoffWinsAllTimeMap.get(winnerUserId) ?? { name: winnerName, avatar: winnerAvatar, wins: 0, losses: 0 };
+        pw.wins++;
+        pw.name = winnerName;
+        playoffWinsAllTimeMap.set(winnerUserId, pw);
+        const pl = playoffWinsAllTimeMap.get(loserUserId) ?? { name: loserName, avatar: null, wins: 0, losses: 0 };
+        pl.losses++;
+        pl.name = loserName;
+        playoffWinsAllTimeMap.set(loserUserId, pl);
+      }
     }
   }
 
@@ -560,6 +600,12 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
   if (topBW) {
     const [uid, bw] = topBW;
     records.push({ id: 'blowout-wins', category: 'Most Career Blowout Wins', holderId: uid, holder: bw.name, avatar: bw.avatar, value: `${bw.count} blowout${bw.count !== 1 ? 's' : ''}`, rawValue: bw.count, context: 'Wins by 30+ points' });
+  }
+
+  const topPW = [...playoffWinsAllTimeMap.entries()].sort((a, b) => b[1].wins - a[1].wins)[0];
+  if (topPW && topPW[1].wins > 0) {
+    const [uid, pw] = topPW;
+    records.push({ id: 'playoff-wins', category: 'Most Career Playoff Wins', holderId: uid, holder: pw.name, avatar: pw.avatar, value: `${pw.wins} win${pw.wins !== 1 ? 's' : ''}`, rawValue: pw.wins, context: `${pw.wins}–${pw.losses} all-time in the playoffs` });
   }
 
   return records;
