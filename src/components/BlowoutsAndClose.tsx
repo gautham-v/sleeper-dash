@@ -14,7 +14,7 @@ function GameCard({ game, variant }: { game: BlowoutGame; variant: 'blowout' | '
   return (
     <div className={`bg-gray-900 rounded-xl p-4 border ${bg}`}>
       <div className="text-xs text-gray-500 mb-3">
-        {game.isPlayoff ? 'Playoffs' : `Week ${game.week}`}
+        {game.season ? `${game.season} · ` : ''}{game.isPlayoff ? 'Playoffs' : `Week ${game.week}`}
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">

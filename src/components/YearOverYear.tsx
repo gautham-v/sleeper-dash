@@ -29,12 +29,13 @@ const COLORS = [
   '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#14b8a6',
 ];
 
-type MetricKey = 'wins' | 'rank' | 'pointsFor';
+type MetricKey = 'wins' | 'rank' | 'pointsFor' | 'h2hWinPct';
 
 const METRICS: { key: MetricKey; label: string }[] = [
   { key: 'wins', label: 'Wins' },
   { key: 'rank', label: 'Final Rank' },
   { key: 'pointsFor', label: 'Points For' },
+  { key: 'h2hWinPct', label: 'H2H Win %' },
 ];
 
 export function YearOverYear({ data }: YearOverYearProps) {
@@ -55,7 +56,14 @@ export function YearOverYear({ data }: YearOverYearProps) {
     const entry: Record<string, string | number> = { season };
     for (const team of data) {
       const s = team.seasons.find((ss) => ss.season === season);
-      if (s) entry[team.displayName] = s[metric];
+      if (s) {
+        if (metric === 'h2hWinPct') {
+          const total = s.wins + s.losses;
+          entry[team.displayName] = total > 0 ? Math.round((s.wins / total) * 1000) / 10 : 0;
+        } else {
+          entry[team.displayName] = s[metric];
+        }
+      }
     }
     return entry;
   });
@@ -83,6 +91,9 @@ export function YearOverYear({ data }: YearOverYearProps) {
       {metric === 'rank' && (
         <p className="text-xs text-gray-500 mb-4">Lower rank = better finish (1st place = 1)</p>
       )}
+      {metric === 'h2hWinPct' && (
+        <p className="text-xs text-gray-500 mb-4">Head-to-head win % for each regular season</p>
+      )}
 
       <ResponsiveContainer width="100%" height={350}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -92,7 +103,7 @@ export function YearOverYear({ data }: YearOverYearProps) {
             stroke="#6b7280"
             tick={{ fill: '#9ca3af', fontSize: 12 }}
             reversed={reverseYAxis}
-            domain={metric === 'rank' ? [1, 'dataMax'] : undefined}
+            domain={metric === 'rank' ? [1, 'dataMax'] : metric === 'h2hWinPct' ? [0, 100] : undefined}
           />
           <Tooltip
             contentStyle={{

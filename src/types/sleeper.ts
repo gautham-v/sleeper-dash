@@ -252,14 +252,6 @@ export interface LuckEntry {
   luckScore: number;
 }
 
-export interface BlowoutGame {
-  week: number;
-  winner: { rosterId: number; teamName: string; points: number };
-  loser: { rosterId: number; teamName: string; points: number };
-  margin: number;
-  isPlayoff: boolean;
-}
-
 export interface YearOverYearEntry {
   userId: string;
   displayName: string;
@@ -316,4 +308,26 @@ export interface LeagueSeasonRecord {
   biggestBlowout: SeasonGameRecord | null;
   highestWeeklyScore: SeasonScoreRecord | null;
   lowestWeeklyScore: SeasonScoreRecord | null;
+}
+
+export interface AllTimeRecordEntry {
+  id: string;
+  category: string;
+  holderId: string | null;
+  holder: string;
+  avatar: string | null;
+  value: string;
+  rawValue: number;
+  context: string;
+  season?: string;
+  week?: number;
+}
+
+export interface BlowoutGame {
+  week: number;
+  season?: string;
+  winner: { rosterId: number; teamName: string; points: number };
+  loser: { rosterId: number; teamName: string; points: number };
+  margin: number;
+  isPlayoff: boolean;
 }
