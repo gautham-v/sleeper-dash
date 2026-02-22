@@ -296,8 +296,6 @@ export function useLeagueRecords(leagueId: string | null) {
       const records: LeagueSeasonRecord[] = [];
 
       for (const { league_id, season, playoff_week_start } of leagueChain) {
-        const regularSeasonWeeks = playoff_week_start - 1;
-
         const [rosters, users, bracket] = await Promise.all([
           sleeperApi.getRosters(league_id),
           sleeperApi.getLeagueUsers(league_id),
