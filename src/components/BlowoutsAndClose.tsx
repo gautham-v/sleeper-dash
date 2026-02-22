@@ -4,6 +4,7 @@ import { Zap, Flame } from 'lucide-react';
 interface BlowoutsProps {
   blowouts: BlowoutGame[];
   closest: BlowoutGame[];
+  hideHeaders?: boolean;
 }
 
 function GameCard({ game, variant }: { game: BlowoutGame; variant: 'blowout' | 'close' }) {
@@ -41,30 +42,38 @@ function GameCard({ game, variant }: { game: BlowoutGame; variant: 'blowout' | '
   );
 }
 
-export function BlowoutsAndClose({ blowouts, closest }: BlowoutsProps) {
+export function BlowoutsAndClose({ blowouts, closest, hideHeaders }: BlowoutsProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div>
-        <h3 className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-4">
-          <Flame size={14} /> Biggest Blowouts
-        </h3>
-        <div className="space-y-3">
-          {blowouts.map((g, i) => (
-            <GameCard key={i} game={g} variant="blowout" />
-          ))}
+    <div className={`grid grid-cols-1 ${closest.length > 0 ? 'lg:grid-cols-2' : ''} gap-8`}>
+      {blowouts.length > 0 && (
+        <div>
+          {!hideHeaders && (
+            <h3 className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-4">
+              <Flame size={14} /> Biggest Blowouts
+            </h3>
+          )}
+          <div className="space-y-3">
+            {blowouts.map((g, i) => (
+              <GameCard key={i} game={g} variant="blowout" />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div>
-        <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2 mb-4">
-          <Zap size={14} /> Closest Games
-        </h3>
-        <div className="space-y-3">
-          {closest.map((g, i) => (
-            <GameCard key={i} game={g} variant="close" />
-          ))}
+      {closest.length > 0 && (
+        <div>
+          {!hideHeaders && (
+            <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-2 mb-4">
+              <Zap size={14} /> Closest Games
+            </h3>
+          )}
+          <div className="space-y-3">
+            {closest.map((g, i) => (
+              <GameCard key={i} game={g} variant="close" />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
