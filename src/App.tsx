@@ -127,7 +127,6 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
             transactions={transactions}
             rosterMap={computed.rosterMap}
             playerMap={draftData.playerMap}
-            picks={draftData.picks}
           />
         )}
 
