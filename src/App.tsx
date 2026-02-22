@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  Trophy, BookOpen, Scale, BarChart2, Users,
+  Trophy, BookOpen, Scale, Users,
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData } from './hooks/useLeagueData';
-import { buildUserMap } from './hooks/useLeagueData';
 import { Overview } from './components/Overview';
 import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
@@ -45,7 +44,7 @@ function LeagueDashboard({
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
+  const { league, currentWeek, isLoading, computed, transactions, draftData } =
     useDashboardData(leagueId);
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
@@ -95,28 +94,31 @@ function LeagueDashboard({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-brand-cyan bg-base-bg">
-        <Loader2 className="animate-spin mr-2" size={20} />
-        Loading league data…
+      <div className="flex items-center justify-center min-h-screen bg-base-bg">
+        <div className="text-center space-y-3">
+          <Loader2 className="animate-spin text-brand-cyan mx-auto" size={28} />
+          <p className="text-gray-400 text-sm">Loading league data…</p>
+        </div>
       </div>
     );
   }
 
   if (!computed) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-center text-gray-500 py-16 bg-base-bg">
+      <div className="flex items-center justify-center min-h-screen bg-base-bg text-gray-500">
         Failed to load league data.
       </div>
     );
   }
 
-  const { rosterMap } = buildUserMap(users, rosters);
   const activeTabMeta = TABS.find((tab) => tab.id === activeTab);
 
   return (
     <div className="relative min-h-screen bg-base-bg text-white font-sans">
-      <div className="pointer-events-none absolute -top-28 left-8 h-72 w-72 rounded-full bg-brand-cyan/10 blur-[120px]" />
-      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 rounded-full bg-brand-purple/10 blur-[140px]" />
+      {/* Ambient glow orbs */}
+      <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-brand-cyan/5 blur-[120px]" />
+      <div className="pointer-events-none fixed right-0 top-1/2 h-96 w-96 rounded-full bg-brand-purple/5 blur-[140px]" />
+
       <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
         {/* Sidebar Navigation */}
         <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-[#0a0d14]/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
@@ -328,14 +330,15 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
 
   if (leagues.isLoading) {
     return (
-      <div className="min-h-screen bg-base-bg flex items-center justify-center text-brand-cyan">
-        <Loader2 className="animate-spin mr-2" size={18} />
-        Fetching your leagues…
+      <div className="min-h-screen bg-base-bg flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 className="animate-spin text-brand-cyan mx-auto" size={24} />
+          <p className="text-gray-400 text-sm">Fetching your leagues…</p>
+        </div>
       </div>
     );
   }
 
-  // Group leagues by name
   const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
     (acc[league.name] ??= []).push(league);
     return acc;
@@ -354,44 +357,56 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
     );
   }
 
-  // Sort league groups by most recent season first
   const sortedGroups = Object.entries(grouped).sort(([, a], [, b]) => {
     const maxA = Math.max(...a.map((l) => Number(l.season)));
     const maxB = Math.max(...b.map((l) => Number(l.season)));
     return maxB - maxA;
   });
 
+  const totalLeagues = sortedGroups.length;
+
   return (
     <div className="min-h-screen bg-base-bg text-white">
-      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
+      {/* Ambient bg */}
+      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 h-64 w-96 bg-brand-cyan/4 blur-[100px] rounded-full" />
+
+      <div className="relative z-10 max-w-2xl mx-auto px-4 py-8 sm:py-12">
         {/* Header */}
-        <header className="flex items-center gap-3 mb-8 sm:mb-10 pb-6 border-b border-card-border">
-          {user.avatar ? (
-            <img
-              src={avatarUrl(user.avatar) ?? ''}
-              alt={user.display_name}
-              className="w-10 h-10 rounded-full flex-shrink-0 border border-brand-cyan/30"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-brand-cyan/20 flex items-center justify-center flex-shrink-0 border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
-              <UserCircle size={22} className="text-brand-cyan" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            {user.avatar ? (
+              <img
+                src={avatarUrl(user.avatar) ?? ''}
+                alt={user.display_name}
+                className="w-10 h-10 rounded-full border border-card-border"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center">
+                <UserCircle size={20} className="text-brand-cyan/70" />
+              </div>
+            )}
+            <div>
+              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Signed in as</div>
+              <div className="text-white font-semibold leading-tight">{user.display_name}</div>
             </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-white leading-tight tracking-tight">Sleeper Dash</h1>
-            <p className="text-gray-400 text-sm">{user.display_name}</p>
           </div>
           <button
             onClick={onChangeUser}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors border border-card-border hover:border-card-border/80 px-3 py-1.5 rounded-lg bg-white/3"
           >
-            <UserCircle size={15} />
+            <UserCircle size={13} />
             Change user
           </button>
-        </header>
+        </div>
 
-        <h2 className="text-lg font-semibold text-white mb-5">Your Leagues</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Title row */}
+        <div className="flex items-baseline gap-3 mb-5">
+          <h1 className="text-xl font-bold text-white">Your Leagues</h1>
+          <span className="text-xs text-gray-600 font-medium">{totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}</span>
+        </div>
+
+        {/* League cards */}
+        <div className="space-y-2">
           {sortedGroups.map(([name, group]) => {
             const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
             const latest = seasons[0];
@@ -403,45 +418,63 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
                   setSelectedGroup(group);
                   setSelectedLeagueId(latest.league_id);
                 }}
-                className="flex items-center gap-3 bg-card-bg hover:bg-[#1a1e2b] p-5 rounded-2xl text-left transition-all border border-card-border hover:border-brand-cyan/50 hover:shadow-[0_0_20px_rgba(0,229,255,0.1)] w-full group"
+                className="flex items-center gap-4 w-full text-left bg-card-bg hover:bg-[#161d2e] border border-card-border hover:border-brand-cyan/25 rounded-xl px-4 py-4 transition-all group"
               >
+                {/* Avatar */}
                 {latest.avatar ? (
                   <img
                     src={avatarUrl(latest.avatar) ?? ''}
                     alt={name}
-                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/5"
+                    className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-lg flex-shrink-0 border border-brand-purple/30">
+                  <div className="w-11 h-11 rounded-lg bg-brand-purple/15 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/20">
                     {name.slice(0, 2)}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-white truncate mb-1 group-hover:text-brand-cyan transition-colors">{name}</div>
-                  <div className="text-xs text-gray-500 mb-2">{latest.settings.num_teams} teams</div>
-                  {/* Season badges */}
-                  <div className="flex flex-wrap gap-1">
-                    {seasons.map((l) => (
-                      <span
-                        key={l.league_id}
-                        className="text-[10px] bg-base-bg text-gray-400 px-2 py-0.5 rounded-md border border-card-border"
-                      >
-                        {l.season}
-                      </span>
-                    ))}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-white group-hover:text-brand-cyan transition-colors truncate leading-snug">
+                    {name}
+                  </div>
+                  <div className="flex items-center gap-2.5 mt-1">
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Users size={11} />
+                      {latest.settings.num_teams} teams
+                    </span>
+                    <span className="text-gray-700">·</span>
+                    <div className="flex items-center gap-1">
+                      {seasons.map((l) => (
+                        <span
+                          key={l.league_id}
+                          className="text-[11px] text-gray-500 bg-white/4 px-1.5 py-0.5 rounded border border-card-border/80 font-medium"
+                        >
+                          {l.season}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-gray-600 group-hover:text-brand-cyan transition-colors flex-shrink-0" />
+
+                <ChevronRight size={16} className="text-gray-600 group-hover:text-brand-cyan transition-colors flex-shrink-0" />
               </button>
             );
           })}
         </div>
+
+        {sortedGroups.length === 0 && (
+          <div className="text-center py-16 text-gray-600">
+            <Trophy size={32} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No leagues found for this user.</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/** Username entry screen shown before a user is loaded */
+/** Username entry screen */
 function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   const [value, setValue] = useState('');
 
@@ -452,39 +485,53 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans">
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_30px_rgba(0,229,255,0.2)]">
-            <span className="text-brand-cyan font-bold text-5xl leading-none mt-[-4px]">∞</span>
+    <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans relative overflow-hidden">
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-brand-cyan/6 blur-[100px]" />
+      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-64 w-64 rounded-full bg-brand-purple/5 blur-[120px]" />
+
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex justify-center mb-7">
+          <div className="w-16 h-16 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-[0_0_40px_rgba(0,229,255,0.12)]">
+            <span className="text-brand-cyan font-bold text-4xl leading-none" style={{ marginTop: '-3px' }}>∞</span>
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2 text-center tracking-tight">Sleeper Dash</h1>
-        <p className="text-gray-400 text-center mb-8">
-          Enter your Sleeper username to view your leagues
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Sleeper username"
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-all"
-            />
-          </div>
+
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Sleeper Dash</h1>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Fantasy football analytics for your Sleeper leagues
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Enter your Sleeper username"
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-brand-cyan/50 focus:ring-1 focus:ring-brand-cyan/20 transition-all text-sm"
+          />
           <button
             type="submit"
             disabled={!value.trim()}
-            className="w-full bg-brand-cyan hover:bg-[#00cce6] disabled:opacity-40 disabled:cursor-not-allowed text-[#0b0e14] py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(0,229,255,0.4)] hover:shadow-[0_0_25px_rgba(0,229,255,0.6)]"
+            className="w-full bg-brand-cyan disabled:opacity-30 disabled:cursor-not-allowed text-[#0b0e14] py-3.5 rounded-xl font-bold transition-all text-sm hover:brightness-110 shadow-[0_4px_20px_rgba(0,229,255,0.2)] disabled:shadow-none"
           >
             View Dashboard
           </button>
         </form>
+
+        {/* Subtle hint */}
+        <p className="text-center text-xs text-gray-700 mt-6">
+          Reads public league data from Sleeper API
+        </p>
       </div>
     </div>
   );
@@ -501,9 +548,8 @@ function AppContent({
 
   if (user.isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen text-brand-cyan bg-base-bg">
-        <Loader2 className="animate-spin mr-2" size={20} />
-        Loading…
+      <div className="flex items-center justify-center h-screen bg-base-bg">
+        <Loader2 className="animate-spin text-brand-cyan" size={24} />
       </div>
     );
   }
@@ -511,14 +557,17 @@ function AppContent({
   if (user.isError || !user.data) {
     return (
       <div className="min-h-screen bg-base-bg flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-red-400 mb-2">
-            Could not find Sleeper user "{username}".
+        <div className="text-center max-w-xs">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+            <UserCircle size={22} className="text-red-400" />
+          </div>
+          <p className="text-white font-semibold mb-1">User not found</p>
+          <p className="text-gray-500 text-sm mb-6">
+            Could not find Sleeper user "{username}". Check the username and try again.
           </p>
-          <p className="text-gray-500 text-sm mb-6">Check the username and try again.</p>
           <button
             onClick={onChangeUser}
-            className="bg-card-bg border border-card-border hover:bg-[#1a1e2b] text-white px-5 py-2.5 rounded-xl transition-colors text-sm font-medium"
+            className="bg-card-bg border border-card-border hover:border-card-border/60 text-white px-5 py-2.5 rounded-xl transition-colors text-sm font-medium"
           >
             Try another username
           </button>
