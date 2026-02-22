@@ -211,3 +211,47 @@ export interface YearOverYearEntry {
     rank: number;
   }[];
 }
+
+export interface BracketMatch {
+  r: number;
+  m: number;
+  t1?: number | null;
+  t2?: number | null;
+  w?: number | null;
+  l?: number | null;
+  p?: number | null;
+}
+
+export interface SeasonTeamRecord {
+  displayName: string;
+  teamName: string;
+  wins: number;
+  losses: number;
+  pointsFor: number;
+}
+
+export interface SeasonGameRecord {
+  week: number;
+  winnerName: string;
+  loserName: string;
+  winnerPts: number;
+  loserPts: number;
+  margin: number;
+}
+
+export interface SeasonScoreRecord {
+  week: number;
+  teamName: string;
+  points: number;
+}
+
+export interface LeagueSeasonRecord {
+  season: string;
+  champion: SeasonTeamRecord | null;
+  lastPlace: SeasonTeamRecord | null;
+  highestScoringTeam: SeasonTeamRecord | null;
+  lowestScoringTeam: SeasonTeamRecord | null;
+  biggestBlowout: SeasonGameRecord | null;
+  highestWeeklyScore: SeasonScoreRecord | null;
+  lowestWeeklyScore: SeasonScoreRecord | null;
+}
