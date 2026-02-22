@@ -330,6 +330,12 @@ export function TeamComparison({ leagueId }: Props) {
             <StatRow label="Avg Pts/Season" valueA={statsA.avgPointsFor.toFixed(1)} valueB={statsB.avgPointsFor.toFixed(1)} />
             <StatRow label="Titles 🏆" valueA={statsA.titles} valueB={statsB.titles} />
             <StatRow label="Seasons" valueA={statsA.totalSeasons} valueB={statsB.totalSeasons} />
+            {(statsA.playoffWins + statsA.playoffLosses > 0 || statsB.playoffWins + statsB.playoffLosses > 0) && (
+              <>
+                <StatRow label="Playoff Wins" valueA={statsA.playoffWins} valueB={statsB.playoffWins} />
+                <StatRow label="Playoff Losses" valueA={statsA.playoffLosses} valueB={statsB.playoffLosses} higherIsBetter={false} />
+              </>
+            )}
 
             {/* Win bar */}
             <div className="mt-4">

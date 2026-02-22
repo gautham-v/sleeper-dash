@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Loader2, Trophy, Skull, Flame, Zap, TrendingUp, TrendingDown, Star, AlertTriangle, Swords, Timer } from 'lucide-react';
+import { Loader2, Trophy, Skull, Flame, Zap, TrendingUp, TrendingDown, Star, AlertTriangle, Swords, Timer, Medal } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
@@ -28,6 +28,7 @@ const RECORD_META: Record<string, {
   'lowest-weekly':      { icon: <AlertTriangle size={16} />, accentBg: 'bg-gray-800/40',   accentBorder: 'border-gray-700/40',   accentText: 'text-gray-400',    badgeBg: 'bg-gray-700/40' },
   'biggest-blowout':    { icon: <Zap size={16} />,           accentBg: 'bg-purple-900/20', accentBorder: 'border-purple-700/40', accentText: 'text-purple-400',  badgeBg: 'bg-purple-900/40' },
   'blowout-wins':       { icon: <Swords size={16} />,        accentBg: 'bg-orange-900/20', accentBorder: 'border-orange-700/40', accentText: 'text-orange-400',  badgeBg: 'bg-orange-900/40' },
+  'playoff-wins':       { icon: <Medal size={16} />,         accentBg: 'bg-yellow-900/20', accentBorder: 'border-yellow-700/40', accentText: 'text-yellow-400',  badgeBg: 'bg-yellow-900/40' },
 };
 
 function RecordCard({ record, onSelectManager }: { record: AllTimeRecordEntry; onSelectManager?: (userId: string) => void }) {

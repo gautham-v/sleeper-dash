@@ -67,6 +67,9 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
                 {mgr.totalWins}–{mgr.totalLosses} · {totalGames} games · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
+                {(mgr.playoffWins > 0 || mgr.playoffLosses > 0) && (
+                  <span className="text-yellow-500/70"> · playoffs {mgr.playoffWins}–{mgr.playoffLosses}</span>
+                )}
               </div>
             </div>
 
