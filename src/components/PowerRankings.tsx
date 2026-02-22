@@ -11,8 +11,8 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
   const maxScore = Math.max(...rankings.map((r) => r.score));
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-gray-500 mb-4">
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 mb-5">
         Weighted score: 50% recent 3-week avg · 30% season avg · 20% win %
       </p>
       {rankings.map((r, i) => {
@@ -22,7 +22,7 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
 
         return (
-          <div key={r.rosterId} className="bg-gray-900 rounded-xl p-4">
+          <div key={r.rosterId} className="bg-gray-900 rounded-xl p-5">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-gray-500 font-bold w-6 text-center text-sm">
                 {medal ?? `${i + 1}`}
@@ -52,21 +52,21 @@ export function PowerRankings({ rankings, standings }: PowerRankingsProps) {
 
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="bg-gray-800 rounded-lg p-2">
+              <div className="bg-gray-800 rounded-lg p-2.5">
                 <div className="text-gray-400">
                   <span className="sm:hidden">L3</span>
                   <span className="hidden sm:inline">Last 3 Avg</span>
                 </div>
                 <div className="text-white font-semibold">{r.recentAvg.toFixed(1)}</div>
               </div>
-              <div className="bg-gray-800 rounded-lg p-2">
+              <div className="bg-gray-800 rounded-lg p-2.5">
                 <div className="text-gray-400">
                   <span className="sm:hidden">Avg</span>
                   <span className="hidden sm:inline">Season Avg</span>
                 </div>
                 <div className="text-white font-semibold">{r.seasonAvg.toFixed(1)}</div>
               </div>
-              <div className="bg-gray-800 rounded-lg p-2">
+              <div className="bg-gray-800 rounded-lg p-2.5">
                 <div className="text-gray-400">Win %</div>
                 <div className="text-white font-semibold">{r.winPct.toFixed(1)}%</div>
               </div>

@@ -56,7 +56,7 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
   const pointsRank = new Map(sortedByPoints.map((r, i) => [r.roster_id, i + 1]));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <p className="text-xs text-gray-500">
         Draft board for all {totalRounds} rounds · Grade based on season total points rank
       </p>
@@ -66,11 +66,11 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
         <table className="w-full text-xs min-w-[600px]">
           <thead>
             <tr className="text-gray-500 border-b border-gray-700">
-              <th className="text-left p-2 font-normal">Team</th>
-              <th className="text-center p-2 font-normal">PF</th>
-              <th className="text-center p-2 font-normal">Grade</th>
+              <th className="text-left p-3 font-normal">Team</th>
+              <th className="text-center p-3 font-normal">PF</th>
+              <th className="text-center p-3 font-normal">Grade</th>
               {Array.from({ length: totalRounds }, (_, i) => (
-                <th key={i} className="text-center p-2 font-normal text-gray-600">
+                <th key={i} className="text-center p-3 font-normal text-gray-600">
                   R{i + 1}
                 </th>
               ))}
@@ -86,20 +86,20 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
 
               return (
                 <tr key={rosterId} className="border-b border-gray-800 hover:bg-gray-800/30">
-                  <td className="p-2">
+                  <td className="p-3">
                     <div className="font-medium text-white">{team?.teamName ?? `Team ${rosterId}`}</div>
                     <div className="text-gray-500">{team?.displayName}</div>
                   </td>
-                  <td className="p-2 text-center text-white tabular-nums">{pts.toFixed(1)}</td>
-                  <td className="p-2 text-center">
+                  <td className="p-3 text-center text-white tabular-nums">{pts.toFixed(1)}</td>
+                  <td className="p-3 text-center">
                     <span className={`font-bold text-sm ${color}`}>{grade}</span>
                   </td>
                   {Array.from({ length: totalRounds }, (_, i) => {
                     const pick = picksByRound.get(i + 1);
-                    if (!pick) return <td key={i} className="p-2 text-center text-gray-700">—</td>;
+                    if (!pick) return <td key={i} className="p-3 text-center text-gray-700">—</td>;
                     const posClass = POSITION_COLORS[pick.metadata.position] ?? 'bg-gray-700 text-gray-300';
                     return (
-                      <td key={i} className="p-2 text-center">
+                      <td key={i} className="p-3 text-center">
                         <div className="flex flex-col items-center gap-0.5">
                           <span
                             className={`px-1.5 py-0.5 rounded text-xs font-semibold ${posClass}`}

@@ -61,14 +61,14 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
       >
         <ChevronLeft size={16} />
         Back to leagues
       </button>
 
       {/* League header */}
-      <div className="flex items-center gap-3 mb-4 sm:mb-6">
+      <div className="flex items-center gap-4 mb-6 sm:mb-8">
         {league?.avatar ? (
           <img
             src={avatarUrl(league.avatar) ?? ''}
@@ -90,12 +90,12 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
 
       {/* Tabs — bleed to screen edges on mobile for smooth scroll */}
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-1 overflow-x-auto pb-2 mb-6 no-scrollbar">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-8 no-scrollbar">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === id
                   ? 'bg-indigo-600 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
@@ -174,14 +174,14 @@ function SeasonPicker({
     <div>
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-5 transition-colors"
+        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
       >
         <ChevronLeft size={16} />
         All leagues
       </button>
 
       {/* League identity */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-4 mb-8">
         {rep.avatar ? (
           <img
             src={avatarUrl(rep.avatar) ?? ''}
@@ -199,9 +199,9 @@ function SeasonPicker({
         </div>
       </div>
 
-      <p className="text-sm text-gray-400 mb-3">Select a season</p>
+      <p className="text-sm text-gray-400 mb-4">Select a season</p>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {sorted.map((league) => (
           <button
             key={league.league_id}
@@ -285,8 +285,8 @@ function LeagueSelector({ userId }: { userId: string }) {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-4">Your Leagues</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <h2 className="text-lg font-semibold text-white mb-5">Your Leagues</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
         {sortedGroups.map(([name, group]) => {
           const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
           const latest = seasons[0];
@@ -303,7 +303,7 @@ function LeagueSelector({ userId }: { userId: string }) {
                   setView('seasons');
                 }
               }}
-              className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-4 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
+              className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-5 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
             >
               {latest.avatar ? (
                 <img
@@ -426,9 +426,9 @@ function AppContent({
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
         {/* Header */}
-        <header className="flex items-center gap-3 mb-5 sm:mb-8">
+        <header className="flex items-center gap-3 mb-8 sm:mb-10 pb-6 border-b border-gray-800/60">
           {user.data.avatar ? (
             <img
               src={avatarUrl(user.data.avatar) ?? ''}
