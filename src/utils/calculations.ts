@@ -587,6 +587,7 @@ export function calcAllTimeBlowouts(
         winner: { rosterId: winner.rosterId, teamName: winnerId ? (season.teams.get(winnerId)?.displayName ?? `Team ${winner.rosterId}`) : `Team ${winner.rosterId}`, points: winner.points },
         loser: { rosterId: loser.rosterId, teamName: loserId ? (season.teams.get(loserId)?.displayName ?? `Team ${loser.rosterId}`) : `Team ${loser.rosterId}`, points: loser.points },
         margin: Math.round(margin * 100) / 100,
+        isPlayoff: matchup.isPlayoff,
       });
     }
   }
