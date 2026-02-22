@@ -12,9 +12,10 @@ interface OverviewProps {
   userId: string;
   onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "records" | "compare") => void;
   onViewMyProfile: () => void;
+  onSelectManager?: (userId: string) => void;
 }
 
-export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfile }: OverviewProps) {
+export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfile, onSelectManager }: OverviewProps) {
   const { data: history } = useLeagueHistory(leagueId);
   const [rankingMode, setRankingMode] = useState<'alltime' | 'season'>('alltime');
 
@@ -183,7 +184,7 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
                 })}
               </div>
             ) : (
-              <PowerRankings rankings={computed.powerRankings.slice(0, 3)} standings={computed.standings} />
+              <PowerRankings rankings={computed.powerRankings.slice(0, 3)} standings={computed.standings} onSelectManager={onSelectManager} />
             )}
           </div>
         </div>
@@ -201,7 +202,7 @@ export function Overview({ computed, leagueId, userId, onNavigate, onViewMyProfi
           </div>
           <div className="flex-1">
             {computed.blowouts.length > 0 ? (
-              <BlowoutsAndClose blowouts={computed.blowouts.slice(0, 1)} closest={[]} hideHeaders={true} />
+              <BlowoutsAndClose blowouts={computed.blowouts.slice(0, 1)} closest={[]} hideHeaders={true} onSelectManager={onSelectManager} />
             ) : (
               <div className="text-gray-500 text-sm">No blowouts recorded yet.</div>
             )}

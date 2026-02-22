@@ -9,11 +9,12 @@ import type { TeamStanding } from '../types/sleeper';
 interface StandingsSectionProps {
   currentStandings: TeamStanding[];
   leagueId: string;
+  onSelectManager?: (userId: string) => void;
 }
 
 type StandingsMode = 'alltime' | 'current';
 
-export function StandingsSection({ currentStandings, leagueId }: StandingsSectionProps) {
+export function StandingsSection({ currentStandings, leagueId, onSelectManager }: StandingsSectionProps) {
   const [mode, setMode] = useState<StandingsMode>('alltime');
   const { data: history } = useLeagueHistory(leagueId);
 
@@ -54,14 +55,14 @@ export function StandingsSection({ currentStandings, leagueId }: StandingsSectio
 
       {mode === 'alltime' ? (
         allTimeStats.length > 0 ? (
-          <AllTimeStandings stats={allTimeStats} />
+          <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
         ) : (
           <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
             Loading all-time standings…
           </div>
         )
       ) : (
-        <Standings standings={currentStandings} />
+        <Standings standings={currentStandings} onSelectManager={onSelectManager} />
       )}
     </section>
   );

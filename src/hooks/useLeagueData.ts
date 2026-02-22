@@ -699,7 +699,7 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
       // Fetch per-season data in parallel
       const seasonResults = await Promise.all(
         allSeasons.map(async ({ league_id, playoff_week_start }) => {
-          const [rosters, users, bracket] = await Promise.all([
+          const [rosters, , bracket] = await Promise.all([
             sleeperApi.getRosters(league_id),
             sleeperApi.getLeagueUsers(league_id),
             sleeperApi.getWinnersBracket(league_id),

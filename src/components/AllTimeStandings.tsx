@@ -3,9 +3,10 @@ import { Avatar } from './Avatar';
 
 interface AllTimeStandingsProps {
   stats: TeamAllTimeStats[];
+  onSelectManager?: (userId: string) => void;
 }
 
-export function AllTimeStandings({ stats }: AllTimeStandingsProps) {
+export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsProps) {
   const sorted = [...stats].sort((a, b) => {
     if (b.totalWins !== a.totalWins) return b.totalWins - a.totalWins;
     return b.winPct - a.winPct;
@@ -44,17 +45,21 @@ export function AllTimeStandings({ stats }: AllTimeStandingsProps) {
                   <span className="text-gray-400 w-4 text-center inline-block">{i + 1}</span>
                 </td>
                 <td className="py-3.5 px-3">
-                  <div className="flex items-center gap-2.5">
+                  <button
+                    className="flex items-center gap-2.5 text-left group w-full"
+                    onClick={() => team.userId && onSelectManager?.(team.userId)}
+                    disabled={!team.userId || !onSelectManager}
+                  >
                     <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
                     <div className="min-w-0">
-                      <div className="font-medium text-white leading-tight truncate max-w-[140px] sm:max-w-none">
+                      <div className={`font-medium text-white leading-tight truncate max-w-[140px] sm:max-w-none ${team.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
                         {team.displayName}
                       </div>
                       <div className="text-gray-500 text-xs">
                         {team.totalSeasons} season{team.totalSeasons !== 1 ? 's' : ''}
                       </div>
                     </div>
-                  </div>
+                  </button>
                 </td>
                 <td className="py-3.5 px-3 text-center tabular-nums">
                   <span className="text-green-400 font-semibold">{team.totalWins}</span>

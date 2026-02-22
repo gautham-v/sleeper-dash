@@ -266,10 +266,21 @@ function LeagueDashboard({
                       handleSelectManager(userId);
                       handleTabChange('managers');
                     }}
+                    onSelectManager={(uid) => {
+                      handleSelectManager(uid);
+                      handleTabChange('managers');
+                    }}
                   />
 
                   {/* Standings widget */}
-                  <StandingsSection currentStandings={computed.standings} leagueId={leagueId} />
+                  <StandingsSection
+                    currentStandings={computed.standings}
+                    leagueId={leagueId}
+                    onSelectManager={(uid) => {
+                      handleSelectManager(uid);
+                      handleTabChange('managers');
+                    }}
+                  />
 
                   {/* Luck Index widget */}
                   {computed.luckIndex.length > 0 && (
@@ -278,7 +289,13 @@ function LeagueDashboard({
                         ⭐ Luck Index
                         <span className="text-xs font-normal text-gray-500 ml-1">actual wins vs. expected wins</span>
                       </h3>
-                      <LuckIndex entries={computed.luckIndex} />
+                      <LuckIndex
+                        entries={computed.luckIndex}
+                        onSelectManager={(uid) => {
+                          handleSelectManager(uid);
+                          handleTabChange('managers');
+                        }}
+                      />
                     </section>
                   )}
                 </div>
@@ -422,6 +439,15 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           <h1 className="text-xl font-bold text-white">Your Leagues</h1>
           <span className="text-xs text-gray-600 font-medium">{totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}</span>
         </div>
+
+        {/* Cross-league career stats */}
+        {totalLeagues > 0 && (
+          <CrossLeagueStats
+            stats={crossStats.data}
+            isLoading={crossStats.isLoading}
+            leagueCount={totalLeagues}
+          />
+        )}
 
         {/* League cards */}
         <div className="space-y-2">
