@@ -135,7 +135,7 @@ function LeagueDashboard({
 
       <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
         {/* Sidebar Navigation */}
-        <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-[#0a0d14]/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
+        <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-base-bg/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
           <div className="p-4 sm:p-5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
@@ -498,7 +498,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
                   setSelectedGroup(group);
                   setSelectedLeagueId(latest.league_id);
                 }}
-                className="flex items-center gap-4 w-full text-left bg-card-bg hover:bg-[#161d2e] border border-card-border hover:border-brand-cyan/25 rounded-xl px-4 py-4 transition-all group"
+                className="flex items-center gap-4 w-full text-left bg-card-bg hover:bg-surface-hover border border-card-border hover:border-brand-cyan/25 rounded-xl px-4 py-4 transition-all group"
               >
                 {/* Avatar */}
                 {latest.avatar ? (

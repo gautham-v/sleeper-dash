@@ -52,7 +52,7 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
           <button
             key={mgr.userId}
             onClick={() => onSelectManager(mgr.userId)}
-            className="w-full flex items-center gap-4 bg-card-bg hover:bg-[#1a1e2b] border border-card-border hover:border-brand-cyan/40 rounded-2xl p-4 transition-all group text-left"
+            className="w-full flex items-center gap-4 bg-card-bg hover:bg-surface-hover border border-card-border hover:border-brand-cyan/40 rounded-2xl p-4 transition-all group text-left"
           >
             {/* Rank */}
             <div className="w-7 text-center text-sm font-bold text-gray-600 flex-shrink-0">
