@@ -220,6 +220,12 @@ export function useDashboardData(leagueId: string | null) {
   const allMatchups = useAllMatchups(leagueId);
   const transactions = useAllTransactions(leagueId);
   const draftData = useDraftData(leagueId);
+  const bracket = useQuery({
+    queryKey: ['winners-bracket', leagueId],
+    queryFn: () => sleeperApi.getWinnersBracket(leagueId!),
+    enabled: !!leagueId,
+    staleTime: 1000 * 60 * 30,
+  });
 
   const isLoading =
     league.isLoading ||
@@ -244,16 +250,57 @@ export function useDashboardData(leagueId: string | null) {
     const { userMap, rosterMap } = buildUserMap(users.data, rosters.data);
     const standings = buildStandings(rosters.data, userMap);
 
-    if (!allMatchups.data || allMatchups.data.length === 0) {
-      return { standings, powerRankings: [], luckIndex: [], blowouts: [], closest: [], rosterMap };
+    // Determine champion from winners bracket
+    const typedBracket = (bracket.data ?? []) as BracketMatch[];
+    let champion: { teamName: string; displayName: string; avatar: string | null } | null = null;
+    if (typedBracket.length > 0) {
+      let finalMatch = typedBracket.find((b) => b.p === 1);
+      if (!finalMatch) {
+        const maxRound = Math.max(...typedBracket.map((b) => b.r));
+        finalMatch = typedBracket.find((b) => b.r === maxRound);
+      }
+      if (finalMatch?.w != null) {
+        const rosterInfo = rosterMap.get(finalMatch.w);
+        if (rosterInfo) {
+          champion = {
+            teamName: rosterInfo.teamName,
+            displayName: rosterInfo.displayName,
+            avatar: userMap.get(rosterInfo.userId)?.avatar ?? null,
+          };
+        }
+      }
     }
 
+    if (!allMatchups.data || allMatchups.data.length === 0) {
+      return { standings, powerRankings: [], luckIndex: [], blowouts: [], closest: [], rosterMap, champion };
+    }
+
+    // Compute playoff win/loss records per roster
+    const playoffMatchups = allMatchups.data.filter((m) => m.isPlayoff);
+    const playoffRecordsMap = new Map<number, { wins: number; losses: number }>();
+    for (const m of playoffMatchups) {
+      if (m.team1.points === 0 && m.team2.points === 0) continue;
+      const [winner, loser] = m.team1.points >= m.team2.points ? [m.team1, m.team2] : [m.team2, m.team1];
+      const wRec = playoffRecordsMap.get(winner.rosterId) ?? { wins: 0, losses: 0 };
+      wRec.wins++;
+      playoffRecordsMap.set(winner.rosterId, wRec);
+      const lRec = playoffRecordsMap.get(loser.rosterId) ?? { wins: 0, losses: 0 };
+      lRec.losses++;
+      playoffRecordsMap.set(loser.rosterId, lRec);
+    }
+
+    const standingsWithPlayoff = standings.map((s) => ({
+      ...s,
+      playoffWins: playoffRecordsMap.get(s.rosterId)?.wins,
+      playoffLosses: playoffRecordsMap.get(s.rosterId)?.losses,
+    }));
+
     const regularMatchups = allMatchups.data.filter((m) => !m.isPlayoff);
-    const powerRankings = calcPowerRankings(regularMatchups, standings, currentWeek);
-    const luckIndex = calcLuckIndex(regularMatchups, standings);
+    const powerRankings = calcPowerRankings(regularMatchups, standingsWithPlayoff, currentWeek);
+    const luckIndex = calcLuckIndex(regularMatchups, standingsWithPlayoff);
     const { blowouts, closest } = getBlowoutsAndClose(allMatchups.data, rosterMap);
 
-    return { standings, powerRankings, luckIndex, blowouts, closest, rosterMap };
+    return { standings: standingsWithPlayoff, powerRankings, luckIndex, blowouts, closest, rosterMap, champion };
   })();
 
   return {

@@ -212,6 +212,8 @@ export interface TeamStanding {
   pointsAgainst: number;
   pointsForDecimal: number;
   streak?: string;
+  playoffWins?: number;
+  playoffLosses?: number;
 }
 
 export interface WeeklyMatchup {

@@ -247,8 +247,6 @@ function LeagueDashboard({
                 <div className="space-y-8">
                   <Overview
                     computed={computed}
-                    transactions={transactions}
-                    draftData={draftData}
                     onNavigate={(tab) => {
                       // Map legacy tab IDs to new ones
                       if (tab === 'compare') handleTabChange('h2h');

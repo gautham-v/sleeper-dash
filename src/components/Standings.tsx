@@ -6,6 +6,10 @@ interface StandingsProps {
 }
 
 export function Standings({ standings }: StandingsProps) {
+  const hasPlayoffData = standings.some(
+    (s) => (s.playoffWins ?? 0) > 0 || (s.playoffLosses ?? 0) > 0
+  );
+
   return (
     <div className="bg-gray-900 rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
@@ -16,6 +20,9 @@ export function Standings({ standings }: StandingsProps) {
               <th className="text-left py-4 px-3">Team</th>
               <th className="text-center py-4 px-3">W</th>
               <th className="text-center py-4 px-3">L</th>
+              {hasPlayoffData && (
+                <th className="text-center py-4 px-3 hidden sm:table-cell" title="Playoff record">Playoff</th>
+              )}
               <th className="text-right py-4 px-3">PF</th>
               <th className="text-right py-4 px-3 hidden sm:table-cell">PA</th>
               <th className="text-right py-4 px-3 pr-5">Streak</th>
@@ -48,6 +55,17 @@ export function Standings({ standings }: StandingsProps) {
                   </td>
                   <td className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</td>
                   <td className="py-3.5 px-3 text-center text-red-400">{team.losses}</td>
+                  {hasPlayoffData && (
+                    <td className="py-3.5 px-3 text-center hidden sm:table-cell">
+                      {(team.playoffWins ?? 0) > 0 || (team.playoffLosses ?? 0) > 0 ? (
+                        <span className="text-xs font-medium tabular-nums text-yellow-400">
+                          {team.playoffWins ?? 0}–{team.playoffLosses ?? 0}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600 text-xs">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="py-3.5 px-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</td>
                   <td className="py-3.5 px-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">{team.pointsAgainst.toFixed(2)}</td>
                   <td className="py-3.5 px-3 pr-5 text-right">
@@ -71,9 +89,14 @@ export function Standings({ standings }: StandingsProps) {
           </tbody>
         </table>
       </div>
-      <div className="py-3.5 px-5 text-xs text-gray-500 flex items-center gap-2">
-        <span className="w-1 h-3 rounded-full bg-green-500 inline-block" />
-        Playoff position
+      <div className="py-3.5 px-5 text-xs text-gray-500 flex items-center gap-4">
+        <span className="flex items-center gap-2">
+          <span className="w-1 h-3 rounded-full bg-green-500 inline-block" />
+          Playoff position
+        </span>
+        {hasPlayoffData && (
+          <span className="text-yellow-500/70">Playoff column shows postseason W–L</span>
+        )}
       </div>
     </div>
   );
