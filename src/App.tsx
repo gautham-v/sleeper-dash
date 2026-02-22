@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2, BookOpen,
+  Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2, BookOpen, Scale,
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle,
 } from 'lucide-react';
 
@@ -15,6 +15,7 @@ import { TradeHistory } from './components/TradeHistory';
 import { DraftGrades } from './components/DraftGrades';
 import { YearOverYear } from './components/YearOverYear';
 import { LeagueRecords } from './components/LeagueRecords';
+import { TeamComparison } from './components/TeamComparison';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
@@ -31,6 +32,7 @@ const TABS = [
   { id: 'draft', label: 'Draft Grades', icon: BarChart2 },
   { id: 'history', label: 'Year Over Year', icon: BarChart2 },
   { id: 'records', label: 'Records', icon: BookOpen },
+  { id: 'compare', label: 'Compare Teams', icon: Scale },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -228,6 +230,8 @@ function LeagueDashboard({
             )}
           </div>
         )}
+
+        {activeTab === 'compare' && <TeamComparison leagueId={leagueId} />}
       </div>
     </div>
   );

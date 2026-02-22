@@ -6,14 +6,16 @@ import {
   calcLuckIndex,
   calcPowerRankings,
   getBlowoutsAndClose,
+  pairMatchups,
 } from '../utils/calculations';
 import type {
+  BracketMatch,
+  HistoricalSeason,
+  LeagueSeasonRecord,
+  SeasonTeamRecord,
   SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
-  BracketMatch,
-  LeagueSeasonRecord,
-  SeasonTeamRecord,
 } from '../types/sleeper';
 
 const REGULAR_SEASON_WEEKS = 14; // Regular season weeks for matchup calculations
@@ -426,6 +428,85 @@ export function useLeagueRecords(leagueId: string | null) {
       }
 
       return records.reverse(); // newest season first
+    },
+    enabled: !!leagueId,
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
+/**
+ * Full historical data for team comparison: walks the previous_league_id chain
+ * and fetches rosters, users, and matchups for every season.
+ */
+export function useLeagueHistory(leagueId: string | null) {
+  return useQuery({
+    queryKey: ['league-history', leagueId],
+    queryFn: async () => {
+      // Walk the chain (oldest → newest)
+      const leagueChain: { league_id: string; season: string }[] = [];
+      let currentId = leagueId!;
+      for (let i = 0; i < 8; i++) {
+        const league = await sleeperApi.getLeague(currentId);
+        leagueChain.push({ league_id: league.league_id, season: league.season });
+        if (!league.previous_league_id) break;
+        currentId = league.previous_league_id;
+      }
+      leagueChain.reverse();
+
+      const seasons: HistoricalSeason[] = [];
+
+      for (const { league_id, season } of leagueChain) {
+        const weekNums = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
+        const [rosters, users, ...weekMatchupResults] = await Promise.all([
+          sleeperApi.getRosters(league_id),
+          sleeperApi.getLeagueUsers(league_id),
+          ...weekNums.map((w) => sleeperApi.getMatchups(league_id, w)),
+        ]);
+
+        const userMap = new Map(users.map((u) => [u.user_id, u]));
+        const sorted = [...rosters].sort(
+          (a, b) => b.settings.wins - a.settings.wins || b.settings.fpts - a.settings.fpts,
+        );
+
+        const teamsMap = new Map<string, {
+          userId: string; rosterId: number; displayName: string; avatar: string | null;
+          wins: number; losses: number; pointsFor: number; rank: number;
+        }>();
+        const rosterToUser = new Map<number, string>();
+
+        sorted.forEach((r, idx) => {
+          if (!r.owner_id) return;
+          const u = userMap.get(r.owner_id);
+          rosterToUser.set(r.roster_id, r.owner_id);
+          teamsMap.set(r.owner_id, {
+            userId: r.owner_id,
+            rosterId: r.roster_id,
+            displayName: u?.display_name ?? `Team ${r.roster_id}`,
+            avatar: u?.avatar ?? null,
+            wins: r.settings.wins,
+            losses: r.settings.losses,
+            pointsFor: r.settings.fpts + (r.settings.fpts_decimal ?? 0) / 100,
+            rank: idx + 1,
+          });
+        });
+
+        const allMatchups = weekNums.flatMap((week, idx) =>
+          pairMatchups(weekMatchupResults[idx], week).filter(
+            (m) => m.team1.points > 0 || m.team2.points > 0,
+          ),
+        );
+
+        seasons.push({
+          season,
+          leagueId: league_id,
+          teams: teamsMap,
+          matchups: allMatchups,
+          rosterToUser,
+          championUserId: sorted[0]?.owner_id ?? null,
+        });
+      }
+
+      return seasons;
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,

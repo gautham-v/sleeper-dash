@@ -140,6 +140,61 @@ export interface SleeperPlayer {
   team: string | null;
 }
 
+// Historical / comparison types
+export type TeamTier = 'Elite' | 'Contender' | 'Average' | 'Rebuilding' | 'Cellar Dweller';
+
+export interface HistoricalSeason {
+  season: string;
+  leagueId: string;
+  teams: Map<string, {
+    userId: string;
+    rosterId: number;
+    displayName: string;
+    avatar: string | null;
+    wins: number;
+    losses: number;
+    pointsFor: number;
+    rank: number; // 1 = champion
+  }>;
+  matchups: WeeklyMatchup[];
+  rosterToUser: Map<number, string>; // rosterId -> userId
+  championUserId: string | null;
+}
+
+export interface TeamAllTimeStats {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
+  totalWins: number;
+  totalLosses: number;
+  totalSeasons: number;
+  titles: number;
+  avgPointsFor: number;
+  winPct: number;
+  tier: TeamTier;
+  seasons: {
+    season: string;
+    wins: number;
+    losses: number;
+    pointsFor: number;
+    rank: number;
+  }[];
+}
+
+export interface H2HRecord {
+  teamAWins: number;
+  teamBWins: number;
+  teamAPoints: number;
+  teamBPoints: number;
+  games: {
+    season: string;
+    week: number;
+    teamAPoints: number;
+    teamBPoints: number;
+    winner: 'A' | 'B' | 'tie';
+  }[];
+}
+
 // Computed types for our dashboard
 export interface TeamStanding {
   rosterId: number;

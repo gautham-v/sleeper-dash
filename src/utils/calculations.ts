@@ -6,6 +6,10 @@ import type {
   PowerRanking,
   LuckEntry,
   BlowoutGame,
+  HistoricalSeason,
+  TeamAllTimeStats,
+  TeamTier,
+  H2HRecord,
 } from '../types/sleeper';
 
 /** Build paired matchups from a week's flat matchup list */
@@ -216,4 +220,119 @@ export function getBlowoutsAndClose(
 export function avatarUrl(avatarId: string | null | undefined): string | null {
   if (!avatarId) return null;
   return `https://sleepercdn.com/avatars/thumbs/${avatarId}`;
+}
+
+/** Compute all-time stats for every user across all historical seasons, including tier. */
+export function calcAllTimeStats(history: HistoricalSeason[]): Map<string, TeamAllTimeStats> {
+  const statsMap = new Map<string, TeamAllTimeStats>();
+
+  for (const season of history) {
+    for (const [userId, team] of season.teams) {
+      const existing = statsMap.get(userId);
+      if (!existing) {
+        statsMap.set(userId, {
+          userId,
+          displayName: team.displayName,
+          avatar: team.avatar,
+          totalWins: team.wins,
+          totalLosses: team.losses,
+          totalSeasons: 1,
+          titles: team.rank === 1 ? 1 : 0,
+          avgPointsFor: team.pointsFor,
+          winPct: 0,
+          tier: 'Average',
+          seasons: [{ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank }],
+        });
+      } else {
+        existing.totalWins += team.wins;
+        existing.totalLosses += team.losses;
+        existing.totalSeasons += 1;
+        existing.titles += team.rank === 1 ? 1 : 0;
+        existing.avgPointsFor += team.pointsFor;
+        existing.displayName = team.displayName; // keep most recent name
+        existing.seasons.push({ season: season.season, wins: team.wins, losses: team.losses, pointsFor: team.pointsFor, rank: team.rank });
+      }
+    }
+  }
+
+  const allStats = Array.from(statsMap.values());
+  for (const s of allStats) {
+    const totalGames = s.totalWins + s.totalLosses;
+    s.winPct = totalGames > 0 ? s.totalWins / totalGames : 0;
+    s.avgPointsFor = s.avgPointsFor / s.totalSeasons;
+  }
+
+  // Assign tiers by composite score relative to all teams
+  const maxAvgPts = Math.max(...allStats.map((s) => s.avgPointsFor), 1);
+  const scored = allStats
+    .map((s) => ({
+      userId: s.userId,
+      score: s.winPct * 0.5 + (s.avgPointsFor / maxAvgPts) * 0.3 + (s.titles / s.totalSeasons) * 0.2,
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const n = scored.length;
+  scored.forEach((entry, i) => {
+    const pct = n > 1 ? i / (n - 1) : 0;
+    let tier: TeamTier;
+    if (pct < 0.2) tier = 'Elite';
+    else if (pct < 0.4) tier = 'Contender';
+    else if (pct < 0.6) tier = 'Average';
+    else if (pct < 0.8) tier = 'Rebuilding';
+    else tier = 'Cellar Dweller';
+    statsMap.get(entry.userId)!.tier = tier;
+  });
+
+  return statsMap;
+}
+
+/** Calculate head-to-head record between two users across all historical seasons. */
+export function calcH2H(
+  history: HistoricalSeason[],
+  userIdA: string,
+  userIdB: string,
+): H2HRecord {
+  const record: H2HRecord = { teamAWins: 0, teamBWins: 0, teamAPoints: 0, teamBPoints: 0, games: [] };
+
+  for (const season of history) {
+    const teamA = season.teams.get(userIdA);
+    const teamB = season.teams.get(userIdB);
+    if (!teamA || !teamB) continue;
+
+    const rosterIdA = teamA.rosterId;
+    const rosterIdB = teamB.rosterId;
+
+    for (const matchup of season.matchups) {
+      const t1 = matchup.team1;
+      const t2 = matchup.team2;
+
+      let aPoints: number, bPoints: number;
+      if (t1.rosterId === rosterIdA && t2.rosterId === rosterIdB) {
+        aPoints = t1.points;
+        bPoints = t2.points;
+      } else if (t1.rosterId === rosterIdB && t2.rosterId === rosterIdA) {
+        aPoints = t2.points;
+        bPoints = t1.points;
+      } else {
+        continue;
+      }
+
+      record.teamAPoints += aPoints;
+      record.teamBPoints += bPoints;
+      if (aPoints > bPoints) record.teamAWins++;
+      else if (bPoints > aPoints) record.teamBWins++;
+
+      record.games.push({
+        season: season.season,
+        week: matchup.week,
+        teamAPoints: Math.round(aPoints * 100) / 100,
+        teamBPoints: Math.round(bPoints * 100) / 100,
+        winner: aPoints > bPoints ? 'A' : bPoints > aPoints ? 'B' : 'tie',
+      });
+    }
+  }
+
+  record.teamAPoints = Math.round(record.teamAPoints * 100) / 100;
+  record.teamBPoints = Math.round(record.teamBPoints * 100) / 100;
+  return record;
 }
