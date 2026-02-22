@@ -31,6 +31,26 @@ const RECORD_META: Record<string, {
   'playoff-wins':       { icon: <Medal size={16} />,         accentBg: 'bg-yellow-900/20', accentBorder: 'border-yellow-700/40', accentText: 'text-yellow-400',  badgeBg: 'bg-yellow-900/40' },
 };
 
+function HolderButton({ holderId, holder, avatar, onSelectManager }: {
+  holderId: string | null;
+  holder: string;
+  avatar: string | null;
+  onSelectManager?: (userId: string) => void;
+}) {
+  return (
+    <button
+      className="flex items-center gap-3 min-w-0 group text-left"
+      onClick={() => holderId && onSelectManager?.(holderId)}
+      disabled={!holderId || !onSelectManager}
+    >
+      <Avatar avatar={avatar} name={holder} size="md" />
+      <span className={`font-bold text-white text-base truncate ${holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors cursor-pointer' : ''}`}>
+        {holder}
+      </span>
+    </button>
+  );
+}
+
 function RecordCard({ record, onSelectManager }: { record: AllTimeRecordEntry; onSelectManager?: (userId: string) => void }) {
   const meta = RECORD_META[record.id] ?? {
     icon: <Star size={16} />,
@@ -39,6 +59,11 @@ function RecordCard({ record, onSelectManager }: { record: AllTimeRecordEntry; o
     accentText: 'text-gray-400',
     badgeBg: 'bg-gray-700/40',
   };
+
+  const isTied = record.coHolders && record.coHolders.length > 0;
+  const allHolders = isTied
+    ? [{ holderId: record.holderId, holder: record.holder, avatar: record.avatar }, ...record.coHolders!]
+    : null;
 
   return (
     <div className={`rounded-2xl border ${meta.accentBorder} ${meta.accentBg} p-5 flex flex-col gap-4`}>
@@ -50,22 +75,40 @@ function RecordCard({ record, onSelectManager }: { record: AllTimeRecordEntry; o
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{record.category}</span>
       </div>
 
-      {/* Holder */}
-      <div className="flex items-center gap-3">
-        <button
-          className="flex items-center gap-3 min-w-0 group"
-          onClick={() => record.holderId && onSelectManager?.(record.holderId)}
-          disabled={!record.holderId || !onSelectManager}
-        >
-          <Avatar avatar={record.avatar} name={record.holder} size="md" />
-          <span className={`font-bold text-white text-base truncate ${record.holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors cursor-pointer' : ''}`}>
-            {record.holder}
+      {/* Holder(s) */}
+      {isTied && allHolders ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-400 bg-gray-700/50 px-2 py-0.5 rounded-full">Tied</span>
+            <span className={`font-bold text-xl tabular-nums ${meta.accentText}`}>{record.value}</span>
+          </div>
+          {allHolders.map((h, i) => (
+            <HolderButton
+              key={i}
+              holderId={h.holderId}
+              holder={h.holder}
+              avatar={h.avatar}
+              onSelectManager={onSelectManager}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-3 min-w-0 group"
+            onClick={() => record.holderId && onSelectManager?.(record.holderId)}
+            disabled={!record.holderId || !onSelectManager}
+          >
+            <Avatar avatar={record.avatar} name={record.holder} size="md" />
+            <span className={`font-bold text-white text-base truncate ${record.holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors cursor-pointer' : ''}`}>
+              {record.holder}
+            </span>
+          </button>
+          <span className={`ml-auto font-bold text-xl tabular-nums ${meta.accentText} flex-shrink-0`}>
+            {record.value}
           </span>
-        </button>
-        <span className={`ml-auto font-bold text-xl tabular-nums ${meta.accentText} flex-shrink-0`}>
-          {record.value}
-        </span>
-      </div>
+        </div>
+      )}
 
       {/* Context */}
       <div className="text-xs text-gray-500">{record.context}</div>
