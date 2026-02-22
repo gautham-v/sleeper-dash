@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2,
-  Loader2, ChevronRight, Calendar, ChevronLeft, UserCircle,
+  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle,
 } from 'lucide-react';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear } from './hooks/useLeagueData';
@@ -33,11 +33,37 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () => void }) {
+function LeagueDashboard({
+  initialLeagueId,
+  allSeasons,
+  onBack,
+}: {
+  initialLeagueId: string;
+  allSeasons: SleeperLeague[];
+  onBack: () => void;
+}) {
+  const [leagueId, setLeagueId] = useState(initialLeagueId);
   const [activeTab, setActiveTab] = useState<TabId>('standings');
+  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const { league, currentWeek, isLoading, computed, transactions, draftData, users, rosters } =
     useDashboardData(leagueId);
   const yoy = useYearOverYear(leagueId);
+
+  const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
+  const multipleSeasons = sortedSeasons.length > 1;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setYearDropdownOpen(false);
+      }
+    }
+    if (yearDropdownOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [yearDropdownOpen]);
 
   if (isLoading) {
     return (
@@ -80,12 +106,47 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
             {league?.name?.slice(0, 2) ?? '??'}
           </div>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl font-bold text-white truncate">{league?.name ?? 'League'}</h2>
           <p className="text-gray-500 text-sm">
-            {league?.season} · Week {currentWeek} · {computed.standings.length} teams
+            Week {currentWeek} · {computed.standings.length} teams
           </p>
         </div>
+        {/* Year selector */}
+        {multipleSeasons ? (
+          <div className="relative flex-shrink-0" ref={dropdownRef}>
+            <button
+              onClick={() => setYearDropdownOpen((o) => !o)}
+              className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-indigo-600 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {league?.season ?? '—'}
+              <ChevronDown size={14} className={`transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {yearDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1.5 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-10 min-w-[120px] py-1 overflow-hidden">
+                {sortedSeasons.map((s) => (
+                  <button
+                    key={s.league_id}
+                    onClick={() => {
+                      setLeagueId(s.league_id);
+                      setActiveTab('standings');
+                      setYearDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      s.league_id === leagueId
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    }`}
+                  >
+                    {s.season}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="flex-shrink-0 text-sm text-gray-500">{league?.season}</span>
+        )}
       </div>
 
       {/* Tabs — bleed to screen edges on mobile for smooth scroll */}
@@ -156,80 +217,10 @@ function LeagueDashboard({ leagueId, onBack }: { leagueId: string; onBack: () =>
   );
 }
 
-/** Season list for a specific league group */
-function SeasonPicker({
-  leagues,
-  onSelect,
-  onBack,
-}: {
-  leagues: SleeperLeague[];
-  onSelect: (leagueId: string) => void;
-  onBack: () => void;
-}) {
-  const sorted = [...leagues].sort((a, b) => Number(b.season) - Number(a.season));
-  const rep = sorted[0];
-
-  return (
-    <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
-      >
-        <ChevronLeft size={16} />
-        All leagues
-      </button>
-
-      {/* League identity */}
-      <div className="flex items-center gap-4 mb-8">
-        {rep.avatar ? (
-          <img
-            src={avatarUrl(rep.avatar) ?? ''}
-            alt={rep.name}
-            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-            {rep.name.slice(0, 2)}
-          </div>
-        )}
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold text-white truncate">{rep.name}</h2>
-          <p className="text-gray-500 text-sm">{rep.settings.num_teams} teams</p>
-        </div>
-      </div>
-
-      <p className="text-sm text-gray-400 mb-4">Select a season</p>
-
-      <div className="flex flex-col gap-3">
-        {sorted.map((league) => (
-          <button
-            key={league.league_id}
-            onClick={() => onSelect(league.league_id)}
-            className="flex items-center justify-between bg-gray-900 hover:bg-gray-800 px-4 py-4 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-indigo-950 border border-indigo-800 flex items-center justify-center flex-shrink-0">
-                <Calendar size={16} className="text-indigo-400" />
-              </div>
-              <div>
-                <div className="font-semibold text-white">{league.season} Season</div>
-                <div className="text-xs text-gray-500">{league.settings.num_teams} teams</div>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-gray-500" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-type View = 'leagues' | 'seasons' | 'dashboard';
 
 function LeagueSelector({ userId }: { userId: string }) {
-  const [view, setView] = useState<View>('leagues');
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [selectedLeague, setSelectedLeague] = useState<string | null>(null);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
   const leagues = useUserLeaguesAllSeasons(userId);
 
   if (leagues.isLoading) {
@@ -247,29 +238,14 @@ function LeagueSelector({ userId }: { userId: string }) {
     return acc;
   }, {});
 
-  if (view === 'dashboard' && selectedLeague) {
+  if (selectedLeagueId) {
     return (
       <LeagueDashboard
-        leagueId={selectedLeague}
+        initialLeagueId={selectedLeagueId}
+        allSeasons={selectedGroup}
         onBack={() => {
-          setSelectedLeague(null);
-          setView(selectedGroup ? 'seasons' : 'leagues');
-        }}
-      />
-    );
-  }
-
-  if (view === 'seasons' && selectedGroup && grouped[selectedGroup]) {
-    return (
-      <SeasonPicker
-        leagues={grouped[selectedGroup]}
-        onSelect={(id) => {
-          setSelectedLeague(id);
-          setView('dashboard');
-        }}
-        onBack={() => {
-          setSelectedGroup(null);
-          setView('leagues');
+          setSelectedLeagueId(null);
+          setSelectedGroup([]);
         }}
       />
     );
@@ -294,13 +270,8 @@ function LeagueSelector({ userId }: { userId: string }) {
             <button
               key={name}
               onClick={() => {
-                if (group.length === 1) {
-                  setSelectedLeague(group[0].league_id);
-                  setView('dashboard');
-                } else {
-                  setSelectedGroup(name);
-                  setView('seasons');
-                }
+                setSelectedGroup(group);
+                setSelectedLeagueId(latest.league_id);
               }}
               className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-5 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
             >
