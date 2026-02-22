@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, Zap, TrendingUp, ArrowLeftRight, Star, BarChart2, BookOpen, Scale,
-  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle,
+  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useYearOverYear, useLeagueRecords } from './hooks/useLeagueData';
 import { buildUserMap } from './hooks/useLeagueData';
+import { Overview } from './components/Overview';
 import { Standings } from './components/Standings';
 import { PowerRankings } from './components/PowerRankings';
 import { LuckIndex } from './components/LuckIndex';
@@ -24,6 +25,7 @@ const queryClient = new QueryClient({
 });
 
 const TABS = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'standings', label: 'Standings', icon: Trophy },
   { id: 'power', label: 'Power Rankings', icon: TrendingUp },
   { id: 'luck', label: 'Luck Index', icon: Star },
@@ -47,7 +49,7 @@ function LeagueDashboard({
   onBack: () => void;
 }) {
   const [leagueId, setLeagueId] = useState(initialLeagueId);
-  const [activeTab, setActiveTab] = useState<TabId>('standings');
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +74,7 @@ function LeagueDashboard({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="flex items-center justify-center min-h-screen text-gray-400 bg-gray-950">
         <Loader2 className="animate-spin mr-2" size={20} />
         Loading league data…
       </div>
@@ -81,171 +83,216 @@ function LeagueDashboard({
 
   if (!computed) {
     return (
-      <div className="text-center text-gray-500 py-16">Failed to load league data.</div>
+      <div className="flex items-center justify-center min-h-screen text-center text-gray-500 py-16 bg-gray-950">
+        Failed to load league data.
+      </div>
     );
   }
 
   const { rosterMap } = buildUserMap(users, rosters);
 
   return (
-    <div>
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition-colors"
-      >
-        <ChevronLeft size={16} />
-        Back to leagues
-      </button>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
+      {/* Sidebar Navigation */}
+      <aside className="md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-gray-800/60 bg-gray-950 flex flex-col z-20 md:h-screen md:sticky md:top-0">
+        <div className="p-4 sm:p-5 border-b border-gray-800/60">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white mb-5 transition-colors"
+          >
+            <ChevronLeft size={16} />
+            Back to leagues
+          </button>
 
-      {/* League header */}
-      <div className="flex items-center gap-4 mb-6 sm:mb-8">
-        {league?.avatar ? (
-          <img
-            src={avatarUrl(league.avatar) ?? ''}
-            alt={league.name}
-            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-            {league?.name?.slice(0, 2) ?? '??'}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold text-white truncate">{league?.name ?? 'League'}</h2>
-          <p className="text-gray-500 text-sm">
-            Week {currentWeek} · {computed.standings.length} teams
-          </p>
-        </div>
-        {/* Year selector */}
-        {multipleSeasons ? (
-          <div className="relative flex-shrink-0" ref={dropdownRef}>
-            <button
-              onClick={() => setYearDropdownOpen((o) => !o)}
-              className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-indigo-600 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
-            >
-              {league?.season ?? '—'}
-              <ChevronDown size={14} className={`transition-transform ${yearDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {yearDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-10 min-w-[120px] py-1 overflow-hidden">
-                {sortedSeasons.map((s) => (
-                  <button
-                    key={s.league_id}
-                    onClick={() => {
-                      setLeagueId(s.league_id);
-                      setActiveTab('standings');
-                      setYearDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                      s.league_id === leagueId
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    {s.season}
-                  </button>
-                ))}
+          {/* League Info in Sidebar */}
+          <div className="flex items-center gap-3 mb-4">
+            {league?.avatar ? (
+              <img
+                src={avatarUrl(league.avatar) ?? ''}
+                alt={league.name}
+                className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                {league?.name?.slice(0, 2) ?? '??'}
               </div>
             )}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
+              <p className="text-gray-500 text-xs mt-0.5">
+                Wk {currentWeek} · {computed.standings.length} teams
+              </p>
+            </div>
           </div>
-        ) : (
-          <span className="flex-shrink-0 text-sm text-gray-500">{league?.season}</span>
-        )}
-      </div>
 
-      {/* Tabs — bleed to screen edges on mobile for smooth scroll */}
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-8 no-scrollbar">
+          {/* Year selector */}
+          {multipleSeasons ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setYearDropdownOpen((o) => !o)}
+                className="w-full flex items-center justify-between bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-indigo-600 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+              >
+                <span>Season {league?.season ?? '—'}</span>
+                <ChevronDown size={14} className={`transition-transform text-gray-400 ${yearDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {yearDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                  {sortedSeasons.map((s) => (
+                    <button
+                      key={s.league_id}
+                      onClick={() => {
+                        setLeagueId(s.league_id);
+                        setActiveTab('overview');
+                        setYearDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        s.league_id === leagueId
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      {s.season}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 px-1 font-medium">Season {league?.season}</div>
+          )}
+        </div>
+
+        {/* Navigation Tabs */}
+        <nav className="flex-1 overflow-y-auto no-scrollbar p-3 flex md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 md:flex-shrink ${
                 activeTab === id
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
-              <Icon size={14} />
+              <Icon size={16} className={activeTab === id ? 'text-indigo-200' : 'text-gray-500'} />
               {label}
             </button>
           ))}
+        </nav>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+        <div className="max-w-6xl mx-auto">
+          {activeTab === 'overview' && (
+            <Overview 
+              computed={computed} 
+              transactions={transactions} 
+              draftData={draftData} 
+              onNavigate={setActiveTab} 
+            />
+          )}
+
+          {activeTab === 'standings' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Standings</h2>
+              <Standings standings={computed.standings} />
+            </div>
+          )}
+
+          {activeTab === 'power' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Power Rankings</h2>
+              <PowerRankings rankings={computed.powerRankings} standings={computed.standings} />
+            </div>
+          )}
+
+          {activeTab === 'luck' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Luck Index</h2>
+              <LuckIndex entries={computed.luckIndex} />
+            </div>
+          )}
+
+          {activeTab === 'games' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Blowouts & Close Games</h2>
+              <BlowoutsAndClose blowouts={computed.blowouts} closest={computed.closest} />
+            </div>
+          )}
+
+          {activeTab === 'trades' && computed.rosterMap && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Trade History</h2>
+              <TradeHistory
+                transactions={transactions}
+                rosterMap={computed.rosterMap}
+                playerMap={draftData.playerMap}
+              />
+            </div>
+          )}
+
+          {activeTab === 'draft' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Draft Grades</h2>
+              <DraftGrades
+                picks={draftData.picks}
+                rosters={rosters}
+                rosterMap={rosterMap}
+                totalRounds={draftData.draft?.settings.rounds ?? 15}
+              />
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Year Over Year</h2>
+              {yoy.isLoading ? (
+                <div className="flex items-center justify-center h-48 text-gray-400">
+                  <Loader2 className="animate-spin mr-2" size={18} />
+                  Fetching multi-season data…
+                </div>
+              ) : (
+                <YearOverYear data={yoy.data ?? []} />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'records' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">League Records</h2>
+              {records.isLoading ? (
+                <div className="flex items-center justify-center h-48 text-gray-400">
+                  <Loader2 className="animate-spin mr-2" size={18} />
+                  Building records book…
+                </div>
+              ) : (
+                <LeagueRecords data={records.data ?? []} />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'compare' && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-6">Compare Teams</h2>
+              <TeamComparison leagueId={leagueId} />
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Tab content */}
-      <div>
-        {activeTab === 'standings' && <Standings standings={computed.standings} />}
-
-        {activeTab === 'power' && (
-          <PowerRankings rankings={computed.powerRankings} standings={computed.standings} />
-        )}
-
-        {activeTab === 'luck' && <LuckIndex entries={computed.luckIndex} />}
-
-        {activeTab === 'games' && (
-          <BlowoutsAndClose blowouts={computed.blowouts} closest={computed.closest} />
-        )}
-
-        {activeTab === 'trades' && computed.rosterMap && (
-          <TradeHistory
-            transactions={transactions}
-            rosterMap={computed.rosterMap}
-            playerMap={draftData.playerMap}
-          />
-        )}
-
-        {activeTab === 'draft' && (
-          <DraftGrades
-            picks={draftData.picks}
-            rosters={rosters}
-            rosterMap={rosterMap}
-            totalRounds={draftData.draft?.settings.rounds ?? 15}
-          />
-        )}
-
-        {activeTab === 'history' && (
-          <div>
-            {yoy.isLoading ? (
-              <div className="flex items-center justify-center h-48 text-gray-400">
-                <Loader2 className="animate-spin mr-2" size={18} />
-                Fetching multi-season data…
-              </div>
-            ) : (
-              <YearOverYear data={yoy.data ?? []} />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'records' && (
-          <div>
-            {records.isLoading ? (
-              <div className="flex items-center justify-center h-48 text-gray-400">
-                <Loader2 className="animate-spin mr-2" size={18} />
-                Building records book…
-              </div>
-            ) : (
-              <LeagueRecords data={records.data ?? []} />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'compare' && <TeamComparison leagueId={leagueId} />}
-      </div>
+      </main>
     </div>
   );
 }
 
 
-function LeagueSelector({ userId }: { userId: string }) {
+function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () => void }) {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
-  const leagues = useUserLeaguesAllSeasons(userId);
+  const leagues = useUserLeaguesAllSeasons(user.user_id);
 
   if (leagues.isLoading) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">
         <Loader2 className="animate-spin mr-2" size={18} />
         Fetching your leagues…
       </div>
@@ -253,10 +300,10 @@ function LeagueSelector({ userId }: { userId: string }) {
   }
 
   // Group leagues by name
-  const grouped = leagues.data.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
+  const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
     (acc[league.name] ??= []).push(league);
     return acc;
-  }, {});
+  }, {}) ?? {};
 
   if (selectedLeagueId) {
     return (
@@ -279,52 +326,80 @@ function LeagueSelector({ userId }: { userId: string }) {
   });
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold text-white mb-5">Your Leagues</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {sortedGroups.map(([name, group]) => {
-          const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
-          const latest = seasons[0];
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
+        {/* Header */}
+        <header className="flex items-center gap-3 mb-8 sm:mb-10 pb-6 border-b border-gray-800/60">
+          {user.avatar ? (
+            <img
+              src={avatarUrl(user.avatar) ?? ''}
+              alt={user.display_name}
+              className="w-10 h-10 rounded-full flex-shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center flex-shrink-0">
+              <UserCircle size={22} className="text-white" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold text-white leading-tight">Sleeper Dashboard</h1>
+            <p className="text-gray-500 text-sm">{user.display_name}</p>
+          </div>
+          <button
+            onClick={onChangeUser}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+          >
+            <UserCircle size={15} />
+            Change user
+          </button>
+        </header>
 
-          return (
-            <button
-              key={name}
-              onClick={() => {
-                setSelectedGroup(group);
-                setSelectedLeagueId(latest.league_id);
-              }}
-              className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-5 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
-            >
-              {latest.avatar ? (
-                <img
-                  src={avatarUrl(latest.avatar) ?? ''}
-                  alt={name}
-                  className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {name.slice(0, 2)}
+        <h2 className="text-lg font-semibold text-white mb-5">Your Leagues</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {sortedGroups.map(([name, group]) => {
+            const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
+            const latest = seasons[0];
+
+            return (
+              <button
+                key={name}
+                onClick={() => {
+                  setSelectedGroup(group);
+                  setSelectedLeagueId(latest.league_id);
+                }}
+                className="flex items-center gap-3 bg-gray-900 hover:bg-gray-800 p-5 rounded-xl text-left transition-colors border border-gray-800 hover:border-indigo-600 w-full"
+              >
+                {latest.avatar ? (
+                  <img
+                    src={avatarUrl(latest.avatar) ?? ''}
+                    alt={name}
+                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-indigo-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                    {name.slice(0, 2)}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-white truncate mb-1">{name}</div>
+                  <div className="text-xs text-gray-500 mb-2">{latest.settings.num_teams} teams</div>
+                  {/* Season badges */}
+                  <div className="flex flex-wrap gap-1">
+                    {seasons.map((l) => (
+                      <span
+                        key={l.league_id}
+                        className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full border border-gray-700"
+                      >
+                        {l.season}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-white truncate mb-1">{name}</div>
-                <div className="text-xs text-gray-500 mb-2">{latest.settings.num_teams} teams</div>
-                {/* Season badges */}
-                <div className="flex flex-wrap gap-1">
-                  {seasons.map((l) => (
-                    <span
-                      key={l.league_id}
-                      className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded-full border border-gray-700"
-                    >
-                      {l.season}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
-            </button>
-          );
-        })}
+                <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -414,39 +489,7 @@ function AppContent({
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10">
-        {/* Header */}
-        <header className="flex items-center gap-3 mb-8 sm:mb-10 pb-6 border-b border-gray-800/60">
-          {user.data.avatar ? (
-            <img
-              src={avatarUrl(user.data.avatar) ?? ''}
-              alt={user.data.display_name}
-              className="w-10 h-10 rounded-full flex-shrink-0"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center flex-shrink-0">
-              <UserCircle size={22} className="text-white" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-white leading-tight">Sleeper Dashboard</h1>
-            <p className="text-gray-500 text-sm">{user.data.display_name}</p>
-          </div>
-          <button
-            onClick={onChangeUser}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
-          >
-            <UserCircle size={15} />
-            Change user
-          </button>
-        </header>
-
-        <LeagueSelector userId={user.data.user_id} />
-      </div>
-    </div>
-  );
+  return <LeagueSelector user={user.data} onChangeUser={onChangeUser} />;
 }
 
 export default function App() {
