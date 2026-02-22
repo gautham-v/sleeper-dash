@@ -10,6 +10,7 @@ import type {
   TeamAllTimeStats,
   TeamTier,
   H2HRecord,
+  AllTimeRecordEntry,
 } from '../types/sleeper';
 
 /** Build paired matchups from a week's flat matchup list */
@@ -335,4 +336,255 @@ export function calcH2H(
   record.teamAPoints = Math.round(record.teamAPoints * 100) / 100;
   record.teamBPoints = Math.round(record.teamBPoints * 100) / 100;
   return record;
+}
+
+/** Compute all-time records across all historical seasons. */
+export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEntry[] {
+  if (!history || history.length === 0) return [];
+
+  const sortedHistory = [...history].sort((a, b) => Number(a.season) - Number(b.season));
+
+  // Accumulators
+  const careerWins = new Map<string, { name: string; avatar: string | null; wins: number }>();
+  let highestSeasonPts: { userId: string; name: string; avatar: string | null; pts: number; season: string } | null = null;
+  const titlesMap = new Map<string, { name: string; avatar: string | null; count: number; years: string[] }>();
+  const lastPlacesMap = new Map<string, { name: string; avatar: string | null; count: number; years: string[] }>();
+  let highestWeek: { userId: string; name: string; avatar: string | null; pts: number; season: string; week: number } | null = null;
+  let lowestWeek: { userId: string; name: string; avatar: string | null; pts: number; season: string; week: number } | null = null;
+  let biggestBlowout: { winnerUserId: string; winnerName: string; winnerAvatar: string | null; loserName: string; margin: number; season: string; week: number } | null = null;
+  const blowoutWinsMap = new Map<string, { name: string; avatar: string | null; count: number }>();
+  const userInfoMap = new Map<string, { name: string; avatar: string | null }>();
+  // Chronological W/L per user for streak computation
+  const userResults = new Map<string, ('W' | 'L')[]>();
+  // Title drought: which seasons did each user participate in, and which did they win?
+  const userSeasonList = new Map<string, string[]>();
+  const titleSeasons = new Map<string, string[]>();
+
+  for (const season of sortedHistory) {
+    // Update user info (keep most recent name/avatar)
+    for (const [userId, team] of season.teams) {
+      userInfoMap.set(userId, { name: team.displayName, avatar: team.avatar });
+    }
+
+    // Champion
+    if (season.championUserId) {
+      const champ = season.teams.get(season.championUserId);
+      if (champ) {
+        const e = titlesMap.get(season.championUserId) ?? { name: champ.displayName, avatar: champ.avatar, count: 0, years: [] };
+        e.count++;
+        e.years.push(season.season);
+        e.name = champ.displayName;
+        titlesMap.set(season.championUserId, e);
+        const ts = titleSeasons.get(season.championUserId) ?? [];
+        ts.push(season.season);
+        titleSeasons.set(season.championUserId, ts);
+      }
+    }
+
+    // Last place: team with highest rank number
+    let lpUserId: string | null = null;
+    let maxRank = 0;
+    for (const [userId, team] of season.teams) {
+      if (team.rank > maxRank) { maxRank = team.rank; lpUserId = userId; }
+    }
+    if (lpUserId) {
+      const team = season.teams.get(lpUserId)!;
+      const e = lastPlacesMap.get(lpUserId) ?? { name: team.displayName, avatar: team.avatar, count: 0, years: [] };
+      e.count++;
+      e.years.push(season.season);
+      e.name = team.displayName;
+      lastPlacesMap.set(lpUserId, e);
+    }
+
+    // Career stats + single-season pts
+    for (const [userId, team] of season.teams) {
+      const cw = careerWins.get(userId) ?? { name: team.displayName, avatar: team.avatar, wins: 0 };
+      cw.wins += team.wins;
+      cw.name = team.displayName;
+      careerWins.set(userId, cw);
+
+      if (!highestSeasonPts || team.pointsFor > highestSeasonPts.pts) {
+        highestSeasonPts = { userId, name: team.displayName, avatar: team.avatar, pts: team.pointsFor, season: season.season };
+      }
+
+      const sl = userSeasonList.get(userId) ?? [];
+      sl.push(season.season);
+      userSeasonList.set(userId, sl);
+    }
+
+    // Matchup analysis
+    const sortedMatchups = [...season.matchups].sort((a, b) => a.week - b.week);
+    for (const matchup of sortedMatchups) {
+      const { team1, team2 } = matchup;
+      if (team1.points === 0 && team2.points === 0) continue;
+
+      const userId1 = season.rosterToUser.get(team1.rosterId);
+      const userId2 = season.rosterToUser.get(team2.rosterId);
+      if (!userId1 || !userId2) continue;
+
+      const t1 = season.teams.get(userId1);
+      const t2 = season.teams.get(userId2);
+      const name1 = t1?.displayName ?? `Team ${team1.rosterId}`;
+      const name2 = t2?.displayName ?? `Team ${team2.rosterId}`;
+      const avatar1 = t1?.avatar ?? null;
+      const avatar2 = t2?.avatar ?? null;
+
+      const winnerUserId = team1.points >= team2.points ? userId1 : userId2;
+      const loserUserId = team1.points >= team2.points ? userId2 : userId1;
+      const winnerName = team1.points >= team2.points ? name1 : name2;
+      const loserName = team1.points >= team2.points ? name2 : name1;
+      const winnerAvatar = team1.points >= team2.points ? avatar1 : avatar2;
+
+      // Streak tracking
+      if (!userResults.has(userId1)) userResults.set(userId1, []);
+      if (!userResults.has(userId2)) userResults.set(userId2, []);
+      userResults.get(winnerUserId)!.push('W');
+      userResults.get(loserUserId)!.push('L');
+
+      // Weekly high/low
+      for (const [pts, uid, name, avatar] of [
+        [team1.points, userId1, name1, avatar1],
+        [team2.points, userId2, name2, avatar2],
+      ] as [number, string, string, string | null][]) {
+        if (pts > 0) {
+          if (!highestWeek || pts > highestWeek.pts) {
+            highestWeek = { userId: uid, name, avatar, pts, season: season.season, week: matchup.week };
+          }
+          if (!lowestWeek || pts < lowestWeek.pts) {
+            lowestWeek = { userId: uid, name, avatar, pts, season: season.season, week: matchup.week };
+          }
+        }
+      }
+
+      const margin = Math.abs(team1.points - team2.points);
+      if (!biggestBlowout || margin > biggestBlowout.margin) {
+        biggestBlowout = { winnerUserId, winnerName, winnerAvatar, loserName, margin, season: season.season, week: matchup.week };
+      }
+
+      // Blowout wins (margin > 30)
+      if (margin > 30) {
+        const bw = blowoutWinsMap.get(winnerUserId) ?? { name: winnerName, avatar: winnerAvatar, count: 0 };
+        bw.count++;
+        bw.name = winnerName;
+        blowoutWinsMap.set(winnerUserId, bw);
+      }
+    }
+  }
+
+  // Compute streaks
+  let longestWin: { userId: string; name: string; avatar: string | null; value: number } | null = null;
+  let longestLoss: { userId: string; name: string; avatar: string | null; value: number } | null = null;
+
+  for (const [userId, results] of userResults) {
+    const info = userInfoMap.get(userId) ?? { name: '', avatar: null };
+    let maxW = 0, curW = 0, maxL = 0, curL = 0;
+    for (const r of results) {
+      if (r === 'W') { curW++; curL = 0; } else { curL++; curW = 0; }
+      if (curW > maxW) maxW = curW;
+      if (curL > maxL) maxL = curL;
+    }
+    if (!longestWin || maxW > longestWin.value) longestWin = { userId, name: info.name, avatar: info.avatar, value: maxW };
+    if (!longestLoss || maxL > longestLoss.value) longestLoss = { userId, name: info.name, avatar: info.avatar, value: maxL };
+  }
+
+  // Title drought
+  let longestDrought: { userId: string; name: string; avatar: string | null; value: number } | null = null;
+  for (const [userId, seasons] of userSeasonList) {
+    const wonSet = new Set(titleSeasons.get(userId) ?? []);
+    const sorted = [...seasons].sort((a, b) => Number(a) - Number(b));
+    let maxD = 0, curD = 0;
+    for (const s of sorted) {
+      if (wonSet.has(s)) { curD = 0; } else { curD++; if (curD > maxD) maxD = curD; }
+    }
+    // Also include trailing drought (current streak without a title)
+    maxD = Math.max(maxD, curD);
+    const info = userInfoMap.get(userId) ?? { name: '', avatar: null };
+    if (!longestDrought || maxD > longestDrought.value) longestDrought = { userId, name: info.name, avatar: info.avatar, value: maxD };
+  }
+
+  const records: AllTimeRecordEntry[] = [];
+
+  const topCW = [...careerWins.values()].sort((a, b) => b.wins - a.wins)[0];
+  if (topCW) {
+    const userId = [...careerWins.entries()].find(([, v]) => v === topCW)?.[0] ?? null;
+    records.push({ id: 'career-wins', category: 'Most Career Wins', holderId: userId, holder: topCW.name, avatar: topCW.avatar, value: `${topCW.wins} wins`, rawValue: topCW.wins, context: 'All-time record' });
+  }
+
+  if (highestSeasonPts) {
+    records.push({ id: 'highest-season-pts', category: 'Highest Single-Season Points', holderId: highestSeasonPts.userId, holder: highestSeasonPts.name, avatar: highestSeasonPts.avatar, value: `${highestSeasonPts.pts.toFixed(1)} pts`, rawValue: highestSeasonPts.pts, context: `${highestSeasonPts.season} Season`, season: highestSeasonPts.season });
+  }
+
+  const topTitles = [...titlesMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
+  if (topTitles) {
+    const [uid, t] = topTitles;
+    records.push({ id: 'most-titles', category: 'Most Championships', holderId: uid, holder: t.name, avatar: t.avatar, value: `${t.count} title${t.count !== 1 ? 's' : ''}`, rawValue: t.count, context: t.years.join(', ') });
+  }
+
+  const topLP = [...lastPlacesMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
+  if (topLP) {
+    const [uid, lp] = topLP;
+    records.push({ id: 'most-last-place', category: 'Most Last-Place Finishes', holderId: uid, holder: lp.name, avatar: lp.avatar, value: `${lp.count} time${lp.count !== 1 ? 's' : ''}`, rawValue: lp.count, context: lp.years.join(', ') });
+  }
+
+  if (longestWin) {
+    records.push({ id: 'longest-win-streak', category: 'Longest Winning Streak', holderId: longestWin.userId, holder: longestWin.name, avatar: longestWin.avatar, value: `${longestWin.value} straight wins`, rawValue: longestWin.value, context: 'Consecutive wins across seasons' });
+  }
+
+  if (longestDrought) {
+    records.push({ id: 'title-drought', category: 'Longest Championship Drought', holderId: longestDrought.userId, holder: longestDrought.name, avatar: longestDrought.avatar, value: `${longestDrought.value} season${longestDrought.value !== 1 ? 's' : ''}`, rawValue: longestDrought.value, context: 'Consecutive seasons without a title' });
+  }
+
+  if (longestLoss) {
+    records.push({ id: 'longest-loss-streak', category: 'Longest Losing Streak', holderId: longestLoss.userId, holder: longestLoss.name, avatar: longestLoss.avatar, value: `${longestLoss.value} straight losses`, rawValue: longestLoss.value, context: 'Consecutive losses across seasons' });
+  }
+
+  if (highestWeek) {
+    records.push({ id: 'highest-weekly', category: 'Highest Single-Week Score', holderId: highestWeek.userId, holder: highestWeek.name, avatar: highestWeek.avatar, value: `${highestWeek.pts.toFixed(2)} pts`, rawValue: highestWeek.pts, context: `${highestWeek.season} Season, Week ${highestWeek.week}`, season: highestWeek.season, week: highestWeek.week });
+  }
+
+  if (lowestWeek) {
+    records.push({ id: 'lowest-weekly', category: 'Lowest Single-Week Score', holderId: lowestWeek.userId, holder: lowestWeek.name, avatar: lowestWeek.avatar, value: `${lowestWeek.pts.toFixed(2)} pts`, rawValue: lowestWeek.pts, context: `${lowestWeek.season} Season, Week ${lowestWeek.week}`, season: lowestWeek.season, week: lowestWeek.week });
+  }
+
+  if (biggestBlowout) {
+    records.push({ id: 'biggest-blowout', category: 'Biggest Blowout in League History', holderId: biggestBlowout.winnerUserId, holder: biggestBlowout.winnerName, avatar: biggestBlowout.winnerAvatar, value: `+${biggestBlowout.margin.toFixed(2)} pts`, rawValue: biggestBlowout.margin, context: `${biggestBlowout.season} Wk ${biggestBlowout.week} · def. ${biggestBlowout.loserName}`, season: biggestBlowout.season, week: biggestBlowout.week });
+  }
+
+  const topBW = [...blowoutWinsMap.entries()].sort((a, b) => b[1].count - a[1].count)[0];
+  if (topBW) {
+    const [uid, bw] = topBW;
+    records.push({ id: 'blowout-wins', category: 'Most Career Blowout Wins', holderId: uid, holder: bw.name, avatar: bw.avatar, value: `${bw.count} blowout${bw.count !== 1 ? 's' : ''}`, rawValue: bw.count, context: 'Wins by 30+ points' });
+  }
+
+  return records;
+}
+
+/** Compute blowouts and closest games across all historical seasons. */
+export function calcAllTimeBlowouts(
+  history: HistoricalSeason[],
+  count = 5,
+): { blowouts: BlowoutGame[]; closest: BlowoutGame[] } {
+  const games: BlowoutGame[] = [];
+
+  for (const season of history) {
+    for (const matchup of season.matchups) {
+      const { team1, team2 } = matchup;
+      if (team1.points === 0 && team2.points === 0) continue;
+      const margin = Math.abs(team1.points - team2.points);
+      if (margin === 0) continue;
+      const [winner, loser] = team1.points >= team2.points ? [team1, team2] : [team2, team1];
+      const winnerId = season.rosterToUser.get(winner.rosterId);
+      const loserId = season.rosterToUser.get(loser.rosterId);
+      games.push({
+        season: season.season,
+        week: matchup.week,
+        winner: { rosterId: winner.rosterId, teamName: winnerId ? (season.teams.get(winnerId)?.displayName ?? `Team ${winner.rosterId}`) : `Team ${winner.rosterId}`, points: winner.points },
+        loser: { rosterId: loser.rosterId, teamName: loserId ? (season.teams.get(loserId)?.displayName ?? `Team ${loser.rosterId}`) : `Team ${loser.rosterId}`, points: loser.points },
+        margin: Math.round(margin * 100) / 100,
+      });
+    }
+  }
+
+  const sorted = [...games].sort((a, b) => b.margin - a.margin);
+  return { blowouts: sorted.slice(0, count), closest: [...sorted].reverse().slice(0, count) };
 }
