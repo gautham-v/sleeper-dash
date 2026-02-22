@@ -186,12 +186,15 @@ export interface H2HRecord {
   teamBWins: number;
   teamAPoints: number;
   teamBPoints: number;
+  playoffAWins: number;
+  playoffBWins: number;
   games: {
     season: string;
     week: number;
     teamAPoints: number;
     teamBPoints: number;
     winner: 'A' | 'B' | 'tie';
+    isPlayoff: boolean;
   }[];
 }
 
@@ -223,6 +226,7 @@ export interface WeeklyMatchup {
     points: number;
   };
   margin: number;
+  isPlayoff: boolean;
 }
 
 export interface PowerRanking {
@@ -246,13 +250,6 @@ export interface LuckEntry {
   actualWins: number;
   expectedWins: number;
   luckScore: number;
-}
-
-export interface BlowoutGame {
-  week: number;
-  winner: { rosterId: number; teamName: string; points: number };
-  loser: { rosterId: number; teamName: string; points: number };
-  margin: number;
 }
 
 export interface YearOverYearEntry {
@@ -292,12 +289,14 @@ export interface SeasonGameRecord {
   winnerPts: number;
   loserPts: number;
   margin: number;
+  isPlayoff?: boolean;
 }
 
 export interface SeasonScoreRecord {
   week: number;
   teamName: string;
   points: number;
+  isPlayoff?: boolean;
 }
 
 export interface LeagueSeasonRecord {
@@ -309,4 +308,26 @@ export interface LeagueSeasonRecord {
   biggestBlowout: SeasonGameRecord | null;
   highestWeeklyScore: SeasonScoreRecord | null;
   lowestWeeklyScore: SeasonScoreRecord | null;
+}
+
+export interface AllTimeRecordEntry {
+  id: string;
+  category: string;
+  holderId: string | null;
+  holder: string;
+  avatar: string | null;
+  value: string;
+  rawValue: number;
+  context: string;
+  season?: string;
+  week?: number;
+}
+
+export interface BlowoutGame {
+  week: number;
+  season?: string;
+  winner: { rosterId: number; teamName: string; points: number };
+  loser: { rosterId: number; teamName: string; points: number };
+  margin: number;
+  isPlayoff: boolean;
 }

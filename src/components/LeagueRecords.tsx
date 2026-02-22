@@ -99,7 +99,7 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
           }
           secondary={
             record.biggestBlowout
-              ? `Wk ${record.biggestBlowout.week} · ${record.biggestBlowout.winnerPts.toFixed(2)}–${record.biggestBlowout.loserPts.toFixed(2)} (+${record.biggestBlowout.margin.toFixed(2)})`
+              ? `${record.biggestBlowout.isPlayoff ? 'Playoffs' : `Wk ${record.biggestBlowout.week}`} · ${record.biggestBlowout.winnerPts.toFixed(2)}–${record.biggestBlowout.loserPts.toFixed(2)} (+${record.biggestBlowout.margin.toFixed(2)})`
               : undefined
           }
           accentBg="bg-purple-950"
@@ -112,7 +112,7 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
           primary={record.highestWeeklyScore?.teamName ?? '—'}
           secondary={
             record.highestWeeklyScore
-              ? `Wk ${record.highestWeeklyScore.week} · ${record.highestWeeklyScore.points.toFixed(2)} pts`
+              ? `${record.highestWeeklyScore.isPlayoff ? 'Playoffs' : `Wk ${record.highestWeeklyScore.week}`} · ${record.highestWeeklyScore.points.toFixed(2)} pts`
               : undefined
           }
           accentBg="bg-indigo-950"
@@ -125,7 +125,7 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
           primary={record.lowestWeeklyScore?.teamName ?? '—'}
           secondary={
             record.lowestWeeklyScore
-              ? `Wk ${record.lowestWeeklyScore.week} · ${record.lowestWeeklyScore.points.toFixed(2)} pts`
+              ? `${record.lowestWeeklyScore.isPlayoff ? 'Playoffs' : `Wk ${record.lowestWeeklyScore.week}`} · ${record.lowestWeeklyScore.points.toFixed(2)} pts`
               : undefined
           }
           accentBg="bg-gray-800"

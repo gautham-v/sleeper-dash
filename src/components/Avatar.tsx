@@ -3,13 +3,14 @@ import { avatarUrl } from '../utils/calculations';
 interface AvatarProps {
   avatar: string | null | undefined;
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const sizes = {
   sm: 'w-7 h-7 text-xs',
   md: 'w-9 h-9 text-sm',
   lg: 'w-12 h-12 text-base',
+  xl: 'w-16 h-16 text-lg',
 };
 
 export function Avatar({ avatar, name, size = 'md' }: AvatarProps) {
