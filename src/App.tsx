@@ -127,7 +127,7 @@ function LeagueDashboard({
               <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
                 <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
               </div>
-              <span className="font-bold text-xl tracking-tight">Sleeper Dash</span>
+              <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
             </div>
             <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors" title="Back to Leagues">
               <ChevronLeft size={20} />
@@ -214,7 +214,7 @@ function LeagueDashboard({
           {/* Top Header */}
           <header className="h-16 sm:h-20 border-b border-card-border px-4 sm:px-8 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
             <div className="sm:hidden min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Sleeper Dash</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">recordbook.fyi</div>
               <div className="text-sm font-bold text-white truncate">
                 {activeTab === 'managers' && selectedManagerId ? 'Manager Profile' : activeTabMeta?.label ?? 'Overview'}
               </div>
@@ -498,7 +498,7 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
 
         {/* Title */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Sleeper Dash</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">recordbook.fyi</h1>
           <p className="text-gray-500 text-sm leading-relaxed">
             Fantasy football analytics for your Sleeper leagues
           </p>
