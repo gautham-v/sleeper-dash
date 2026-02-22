@@ -1,0 +1,346 @@
+import { useMemo, useState } from 'react';
+import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award } from 'lucide-react';
+import { useLeagueHistory } from '../hooks/useLeagueData';
+import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
+import { Avatar } from './Avatar';
+
+interface Props {
+  leagueId: string;
+  userId: string;
+  onBack: () => void;
+}
+
+export function ManagerProfile({ leagueId, userId, onBack }: Props) {
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons'>('overview');
+  const { data: history, isLoading } = useLeagueHistory(leagueId);
+
+  const allStats = useMemo(() => {
+    if (!history) return new Map();
+    return calcAllTimeStats(history);
+  }, [history]);
+
+  const records = useMemo(() => {
+    if (!history) return [];
+    return calcAllTimeRecords(history);
+  }, [history]);
+
+  const stats = allStats.get(userId);
+
+  // All users (for H2H section)
+  const allUsers = useMemo(() => {
+    if (!history) return [];
+    const seen = new Map<string, { userId: string; displayName: string; avatar: string | null }>();
+    for (const season of history) {
+      for (const [uid, team] of season.teams) {
+        seen.set(uid, { userId: uid, displayName: team.displayName, avatar: team.avatar });
+      }
+    }
+    return [...seen.values()].filter(u => u.userId !== userId).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [history, userId]);
+
+  // H2H vs every other manager
+  const h2hRecords = useMemo(() => {
+    if (!history || !userId) return [];
+    return allUsers.map((opponent) => {
+      const h2h = calcH2H(history, userId, opponent.userId);
+      const total = h2h.teamAWins + h2h.teamBWins;
+      return { opponent, wins: h2h.teamAWins, losses: h2h.teamBWins, total, winPct: total > 0 ? h2h.teamAWins / total : 0 };
+    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+  }, [history, userId, allUsers]);
+
+  // Last-place finishes
+  const lastPlaceFinishes = useMemo(() => {
+    if (!history) return [];
+    const lp: string[] = [];
+    for (const season of history) {
+      let maxRank = 0;
+      let lpUserId: string | null = null;
+      for (const [uid, team] of season.teams) {
+        if (team.rank > maxRank) { maxRank = team.rank; lpUserId = uid; }
+      }
+      if (lpUserId === userId) lp.push(season.season);
+    }
+    return lp;
+  }, [history, userId]);
+
+  // Championship years
+  const champYears = useMemo(() => {
+    if (!history) return [];
+    return history.filter(s => s.championUserId === userId).map(s => s.season).sort();
+  }, [history, userId]);
+
+  // Records held by this manager
+  const myRecords = useMemo(() => records.filter(r => r.holderId === userId), [records, userId]);
+
+  // Best / worst season by W-L record
+  const { bestSeason, worstSeason } = useMemo(() => {
+    if (!stats || stats.seasons.length === 0) return { bestSeason: null, worstSeason: null };
+    const sorted = [...stats.seasons].sort((a, b) => {
+      const pctA = a.wins / (a.wins + a.losses || 1);
+      const pctB = b.wins / (b.wins + b.losses || 1);
+      return pctB - pctA || b.wins - a.wins;
+    });
+    return { bestSeason: sorted[0], worstSeason: sorted[sorted.length - 1] };
+  }, [stats]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-brand-cyan">
+        <Loader2 className="animate-spin mr-2" size={20} />
+        Loading manager profile…
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="bg-gray-900 rounded-2xl p-8 text-center text-gray-500">
+        Manager not found.
+      </div>
+    );
+  }
+
+  const winPct = `${(stats.winPct * 100).toFixed(1)}%`;
+  const totalGames = stats.totalWins + stats.totalLosses;
+  const allTimePts = stats.seasons.reduce((sum: number, s: { pointsFor: number }) => sum + s.pointsFor, 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+      >
+        <ChevronLeft size={16} /> Back to Managers
+      </button>
+
+      {/* Profile header */}
+      <div className="bg-card-bg border border-card-border rounded-2xl p-6">
+        <div className="flex items-start gap-5">
+          <Avatar avatar={stats.avatar} name={stats.displayName} size="xl" />
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
+            <div className="text-sm text-gray-400 mt-1">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league</div>
+
+            {/* Key stats row */}
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div>
+                <div className="text-2xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
+                <div className="text-xs text-gray-500">Win Rate</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
+                <div className="text-xs text-gray-500">Career Record ({totalGames} games)</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                <div className="text-xs text-gray-500">All-Time Points</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section tabs */}
+      <div className="flex gap-2">
+        {([['overview', 'Overview'], ['h2h', 'Head-to-Head'], ['seasons', 'Season Log']] as const).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setActiveSection(id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              activeSection === id
+                ? 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30'
+                : 'bg-card-bg text-gray-400 border border-card-border hover:text-white'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* OVERVIEW SECTION */}
+      {activeSection === 'overview' && (
+        <div className="space-y-4">
+          {/* Championships */}
+          {champYears.length > 0 && (
+            <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy size={16} className="text-yellow-400" />
+                <span className="font-semibold text-yellow-400">Championships</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {champYears.map((y) => (
+                  <span key={y} className="bg-yellow-900/40 border border-yellow-700/40 text-yellow-300 font-bold px-3 py-1.5 rounded-lg text-sm">
+                    🏆 {y}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Last-place finishes */}
+          {lastPlaceFinishes.length > 0 && (
+            <div className="bg-red-900/20 border border-red-700/40 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Skull size={16} className="text-red-400" />
+                <span className="font-semibold text-red-400">Last-Place Finishes</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {lastPlaceFinishes.map((y) => (
+                  <span key={y} className="bg-red-900/40 border border-red-700/40 text-red-300 font-bold px-3 py-1.5 rounded-lg text-sm">
+                    💀 {y}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Best / Worst season */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {bestSeason && (
+              <div className="bg-green-900/20 border border-green-700/40 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp size={14} className="text-green-400" />
+                  <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Best Season</span>
+                </div>
+                <div className="text-2xl font-bold text-white">{bestSeason.season}</div>
+                <div className="text-sm text-gray-300 mt-1">{bestSeason.wins}–{bestSeason.losses} · #{bestSeason.rank} finish</div>
+                <div className="text-xs text-gray-500 mt-0.5">{bestSeason.pointsFor.toFixed(1)} pts</div>
+              </div>
+            )}
+            {worstSeason && bestSeason?.season !== worstSeason.season && (
+              <div className="bg-red-900/10 border border-red-700/30 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingDown size={14} className="text-red-400" />
+                  <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Worst Season</span>
+                </div>
+                <div className="text-2xl font-bold text-white">{worstSeason.season}</div>
+                <div className="text-sm text-gray-300 mt-1">{worstSeason.wins}–{worstSeason.losses} · #{worstSeason.rank} finish</div>
+                <div className="text-xs text-gray-500 mt-0.5">{worstSeason.pointsFor.toFixed(1)} pts</div>
+              </div>
+            )}
+          </div>
+
+          {/* Records held */}
+          {myRecords.length > 0 && (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Award size={16} className="text-brand-cyan" />
+                <span className="font-semibold text-white">League Records Held</span>
+              </div>
+              <div className="space-y-3">
+                {myRecords.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-white">{r.category}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{r.context}</div>
+                    </div>
+                    <div className="text-sm font-bold text-brand-cyan flex-shrink-0 ml-4">{r.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* H2H SECTION */}
+      {activeSection === 'h2h' && (
+        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <div className="flex items-center gap-2">
+              <Swords size={16} className="text-gray-400" />
+              <h3 className="font-semibold text-white">Head-to-Head vs. Every Manager</h3>
+            </div>
+          </div>
+          {h2hRecords.length === 0 ? (
+            <div className="px-5 pb-5 text-sm text-gray-500">No H2H matchup data available.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                  <th className="text-left py-3 px-5">Opponent</th>
+                  <th className="text-center py-3 px-3">W</th>
+                  <th className="text-center py-3 px-3">L</th>
+                  <th className="text-center py-3 px-3">Win %</th>
+                  <th className="text-right py-3 px-5">Games</th>
+                </tr>
+              </thead>
+              <tbody>
+                {h2hRecords.map(({ opponent, wins, losses, total, winPct }) => {
+                  const wPct = winPct * 100;
+                  return (
+                    <tr key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                      <td className="py-3 px-5">
+                        <div className="flex items-center gap-2">
+                          <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
+                          <span className="text-white font-medium">{opponent.displayName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</td>
+                      <td className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</td>
+                      <td className="py-3 px-3 text-center">
+                        <span className={`font-semibold tabular-nums ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
+                          {wPct.toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-5 text-right text-gray-500 tabular-nums">{total}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* SEASONS SECTION */}
+      {activeSection === 'seasons' && (
+        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <div className="flex items-center gap-2">
+              <Star size={16} className="text-gray-400" />
+              <h3 className="font-semibold text-white">Season-by-Season Log</h3>
+            </div>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                <th className="text-left py-3 px-5">Season</th>
+                <th className="text-center py-3 px-3">Record</th>
+                <th className="text-center py-3 px-3">Rank</th>
+                <th className="text-right py-3 px-5">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...stats.seasons].sort((a, b) => Number(b.season) - Number(a.season)).map((s) => {
+                const isChamp = champYears.includes(s.season);
+                const isLP = lastPlaceFinishes.includes(s.season);
+                return (
+                  <tr key={s.season} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                    <td className="py-3 px-5 font-medium text-white">{s.season}</td>
+                    <td className="py-3 px-3 text-center tabular-nums text-gray-300 font-semibold">{s.wins}–{s.losses}</td>
+                    <td className="py-3 px-3 text-center">
+                      {isChamp ? (
+                        <span className="text-yellow-400 font-bold">🏆 1st</span>
+                      ) : isLP ? (
+                        <span className="text-red-400 font-bold">💀 Last</span>
+                      ) : (
+                        <span className="text-gray-400">#{s.rank}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-5 text-right tabular-nums text-gray-300">{s.pointsFor.toFixed(1)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
