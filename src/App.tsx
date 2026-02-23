@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, BookOpen, Scale, Users,
@@ -13,16 +13,15 @@ import {
   ItemActions, ItemGroup, ItemSeparator,
 } from '@/components/ui/item';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats, useLeagueHistory } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats } from './hooks/useLeagueData';
 import { CrossLeagueStats } from './components/CrossLeagueStats';
-import { LuckIndex } from './components/LuckIndex';
 import { Overview } from './components/Overview';
 import { AllTimeRecords } from './components/AllTimeRecords';
 import { ManagersList } from './components/ManagersList';
 import { ManagerProfile } from './components/ManagerProfile';
 import { TeamComparison } from './components/TeamComparison';
-import { StandingsSection } from './components/StandingsSection';
-import { avatarUrl, calcAllTimeLuckIndex } from './utils/calculations';
+import { LeagueTables } from './components/LeagueTables';
+import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
 const queryClient = new QueryClient({
@@ -53,21 +52,10 @@ function LeagueDashboard({
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
-  const [luckMode, setLuckMode] = useState<'alltime' | 'season'>('alltime');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { league, currentWeek, isOffseason, isLoading, computed } =
     useDashboardData(leagueId);
-  const { data: history } = useLeagueHistory(leagueId);
-
-  const allTimeLuck = useMemo(() => {
-    if (!history) return [];
-    return calcAllTimeLuckIndex(history);
-  }, [history]);
-
-  const mostRecentSeason = history?.[history.length - 1]?.season ?? '';
-  const activeLuck = luckMode === 'alltime' ? allTimeLuck : (computed?.luckIndex ?? []);
-  const showLuck = activeLuck.length > 0;
 
   const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
   const multipleSeasons = sortedSeasons.length > 1;
@@ -285,54 +273,14 @@ function LeagueDashboard({
                     }}
                   />
 
-                  {/* Standings widget */}
-                  <StandingsSection
-                    currentStandings={computed.standings}
+                  <LeagueTables
+                    computed={computed}
                     leagueId={leagueId}
                     onSelectManager={(uid) => {
                       handleSelectManager(uid);
                       handleTabChange('managers');
                     }}
                   />
-
-                  {/* Luck Index */}
-                  {showLuck && (
-                    <div className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
-                      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-card-border">
-                        <h3 className="font-semibold text-white">Luck Index</h3>
-                        <div className="flex gap-1 bg-muted rounded-lg p-1">
-                          <button
-                            onClick={() => setLuckMode('alltime')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                              luckMode === 'alltime'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            All-Time
-                          </button>
-                          <button
-                            onClick={() => setLuckMode('season')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                              luckMode === 'season'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
-                          </button>
-                        </div>
-                      </div>
-                      <LuckIndex
-                        entries={activeLuck}
-                        onSelectManager={(uid) => {
-                          handleSelectManager(uid);
-                          handleTabChange('managers');
-                        }}
-                      />
-                    </div>
-                  )}
-
                 </div>
               )}
 
