@@ -108,12 +108,6 @@
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-brand-cyan) 60%, transparent));
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 html,
 body {
   background-color: var(--color-base-bg);
@@ -233,5 +227,18 @@ button {
 
     --color-orange-400: #c2410c;
     --color-orange-300: #9a3412;
+  }
+}
+
+/*
+ * Place the CSS reset inside @layer base so that Tailwind's @layer utilities
+ * can properly override it. Without this, an unlayered * { padding: 0 } beats
+ * every Tailwind padding/margin utility due to CSS Cascade Level 5 layer rules.
+ */
+@layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
 }
