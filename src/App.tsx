@@ -322,7 +322,7 @@ function LeagueDashboard({
                     <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-white">Luck Index</h3>
+                          <h3 className="text-sm font-semibold text-white">Luck Index</h3>
                           <span className="text-xs text-gray-500">actual vs. expected wins</span>
                         </div>
                       </div>

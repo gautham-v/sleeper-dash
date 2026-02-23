@@ -62,7 +62,7 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
             <Avatar avatar={mgr.avatar} name={mgr.displayName} size="lg" />
 
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-white group-hover:text-brand-cyan transition-colors truncate">
+              <div className="text-sm font-bold text-white group-hover:text-brand-cyan transition-colors truncate">
                 {mgr.displayName}
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
