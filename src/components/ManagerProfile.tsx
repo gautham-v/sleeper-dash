@@ -155,35 +155,37 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
 
       {/* Profile header */}
       <Card className="bg-card-bg border-card-border rounded-2xl">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-5">
-            <Avatar avatar={stats.avatar} name={stats.displayName} size="xl" />
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start gap-3 sm:gap-5">
+            <Avatar avatar={stats.avatar} name={stats.displayName} size="lg" />
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
-              <div className="text-sm text-gray-400 mt-1">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league</div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
+              <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                {stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league
+              </div>
 
-              {/* Key stats row */}
-              <div className="flex flex-wrap gap-4 mt-4">
+              {/* Key stats grid — 2 cols on mobile, 3 on sm+ */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5 mt-3">
                 <div>
-                  <div className="text-xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
+                  <div className="text-lg font-bold text-brand-cyan tabular-nums">{winPct}</div>
                   <div className="text-xs text-gray-500">Win Rate</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
-                  <div className="text-xs text-gray-500">Career Record ({totalGames} games)</div>
+                  <div className="text-lg font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
+                  <div className="text-xs text-gray-500">Career ({totalGames}g)</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                  <div className="text-lg font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
                   <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
                 </div>
                 {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
                   <div>
-                    <div className="text-xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
+                    <div className="text-lg font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
                     <div className="text-xs text-gray-500">Playoff Record</div>
                   </div>
                 )}
                 <div>
-                  <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                  <div className="text-lg font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
                   <div className="text-xs text-gray-500">All-Time Points</div>
                 </div>
               </div>

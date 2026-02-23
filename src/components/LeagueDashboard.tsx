@@ -179,7 +179,7 @@ export function LeagueDashboard({
 
               {activeTab === 'records' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">All-Time Record Book</h2>
+                  <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Record Book</h2>
                   <AllTimeRecords
                     leagueId={leagueId}
                     onSelectManager={(uid) => { handleSelectManager(uid); handleTabChange('managers'); }}

@@ -129,8 +129,9 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
         <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0 flex-1">
           <Trophy size={14} className="text-yellow-500 shrink-0" />
           <span className="truncate">
-            Spanning {seasons.length} season{seasons.length !== 1 ? 's' : ''}{' '}
-            ({seasons[0]}–{seasons[seasons.length - 1]})
+            {selectedSeason === 'alltime'
+              ? `Spanning ${seasons.length} season${seasons.length !== 1 ? 's' : ''} (${seasons[0]}–${seasons[seasons.length - 1]})`
+              : `${selectedSeason} season`}
           </span>
         </div>
         <DropdownMenu>
