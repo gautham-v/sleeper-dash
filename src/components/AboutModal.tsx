@@ -27,9 +27,9 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
   const onTouchEnd = () => {
     isDraggingRef.current = false;
     if (dragY > 80) {
-      setOpen(false); // dragY resets via onOpenChange
+      setOpen(false);
     } else {
-      setDragY(0); // snap back
+      setDragY(0);
     }
   };
 
@@ -39,14 +39,16 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
       <SheetContent
         side="bottom"
         style={{
+          maxHeight: '75dvh',
+          overflowY: 'hidden',
           transform: `translateY(${dragY}px)`,
           transition: isDraggingRef.current ? 'none' : 'transform 0.25s ease-out',
         }}
-        className="bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 max-h-[75vh] overflow-y-auto [&>button]:hidden sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-card-border"
+        className="flex flex-col bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 [&>button]:hidden sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-card-border"
       >
-        {/* Mobile drag handle — full-width touch target */}
+        {/* Mobile drag handle — outside the scroll area, full-width touch target */}
         <div
-          className="sm:hidden flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+          className="sm:hidden flex-shrink-0 flex justify-center pt-3 pb-3 touch-none select-none cursor-grab active:cursor-grabbing"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
@@ -65,7 +67,8 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
 
         <SheetTitle className="sr-only">About recordbook.fyi</SheetTitle>
 
-        <div className="px-5 pb-8 pt-2 sm:pt-6 sm:px-7 space-y-6">
+        {/* Scrollable content — separate from drag handle */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-5 pb-8 pt-1 sm:pt-6 sm:px-7 space-y-6">
 
           {/* Header */}
           <div className="flex items-center gap-3.5">
