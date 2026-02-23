@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronDown } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
