@@ -27,7 +27,7 @@ function buildStandingsFromHistory(season: NonNullable<ReturnType<typeof useLeag
     .map((team) => ({
       rosterId: team.rosterId,
       userId: team.userId,
-      teamName: team.displayName,
+      teamName: team.teamName,
       displayName: team.displayName,
       avatar: team.avatar,
       wins: team.wins,

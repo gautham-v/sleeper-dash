@@ -149,6 +149,7 @@ export interface HistoricalSeason {
   teams: Map<string, {
     userId: string;
     rosterId: number;
+    teamName: string;
     displayName: string;
     avatar: string | null;
     wins: number;

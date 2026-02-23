@@ -536,8 +536,8 @@ export function useLeagueHistory(leagueId: string | null) {
         );
 
         const teamsMap = new Map<string, {
-          userId: string; rosterId: number; displayName: string; avatar: string | null;
-          wins: number; losses: number; pointsFor: number; rank: number;
+          userId: string; rosterId: number; teamName: string; displayName: string;
+          avatar: string | null; wins: number; losses: number; pointsFor: number; rank: number;
         }>();
         const rosterToUser = new Map<number, string>();
 
@@ -548,6 +548,7 @@ export function useLeagueHistory(leagueId: string | null) {
           teamsMap.set(r.owner_id, {
             userId: r.owner_id,
             rosterId: r.roster_id,
+            teamName: u?.metadata?.team_name ?? u?.display_name ?? `Team ${r.roster_id}`,
             displayName: u?.display_name ?? `Team ${r.roster_id}`,
             avatar: u?.avatar ?? null,
             wins: r.settings.wins,

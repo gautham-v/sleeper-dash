@@ -84,16 +84,30 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
   // Records held by this manager
   const myRecords = useMemo(() => records.filter(r => r.holderId === userId), [records, userId]);
 
-  // Best / worst season by W-L record
+  // Map of season year -> effective playoff rank (1 for champion, else regular-season rank)
+  const playoffRankBySeason = useMemo(() => {
+    if (!history || !stats) return new Map<string, number>();
+    const m = new Map<string, number>();
+    for (const s of stats.seasons) {
+      const isChamp = history.find(h => h.season === s.season)?.championUserId === userId;
+      m.set(s.season, isChamp ? 1 : s.rank);
+    }
+    return m;
+  }, [history, stats, userId]);
+
+  // Best / worst season by playoff outcome (champion = rank 1), then W-L record
   const { bestSeason, worstSeason } = useMemo(() => {
     if (!stats || stats.seasons.length === 0) return { bestSeason: null, worstSeason: null };
     const sorted = [...stats.seasons].sort((a, b) => {
+      const rankA = playoffRankBySeason.get(a.season) ?? a.rank;
+      const rankB = playoffRankBySeason.get(b.season) ?? b.rank;
+      if (rankA !== rankB) return rankA - rankB;
       const pctA = a.wins / (a.wins + a.losses || 1);
       const pctB = b.wins / (b.wins + b.losses || 1);
       return pctB - pctA || b.wins - a.wins;
     });
     return { bestSeason: sorted[0], worstSeason: sorted[sorted.length - 1] };
-  }, [stats]);
+  }, [stats, playoffRankBySeason]);
 
   if (isLoading) {
     return (
@@ -215,7 +229,9 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
                   <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Best Season</span>
                 </div>
                 <div className="text-2xl font-bold text-white">{bestSeason.season}</div>
-                <div className="text-sm text-gray-300 mt-1">{bestSeason.wins}–{bestSeason.losses} · #{bestSeason.rank} finish</div>
+                <div className="text-sm text-gray-300 mt-1">
+                  {bestSeason.wins}–{bestSeason.losses} · #{playoffRankBySeason.get(bestSeason.season) ?? bestSeason.rank} finish
+                </div>
                 <div className="text-xs text-gray-500 mt-0.5">{bestSeason.pointsFor.toFixed(1)} pts</div>
               </div>
             )}
@@ -226,7 +242,9 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
                   <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Worst Season</span>
                 </div>
                 <div className="text-2xl font-bold text-white">{worstSeason.season}</div>
-                <div className="text-sm text-gray-300 mt-1">{worstSeason.wins}–{worstSeason.losses} · #{worstSeason.rank} finish</div>
+                <div className="text-sm text-gray-300 mt-1">
+                  {worstSeason.wins}–{worstSeason.losses} · #{playoffRankBySeason.get(worstSeason.season) ?? worstSeason.rank} finish
+                </div>
                 <div className="text-xs text-gray-500 mt-0.5">{worstSeason.pointsFor.toFixed(1)} pts</div>
               </div>
             )}

@@ -148,7 +148,7 @@ export function calcAllTimeLuckIndex(history: HistoricalSeason[]): LuckEntry[] {
       standings.push({
         rosterId: team.rosterId,
         userId: team.userId,
-        teamName: team.displayName,
+        teamName: team.teamName,
         displayName: team.displayName,
         avatar: team.avatar,
         wins: team.wins,
