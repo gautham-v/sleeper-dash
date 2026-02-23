@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { ChevronDown, BarChart2 } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
@@ -15,11 +15,16 @@ export type SidebarNavProps = {
   onTabChange: (tab: TabId) => void;
   onBack: () => void;
   onClose?: () => void;
+  showCareerStats?: boolean;
+  onShowCareerStats?: () => void;
+  onViewMyProfile?: () => void;
+  userId?: string;
 };
 
 export function SidebarNav({
   league, leagueId, activeTab, allLeagueGroups, isOffseason, currentWeek,
-  onChangeLeague, onTabChange, onBack, onClose,
+  onChangeLeague, onTabChange, onClose,
+  showCareerStats, onShowCareerStats,
 }: SidebarNavProps) {
   const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null!);
@@ -37,20 +42,13 @@ export function SidebarNav({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="p-4 sm:p-5 flex items-center justify-between shrink-0">
+      <div className="p-4 sm:p-5 flex items-center shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
             <span className="text-brand-cyan font-bold text-lg leading-none" style={{ marginTop: '-2px' }}>∞</span>
           </div>
           <span className="font-bold text-xl tracking-tight text-white">recordbook.fyi</span>
         </div>
-        <button
-          onClick={onClose ?? onBack}
-          className="text-gray-500 hover:text-white transition-colors p-1"
-          title={onClose ? 'Close menu' : 'Back to Leagues'}
-        >
-          <ChevronLeft size={20} />
-        </button>
       </div>
 
       <div className="px-4 sm:px-5 mb-5 shrink-0">
@@ -124,20 +122,40 @@ export function SidebarNav({
       </div>
 
       <nav className="flex-1 overflow-y-auto no-scrollbar px-3 sm:px-4 pb-6 flex flex-col gap-1">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => { onTabChange(id); onClose?.(); }}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative ${
-              activeTab === id
-                ? 'bg-brand-cyan/10 text-brand-cyan before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-            }`}
-          >
-            <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
-            <span>{label}</span>
-          </button>
-        ))}
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const isActive = activeTab === id && !showCareerStats;
+          return (
+            <button
+              key={id}
+              onClick={() => { onTabChange(id); onClose?.(); }}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative ${
+                isActive
+                  ? 'bg-brand-cyan/10 text-brand-cyan before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              }`}
+            >
+              <Icon size={18} className={isActive ? 'text-brand-cyan' : 'text-gray-500'} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+
+        {onShowCareerStats && (
+          <>
+            <div className="border-t border-card-border/40 my-2" />
+            <button
+              onClick={() => { onShowCareerStats(); onClose?.(); }}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative ${
+                showCareerStats
+                  ? 'bg-brand-cyan/10 text-brand-cyan before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              }`}
+            >
+              <BarChart2 size={18} className={showCareerStats ? 'text-brand-cyan' : 'text-gray-500'} />
+              <span>Career Stats</span>
+            </button>
+          </>
+        )}
       </nav>
     </div>
   );
