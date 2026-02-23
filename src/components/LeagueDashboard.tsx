@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Trophy, Menu, ChevronLeft, UserCircle, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useDashboardData } from '@/hooks/useLeagueData';
@@ -13,23 +13,19 @@ import { TABS, type TabId } from '@/lib/tabs';
 import type { SleeperLeague } from '@/types/sleeper';
 
 export function LeagueDashboard({
-  initialLeagueId, allSeasons, userId, onBack,
+  initialLeagueId, allLeagueGroups, userId, onBack,
 }: {
   initialLeagueId: string;
-  allSeasons: SleeperLeague[];
+  allLeagueGroups: [string, SleeperLeague[]][];
   userId: string;
   onBack: () => void;
 }) {
   const [leagueId, setLeagueId] = useState(initialLeagueId);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null!);
 
   const { league, currentWeek, isOffseason, isLoading, computed } = useDashboardData(leagueId);
-  const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
-  const multipleSeasons = sortedSeasons.length > 1;
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -64,16 +60,6 @@ export function LeagueDashboard({
     setSelectedManagerId(null);
   };
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setYearDropdownOpen(false);
-      }
-    }
-    if (yearDropdownOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [yearDropdownOpen]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-base-bg">
@@ -94,8 +80,7 @@ export function LeagueDashboard({
   }
 
   const sidebarProps: SidebarNavProps = {
-    league, leagueId, activeTab, multipleSeasons, sortedSeasons, isOffseason, currentWeek,
-    dropdownRef, yearDropdownOpen, setYearDropdownOpen,
+    league, leagueId, activeTab, allLeagueGroups, isOffseason, currentWeek,
     onChangeLeague: handleChangeLeague,
     onTabChange: handleTabChange,
     onBack,

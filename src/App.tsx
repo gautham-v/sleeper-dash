@@ -24,7 +24,6 @@ const queryClient = new QueryClient({
 
 function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () => void }) {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
   const leagues = useUserLeaguesAllSeasons(user.user_id);
 
   const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
@@ -63,9 +62,9 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
     return (
       <LeagueDashboard
         initialLeagueId={selectedLeagueId}
-        allSeasons={selectedGroup}
+        allLeagueGroups={sortedGroups}
         userId={user.user_id}
-        onBack={() => { setSelectedLeagueId(null); setSelectedGroup([]); }}
+        onBack={() => setSelectedLeagueId(null)}
       />
     );
   }
@@ -138,7 +137,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
                       className="rounded-none hover:bg-white/5 transition-colors cursor-pointer text-white"
                     >
                       <button
-                        onClick={() => { setSelectedGroup(group); setSelectedLeagueId(latest.league_id); }}
+                        onClick={() => setSelectedLeagueId(latest.league_id)}
                       >
                         <ItemMedia className="size-11 rounded-lg overflow-hidden shrink-0 self-center">
                           {latest.avatar ? (
