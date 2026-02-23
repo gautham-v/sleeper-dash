@@ -44,9 +44,7 @@ export function SidebarNav({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 sm:p-5 flex items-center shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
-            <span className="text-brand-cyan font-bold text-lg leading-none" style={{ marginTop: '-2px' }}>∞</span>
-          </div>
+          <span className="text-2xl leading-none">📖</span>
           <span className="font-bold text-xl tracking-tight text-white">recordbook.fyi</span>
         </div>
       </div>
