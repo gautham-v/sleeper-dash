@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   LineChart,
   Line,
@@ -8,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface YoYEntry {
   displayName: string;
@@ -72,21 +74,22 @@ export function YearOverYear({ data }: YearOverYearProps) {
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <ToggleGroup
+        type="single"
+        value={metric}
+        onValueChange={(v) => { if (v) setMetric(v as MetricKey); }}
+        className="justify-start mb-4"
+      >
         {METRICS.map((m) => (
-          <button
+          <ToggleGroupItem
             key={m.key}
-            onClick={() => setMetric(m.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              metric === m.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
+            value={m.key}
+            className="px-3 py-1.5 text-xs font-medium data-[state=on]:bg-indigo-600 data-[state=on]:text-white"
           >
             {m.label}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       {metric === 'rank' && (
         <p className="text-xs text-gray-500 mb-4">Lower rank = better finish (1st place = 1)</p>
@@ -130,6 +133,3 @@ export function YearOverYear({ data }: YearOverYearProps) {
     </div>
   );
 }
-
-// Need React import for useState
-import React from 'react';

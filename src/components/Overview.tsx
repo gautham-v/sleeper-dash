@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ChevronRight, Trophy, TrendingUp } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { PowerRankings } from './PowerRankings';
 import { Avatar } from './Avatar';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats } from '../utils/calculations';
+import { useState } from 'react';
 
 interface OverviewProps {
   computed: any;
@@ -70,122 +74,122 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
 
       {/* My Stats */}
       {myStats && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-4">
-          <div className="flex items-start gap-3">
-            <Avatar avatar={myStats.avatar} name={myStats.displayName} size="md" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-bold text-white text-base leading-tight">{myStats.displayName}</h3>
-                  <div className="text-xs text-gray-500 mt-0.5">{myStats.totalSeasons} season{myStats.totalSeasons !== 1 ? 's' : ''} in the league</div>
-                </div>
-                <button
-                  onClick={onViewMyProfile}
-                  className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 flex-shrink-0 transition-colors"
-                >
-                  Full Profile <ChevronRight size={13} />
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-3 mt-2.5">
-                <div>
-                  <div className="text-xl font-bold text-brand-cyan tabular-nums">{(myStats.winPct * 100).toFixed(1)}%</div>
-                  <div className="text-xs text-gray-500">Win Rate</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-white tabular-nums">{myStats.totalWins}–{myStats.totalLosses}</div>
-                  <div className="text-xs text-gray-500">Career Record</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
-                  <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
-                </div>
-                {(myStats.playoffWins > 0 || myStats.playoffLosses > 0) && (
+        <Card className="rounded-2xl bg-card-bg border-card-border">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Avatar avatar={myStats.avatar} name={myStats.displayName} size="md" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-xl font-bold text-yellow-500 tabular-nums">{myStats.playoffWins}–{myStats.playoffLosses}</div>
-                    <div className="text-xs text-gray-500">Playoff Record</div>
+                    <h3 className="font-bold text-white text-base leading-tight">{myStats.displayName}</h3>
+                    <div className="text-xs text-gray-500 mt-0.5">{myStats.totalSeasons} season{myStats.totalSeasons !== 1 ? 's' : ''} in the league</div>
                   </div>
-                )}
-                <div>
-                  <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
-                  <div className="text-xs text-gray-500">All-Time Points</div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onViewMyProfile}
+                    className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 flex-shrink-0 h-auto p-0"
+                  >
+                    Full Profile <ChevronRight size={13} />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-2.5">
+                  <div>
+                    <div className="text-xl font-bold text-brand-cyan tabular-nums">{(myStats.winPct * 100).toFixed(1)}%</div>
+                    <div className="text-xs text-gray-500">Win Rate</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-white tabular-nums">{myStats.totalWins}–{myStats.totalLosses}</div>
+                    <div className="text-xs text-gray-500">Career Record</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                    <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
+                  </div>
+                  {(myStats.playoffWins > 0 || myStats.playoffLosses > 0) && (
+                    <div>
+                      <div className="text-xl font-bold text-yellow-500 tabular-nums">{myStats.playoffWins}–{myStats.playoffLosses}</div>
+                      <div className="text-xs text-gray-500">Playoff Record</div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                    <div className="text-xs text-gray-500">All-Time Points</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Power Rankings */}
       <div className="bg-gray-900 rounded-xl p-4 border border-gray-800/60 flex flex-col">
-          <div className="flex items-center mb-2.5">
-            <h3 className="text-sm font-semibold text-white">Power Rankings</h3>
-          </div>
+        <div className="flex items-center mb-2.5">
+          <h3 className="text-sm font-semibold text-white">Power Rankings</h3>
+        </div>
 
-          {/* Toggle */}
-          <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start">
-            <button
-              onClick={() => setRankingMode('alltime')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                rankingMode === 'alltime'
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              All-Time
-            </button>
-            <button
-              onClick={() => setRankingMode('season')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                rankingMode === 'season'
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              This Season
-            </button>
-          </div>
+        <ToggleGroup
+          type="single"
+          value={rankingMode}
+          onValueChange={(v) => v && setRankingMode(v as 'alltime' | 'season')}
+          className="bg-gray-800/60 rounded-lg p-1 mb-4 justify-start gap-0"
+        >
+          <ToggleGroupItem
+            value="alltime"
+            className="px-3 py-1 rounded-md text-xs font-medium h-auto data-[state=on]:bg-gray-700 data-[state=on]:text-white data-[state=on]:shadow-sm text-gray-500 hover:text-gray-300"
+          >
+            All-Time
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="season"
+            className="px-3 py-1 rounded-md text-xs font-medium h-auto data-[state=on]:bg-gray-700 data-[state=on]:text-white data-[state=on]:shadow-sm text-gray-500 hover:text-gray-300"
+          >
+            This Season
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-          <div className="flex-1">
-            {rankingMode === 'alltime' ? (
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500 mb-3">
-                  Ranked by championships, then win percentage
-                </p>
-                {allTimeRankings.map((mgr, idx) => {
-                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
-                  return (
-                    <div key={mgr.userId} className="flex items-center gap-2.5 bg-gray-800/40 rounded-xl px-3 py-2.5">
-                      <span className="text-sm w-5 text-center flex-shrink-0">
-                        {medal ?? <span className="text-gray-500 text-xs font-medium">{idx + 1}</span>}
-                      </span>
-                      <Avatar avatar={mgr.avatar} name={mgr.displayName} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-white text-sm truncate">{mgr.displayName}</div>
-                        <div className="text-xs text-gray-500">
-                          {mgr.totalWins}–{mgr.totalLosses} · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      {mgr.titles > 0 && (
-                        <div className="flex items-center gap-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-2 py-0.5 flex-shrink-0">
-                          <Trophy size={10} className="text-yellow-400" />
-                          <span className="text-yellow-400 font-bold text-xs">{mgr.titles}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <TrendingUp size={11} className="text-brand-cyan" />
-                        <span className="text-brand-cyan font-bold text-sm tabular-nums">
-                          {(mgr.winPct * 100).toFixed(1)}%
-                        </span>
+        <div className="flex-1">
+          {rankingMode === 'alltime' ? (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 mb-3">
+                Ranked by championships, then win percentage
+              </p>
+              {allTimeRankings.map((mgr, idx) => {
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
+                return (
+                  <div key={mgr.userId} className="flex items-center gap-2.5 bg-gray-800/40 rounded-xl px-3 py-2.5">
+                    <span className="text-sm w-5 text-center flex-shrink-0">
+                      {medal ?? <span className="text-gray-500 text-xs font-medium">{idx + 1}</span>}
+                    </span>
+                    <Avatar avatar={mgr.avatar} name={mgr.displayName} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white text-sm truncate">{mgr.displayName}</div>
+                      <div className="text-xs text-gray-500">
+                        {mgr.totalWins}–{mgr.totalLosses} · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <PowerRankings rankings={computed.powerRankings} standings={computed.standings} onSelectManager={onSelectManager} />
-            )}
-          </div>
+                    {mgr.titles > 0 && (
+                      <div className="flex items-center gap-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-2 py-0.5 flex-shrink-0">
+                        <Trophy size={10} className="text-yellow-400" />
+                        <span className="text-yellow-400 font-bold text-xs">{mgr.titles}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <TrendingUp size={11} className="text-brand-cyan" />
+                      <span className="text-brand-cyan font-bold text-sm tabular-nums">
+                        {(mgr.winPct * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <PowerRankings rankings={computed.powerRankings} standings={computed.standings} onSelectManager={onSelectManager} />
+          )}
         </div>
+      </div>
     </div>
   );
 }

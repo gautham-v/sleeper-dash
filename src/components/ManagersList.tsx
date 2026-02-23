@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { Loader2, Trophy, TrendingUp, ChevronRight } from 'lucide-react';
+import { Trophy, TrendingUp, ChevronRight } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats } from '../utils/calculations';
 import { Avatar } from './Avatar';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Props {
   leagueId: string;
@@ -27,9 +29,10 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-brand-cyan">
-        <Loader2 className="animate-spin mr-2" size={20} />
-        Loading manager history…
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-2xl" />
+        ))}
       </div>
     );
   }
@@ -49,10 +52,11 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
         const winPctDisplay = `${(mgr.winPct * 100).toFixed(1)}%`;
         const totalGames = mgr.totalWins + mgr.totalLosses;
         return (
-          <button
+          <Button
             key={mgr.userId}
+            variant="ghost"
             onClick={() => onSelectManager(mgr.userId)}
-            className="w-full flex items-center gap-4 bg-card-bg hover:bg-surface-hover border border-card-border hover:border-brand-cyan/40 rounded-2xl p-4 transition-all group text-left"
+            className="w-full flex items-center gap-4 bg-card-bg hover:bg-surface-hover border border-card-border hover:border-brand-cyan/40 rounded-2xl p-4 h-auto transition-all group text-left justify-start"
           >
             {/* Rank */}
             <div className="w-7 text-center text-sm font-bold text-gray-600 flex-shrink-0">
@@ -91,7 +95,7 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
             </div>
 
             <ChevronRight size={16} className="text-gray-600 group-hover:text-brand-cyan transition-colors flex-shrink-0" />
-          </button>
+          </Button>
         );
       })}
     </div>

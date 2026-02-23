@@ -3,6 +3,17 @@ import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, 
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
 
 interface Props {
   leagueId: string;
@@ -108,70 +119,59 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
   return (
     <div className="space-y-6">
       {/* Back button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-      >
+      <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
         <ChevronLeft size={16} /> Back to Managers
-      </button>
+      </Button>
 
       {/* Profile header */}
-      <div className="bg-card-bg border border-card-border rounded-2xl p-6">
-        <div className="flex items-start gap-5">
-          <Avatar avatar={stats.avatar} name={stats.displayName} size="xl" />
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
-            <div className="text-sm text-gray-400 mt-1">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league</div>
+      <Card className="bg-card-bg border-card-border rounded-2xl">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-5">
+            <Avatar avatar={stats.avatar} name={stats.displayName} size="xl" />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
+              <div className="text-sm text-gray-400 mt-1">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league</div>
 
-            {/* Key stats row */}
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div>
-                <div className="text-xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
-                <div className="text-xs text-gray-500">Win Rate</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
-                <div className="text-xs text-gray-500">Career Record ({totalGames} games)</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
-                <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
-              </div>
-              {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
+              {/* Key stats row */}
+              <div className="flex flex-wrap gap-4 mt-4">
                 <div>
-                  <div className="text-xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
-                  <div className="text-xs text-gray-500">Playoff Record</div>
+                  <div className="text-xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
+                  <div className="text-xs text-gray-500">Win Rate</div>
                 </div>
-              )}
-              <div>
-                <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
-                <div className="text-xs text-gray-500">All-Time Points</div>
+                <div>
+                  <div className="text-xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
+                  <div className="text-xs text-gray-500">Career Record ({totalGames} games)</div>
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                  <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
+                </div>
+                {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
+                  <div>
+                    <div className="text-xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
+                    <div className="text-xs text-gray-500">Playoff Record</div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                  <div className="text-xs text-gray-500">All-Time Points</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Section tabs */}
-      <div className="flex gap-2">
-        {([['overview', 'Overview'], ['h2h', 'Head-to-Head'], ['seasons', 'Season Log']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setActiveSection(id)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              activeSection === id
-                ? 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30'
-                : 'bg-card-bg text-gray-400 border border-card-border hover:text-white'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as 'overview' | 'h2h' | 'seasons')}>
+        <TabsList className="bg-card-bg border border-card-border">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
+          <TabsTrigger value="seasons">Season Log</TabsTrigger>
+        </TabsList>
 
-      {/* OVERVIEW SECTION */}
-      {activeSection === 'overview' && (
-        <div className="space-y-4">
+        {/* OVERVIEW SECTION */}
+        <TabsContent value="overview" className="space-y-4 mt-4">
           {/* Championships */}
           {champYears.length > 0 && (
             <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-2xl p-5">
@@ -252,208 +252,212 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
               </div>
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
 
-      {/* H2H SECTION */}
-      {activeSection === 'h2h' && (
-        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
-          <div className="px-5 pt-5 pb-3">
-            <div className="flex items-center gap-2">
-              <Swords size={16} className="text-gray-400" />
-              <h3 className="font-semibold text-white">Head-to-Head vs. Every Manager</h3>
+        {/* H2H SECTION */}
+        <TabsContent value="h2h" className="mt-4">
+          <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <Swords size={16} className="text-gray-400" />
+                <h3 className="font-semibold text-white">Head-to-Head vs. Every Manager</h3>
+              </div>
             </div>
-          </div>
-          {h2hRecords.length === 0 ? (
-            <div className="px-5 pb-5 text-sm text-gray-500">No H2H matchup data available.</div>
-          ) : (() => {
-            const hasPlayoffH2H = h2hRecords.some(r => r.playoffWins > 0 || r.playoffLosses > 0);
-            return (
-              <>
-                {/* Mobile cards */}
-                <div className="sm:hidden divide-y divide-gray-800/60">
-                  {h2hRecords.map(({ opponent, wins, losses, total, winPct, playoffWins, playoffLosses }) => {
-                    const wPct = winPct * 100;
-                    return (
-                      <button
-                        key={opponent.userId}
-                        className="w-full text-left px-4 py-3.5 hover:bg-gray-800/30 transition-colors flex items-center gap-3 disabled:cursor-default"
-                        onClick={() => onSelectManager?.(opponent.userId)}
-                        disabled={!onSelectManager}
-                      >
-                        <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white text-sm truncate">{opponent.displayName}</div>
-                          {hasPlayoffH2H && (playoffWins > 0 || playoffLosses > 0) && (
-                            <div className="text-xs text-yellow-400/80 mt-0.5">
-                              Playoffs: {playoffWins}–{playoffLosses}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 text-right">
-                          <div className="text-sm">
-                            <span className="text-green-400 font-bold tabular-nums">{wins}</span>
-                            <span className="text-gray-600 mx-0.5">–</span>
-                            <span className="text-red-400 font-bold tabular-nums">{losses}</span>
-                          </div>
-                          <span className={`text-sm font-semibold tabular-nums w-10 ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
-                            {wPct.toFixed(0)}%
-                          </span>
-                          <span className="text-xs text-gray-500 tabular-nums w-6">{total}g</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Desktop table */}
-                <table className="w-full text-sm hidden sm:table">
-                  <thead>
-                    <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                      <th className="text-left py-3 px-5">Opponent</th>
-                      <th className="text-center py-3 px-3">W</th>
-                      <th className="text-center py-3 px-3">L</th>
-                      <th className="text-center py-3 px-3">Win %</th>
-                      {hasPlayoffH2H && <th className="text-center py-3 px-3 text-yellow-500/70">Playoffs</th>}
-                      <th className="text-right py-3 px-5">Games</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+            {h2hRecords.length === 0 ? (
+              <div className="px-5 pb-5 text-sm text-gray-500">No H2H matchup data available.</div>
+            ) : (() => {
+              const hasPlayoffH2H = h2hRecords.some(r => r.playoffWins > 0 || r.playoffLosses > 0);
+              return (
+                <>
+                  {/* Mobile cards */}
+                  <div className="sm:hidden divide-y divide-gray-800/60">
                     {h2hRecords.map(({ opponent, wins, losses, total, winPct, playoffWins, playoffLosses }) => {
                       const wPct = winPct * 100;
                       return (
-                        <tr key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
-                          <td className="py-3 px-5">
-                            <button
-                              className="flex items-center gap-2 group text-left"
-                              onClick={() => onSelectManager?.(opponent.userId)}
-                              disabled={!onSelectManager}
-                            >
-                              <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
-                              <span className={`font-medium ${onSelectManager ? 'text-white group-hover:text-brand-cyan transition-colors' : 'text-white'}`}>
-                                {opponent.displayName}
-                              </span>
-                            </button>
-                          </td>
-                          <td className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</td>
-                          <td className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</td>
-                          <td className="py-3 px-3 text-center">
-                            <span className={`font-semibold tabular-nums ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
-                              {wPct.toFixed(0)}%
-                            </span>
-                          </td>
-                          {hasPlayoffH2H && (
-                            <td className="py-3 px-3 text-center">
-                              {(playoffWins > 0 || playoffLosses > 0) ? (
-                                <span className="text-xs font-semibold text-yellow-400 tabular-nums">{playoffWins}–{playoffLosses}</span>
-                              ) : (
-                                <span className="text-xs text-gray-700">—</span>
-                              )}
-                            </td>
-                          )}
-                          <td className="py-3 px-5 text-right text-gray-500 tabular-nums">{total}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* SEASONS SECTION */}
-      {activeSection === 'seasons' && (
-        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
-          <div className="px-5 pt-5 pb-3">
-            <div className="flex items-center gap-2">
-              <Star size={16} className="text-gray-400" />
-              <h3 className="font-semibold text-white">Season-by-Season Log</h3>
-            </div>
-          </div>
-          {(() => {
-            const sortedSeasons = [...stats.seasons].sort((a, b) => Number(b.season) - Number(a.season));
-            const hasPlayoffData = sortedSeasons.some(s => s.playoffWins > 0 || s.playoffLosses > 0);
-            return (
-              <>
-                {/* Mobile cards */}
-                <div className="sm:hidden divide-y divide-gray-800/60">
-                  {sortedSeasons.map((s) => {
-                    const isChamp = champYears.includes(s.season);
-                    const isLP = lastPlaceFinishes.includes(s.season);
-                    return (
-                      <div key={s.season} className="px-4 py-3.5 flex items-center gap-3">
-                        <div className="w-12 flex-shrink-0">
-                          <div className="font-bold text-white text-sm">{s.season}</div>
-                          {isChamp && <div className="text-xs text-yellow-400">🏆 Champ</div>}
-                          {isLP && !isChamp && <div className="text-xs text-red-400">💀 Last</div>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold tabular-nums text-gray-300">{s.wins}–{s.losses}</span>
-                            {!isChamp && !isLP && <span className="text-xs text-gray-500">#{s.rank}</span>}
-                            {hasPlayoffData && (s.playoffWins > 0 || s.playoffLosses > 0) && (
-                              <span className="text-xs text-yellow-400 font-semibold tabular-nums">
-                                {s.playoffWins}–{s.playoffLosses} playoffs
-                              </span>
+                        <button
+                          key={opponent.userId}
+                          className="w-full text-left px-4 py-3.5 hover:bg-gray-800/30 transition-colors flex items-center gap-3 disabled:cursor-default"
+                          onClick={() => onSelectManager?.(opponent.userId)}
+                          disabled={!onSelectManager}
+                        >
+                          <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-white text-sm truncate">{opponent.displayName}</div>
+                            {hasPlayoffH2H && (playoffWins > 0 || playoffLosses > 0) && (
+                              <div className="text-xs text-yellow-400/80 mt-0.5">
+                                Playoffs: {playoffWins}–{playoffLosses}
+                              </div>
                             )}
                           </div>
-                        </div>
-                        <div className="text-sm tabular-nums text-gray-300 flex-shrink-0">{s.pointsFor.toFixed(1)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
+                          <div className="flex items-center gap-3 flex-shrink-0 text-right">
+                            <div className="text-sm">
+                              <span className="text-green-400 font-bold tabular-nums">{wins}</span>
+                              <span className="text-gray-600 mx-0.5">–</span>
+                              <span className="text-red-400 font-bold tabular-nums">{losses}</span>
+                            </div>
+                            <span className={`text-sm font-semibold tabular-nums w-10 ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
+                              {wPct.toFixed(0)}%
+                            </span>
+                            <span className="text-xs text-gray-500 tabular-nums w-6">{total}g</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                {/* Desktop table */}
-                <table className="w-full text-sm hidden sm:table">
-                  <thead>
-                    <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                      <th className="text-left py-3 px-5">Season</th>
-                      <th className="text-center py-3 px-3">Record</th>
-                      {hasPlayoffData && <th className="text-center py-3 px-3 text-yellow-500/70">Playoffs</th>}
-                      <th className="text-center py-3 px-3">Rank</th>
-                      <th className="text-right py-3 px-5">Points</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                          <TableHead className="text-left py-3 px-5">Opponent</TableHead>
+                          <TableHead className="text-center py-3 px-3">W</TableHead>
+                          <TableHead className="text-center py-3 px-3">L</TableHead>
+                          <TableHead className="text-center py-3 px-3">Win %</TableHead>
+                          {hasPlayoffH2H && <TableHead className="text-center py-3 px-3 text-yellow-500/70">Playoffs</TableHead>}
+                          <TableHead className="text-right py-3 px-5">Games</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {h2hRecords.map(({ opponent, wins, losses, total, winPct, playoffWins, playoffLosses }) => {
+                          const wPct = winPct * 100;
+                          return (
+                            <TableRow key={opponent.userId} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                              <TableCell className="py-3 px-5">
+                                <button
+                                  className="flex items-center gap-2 group text-left"
+                                  onClick={() => onSelectManager?.(opponent.userId)}
+                                  disabled={!onSelectManager}
+                                >
+                                  <Avatar avatar={opponent.avatar} name={opponent.displayName} size="sm" />
+                                  <span className={`font-medium ${onSelectManager ? 'text-white group-hover:text-brand-cyan transition-colors' : 'text-white'}`}>
+                                    {opponent.displayName}
+                                  </span>
+                                </button>
+                              </TableCell>
+                              <TableCell className="py-3 px-3 text-center font-bold text-green-400 tabular-nums">{wins}</TableCell>
+                              <TableCell className="py-3 px-3 text-center font-bold text-red-400 tabular-nums">{losses}</TableCell>
+                              <TableCell className="py-3 px-3 text-center">
+                                <span className={`font-semibold tabular-nums ${wPct >= 50 ? 'text-brand-cyan' : 'text-gray-400'}`}>
+                                  {wPct.toFixed(0)}%
+                                </span>
+                              </TableCell>
+                              {hasPlayoffH2H && (
+                                <TableCell className="py-3 px-3 text-center">
+                                  {(playoffWins > 0 || playoffLosses > 0) ? (
+                                    <span className="text-xs font-semibold text-yellow-400 tabular-nums">{playoffWins}–{playoffLosses}</span>
+                                  ) : (
+                                    <span className="text-xs text-gray-700">—</span>
+                                  )}
+                                </TableCell>
+                              )}
+                              <TableCell className="py-3 px-5 text-right text-gray-500 tabular-nums">{total}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </TabsContent>
+
+        {/* SEASONS SECTION */}
+        <TabsContent value="seasons" className="mt-4">
+          <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <Star size={16} className="text-gray-400" />
+                <h3 className="font-semibold text-white">Season-by-Season Log</h3>
+              </div>
+            </div>
+            {(() => {
+              const sortedSeasons = [...stats.seasons].sort((a, b) => Number(b.season) - Number(a.season));
+              const hasPlayoffData = sortedSeasons.some(s => s.playoffWins > 0 || s.playoffLosses > 0);
+              return (
+                <>
+                  {/* Mobile cards */}
+                  <div className="sm:hidden divide-y divide-gray-800/60">
                     {sortedSeasons.map((s) => {
                       const isChamp = champYears.includes(s.season);
                       const isLP = lastPlaceFinishes.includes(s.season);
                       return (
-                        <tr key={s.season} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
-                          <td className="py-3 px-5 font-medium text-white">{s.season}</td>
-                          <td className="py-3 px-3 text-center tabular-nums text-gray-300 font-semibold">{s.wins}–{s.losses}</td>
-                          {hasPlayoffData && (
-                            <td className="py-3 px-3 text-center">
-                              {(s.playoffWins > 0 || s.playoffLosses > 0) ? (
-                                <span className="text-xs font-semibold text-yellow-400 tabular-nums">{s.playoffWins}–{s.playoffLosses}</span>
-                              ) : (
-                                <span className="text-xs text-gray-700">—</span>
+                        <div key={s.season} className="px-4 py-3.5 flex items-center gap-3">
+                          <div className="w-12 flex-shrink-0">
+                            <div className="font-bold text-white text-sm">{s.season}</div>
+                            {isChamp && <div className="text-xs text-yellow-400">🏆 Champ</div>}
+                            {isLP && !isChamp && <div className="text-xs text-red-400">💀 Last</div>}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold tabular-nums text-gray-300">{s.wins}–{s.losses}</span>
+                              {!isChamp && !isLP && <span className="text-xs text-gray-500">#{s.rank}</span>}
+                              {hasPlayoffData && (s.playoffWins > 0 || s.playoffLosses > 0) && (
+                                <span className="text-xs text-yellow-400 font-semibold tabular-nums">
+                                  {s.playoffWins}–{s.playoffLosses} playoffs
+                                </span>
                               )}
-                            </td>
-                          )}
-                          <td className="py-3 px-3 text-center">
-                            {isChamp ? (
-                              <span className="text-yellow-400 font-bold">🏆 1st</span>
-                            ) : isLP ? (
-                              <span className="text-red-400 font-bold">💀 Last</span>
-                            ) : (
-                              <span className="text-gray-400">#{s.rank}</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-5 text-right tabular-nums text-gray-300">{s.pointsFor.toFixed(1)}</td>
-                        </tr>
+                            </div>
+                          </div>
+                          <div className="text-sm tabular-nums text-gray-300 flex-shrink-0">{s.pointsFor.toFixed(1)}</div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </>
-            );
-          })()}
-        </div>
-      )}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                          <TableHead className="text-left py-3 px-5">Season</TableHead>
+                          <TableHead className="text-center py-3 px-3">Record</TableHead>
+                          {hasPlayoffData && <TableHead className="text-center py-3 px-3 text-yellow-500/70">Playoffs</TableHead>}
+                          <TableHead className="text-center py-3 px-3">Rank</TableHead>
+                          <TableHead className="text-right py-3 px-5">Points</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedSeasons.map((s) => {
+                          const isChamp = champYears.includes(s.season);
+                          const isLP = lastPlaceFinishes.includes(s.season);
+                          return (
+                            <TableRow key={s.season} className="border-b border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+                              <TableCell className="py-3 px-5 font-medium text-white">{s.season}</TableCell>
+                              <TableCell className="py-3 px-3 text-center tabular-nums text-gray-300 font-semibold">{s.wins}–{s.losses}</TableCell>
+                              {hasPlayoffData && (
+                                <TableCell className="py-3 px-3 text-center">
+                                  {(s.playoffWins > 0 || s.playoffLosses > 0) ? (
+                                    <span className="text-xs font-semibold text-yellow-400 tabular-nums">{s.playoffWins}–{s.playoffLosses}</span>
+                                  ) : (
+                                    <span className="text-xs text-gray-700">—</span>
+                                  )}
+                                </TableCell>
+                              )}
+                              <TableCell className="py-3 px-3 text-center">
+                                {isChamp ? (
+                                  <span className="text-yellow-400 font-bold">🏆 1st</span>
+                                ) : isLP ? (
+                                  <span className="text-red-400 font-bold">💀 Last</span>
+                                ) : (
+                                  <span className="text-gray-400">#{s.rank}</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-3 px-5 text-right tabular-nums text-gray-300">{s.pointsFor.toFixed(1)}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

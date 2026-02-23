@@ -1,5 +1,6 @@
 import type { PowerRanking } from '../types/sleeper';
 import { Avatar } from './Avatar';
+import { Button } from '@/components/ui/button';
 
 interface PowerRankingsProps {
   rankings: PowerRanking[];
@@ -29,16 +30,19 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
                 {medal ?? <span className="text-xs">{i + 1}</span>}
               </span>
               <Avatar avatar={r.avatar} name={r.displayName} size="sm" />
-              <button
-                className="flex-1 min-w-0 text-left group"
+              <Button
+                variant="ghost"
+                className="flex-1 min-w-0 h-auto p-0 justify-start group hover:bg-transparent"
                 onClick={() => r.userId && onSelectManager?.(r.userId)}
                 disabled={!r.userId || !onSelectManager}
               >
-                <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
-                  {r.teamName}
+                <div className="text-left min-w-0">
+                  <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
+                    {r.teamName}
+                  </div>
+                  <div className="text-gray-500 text-xs truncate">{r.displayName}</div>
                 </div>
-                <div className="text-gray-500 text-xs truncate">{r.displayName}</div>
-              </button>
+              </Button>
               <div className="text-right shrink-0">
                 <div className="text-base font-bold text-indigo-400 tabular-nums">{r.score.toFixed(1)}</div>
                 {standing && (

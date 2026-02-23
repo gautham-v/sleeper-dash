@@ -1,4 +1,6 @@
-import { Loader2, Trophy, TrendingUp, Swords, Calendar } from 'lucide-react';
+import { Trophy, TrendingUp, Swords, Calendar } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 import type { CrossLeagueUserStats } from '../hooks/useLeagueData';
 
 interface CrossLeagueStatsProps {
@@ -34,8 +36,8 @@ export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueS
   if (isLoading) {
     return (
       <div className="mb-5 bg-card-bg border border-card-border rounded-xl px-4 py-4 flex items-center gap-3">
-        <Loader2 size={14} className="animate-spin text-brand-cyan flex-shrink-0" />
-        <span className="text-xs text-gray-500">Computing career stats…</span>
+        <Skeleton className="h-4 w-4 rounded-full flex-shrink-0" />
+        <Skeleton className="h-3 w-40 rounded" />
       </div>
     );
   }
@@ -57,7 +59,7 @@ export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueS
         <span className="text-xs text-gray-500">{seasonLabel} across {leagueLabel}</span>
       </div>
 
-      <div className="bg-card-bg border border-card-border rounded-xl overflow-hidden">
+      <Card className="bg-card-bg border-card-border rounded-xl overflow-hidden shadow-none">
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-card-border/60">
           <StatCard
             label="Career Record"
@@ -84,7 +86,7 @@ export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueS
             icon={Calendar}
           />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
