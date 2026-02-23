@@ -1,3 +1,4 @@
+'use client';
 import { useMemo, useState } from 'react';
 import {
   Loader2, Trophy, Skull, Flame, Zap, TrendingUp, TrendingDown,

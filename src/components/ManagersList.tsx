@@ -1,3 +1,4 @@
+'use client';
 import { useMemo } from 'react';
 import { Trophy, TrendingUp, ChevronRight } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';

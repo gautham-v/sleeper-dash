@@ -1,3 +1,4 @@
+'use client';
 import { useRef, useState, useEffect } from 'react';
 import { ChevronDown, BarChart2 } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';

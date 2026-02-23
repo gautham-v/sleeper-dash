@@ -1,3 +1,4 @@
+'use client';
 import { Loader2, Trophy, TrendingUp, Swords, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CrossLeagueUserStats } from '../hooks/useLeagueData';
