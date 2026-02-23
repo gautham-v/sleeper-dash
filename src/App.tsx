@@ -1,9 +1,17 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, BookOpen, Scale, Users,
   Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Field, FieldLabel } from '@/components/ui/field';
+import {
+  Item, ItemMedia, ItemContent, ItemTitle, ItemDescription,
+  ItemActions, ItemGroup, ItemSeparator,
+} from '@/components/ui/item';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats, useLeagueHistory } from './hooks/useLeagueData';
 import { CrossLeagueStats } from './components/CrossLeagueStats';
@@ -437,43 +445,50 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
   const totalLeagues = sortedGroups.length;
 
   return (
-    <div className="min-h-screen bg-base-bg text-white">
+    <div className="min-h-screen bg-base-bg text-white flex flex-col items-center">
       {/* Ambient bg */}
       <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 h-64 w-96 bg-brand-cyan/4 blur-[100px] rounded-full" />
 
-      <div className="relative z-10 max-w-2xl mx-auto px-4 py-8 sm:py-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            {user.avatar ? (
-              <img
-                src={avatarUrl(user.avatar) ?? ''}
-                alt={user.display_name}
-                className="w-10 h-10 rounded-full border border-card-border"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center">
-                <UserCircle size={20} className="text-brand-cyan/70" />
+      <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5">
+
+        {/* Header card */}
+        <Card className="border-card-border bg-card-bg">
+          <CardContent className="flex items-center justify-between py-4 px-5">
+            <div className="flex items-center gap-3">
+              {user.avatar ? (
+                <img
+                  src={avatarUrl(user.avatar) ?? ''}
+                  alt={user.display_name}
+                  className="w-9 h-9 rounded-full border border-card-border"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center">
+                  <UserCircle size={18} className="text-brand-cyan/70" />
+                </div>
+              )}
+              <div>
+                <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Signed in as</div>
+                <div className="text-sm text-white font-semibold leading-tight">{user.display_name}</div>
               </div>
-            )}
-            <div>
-              <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Signed in as</div>
-              <div className="text-white font-semibold leading-tight">{user.display_name}</div>
             </div>
-          </div>
-          <button
-            onClick={onChangeUser}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors border border-card-border hover:border-card-border/80 px-3 py-1.5 rounded-lg bg-white/3"
-          >
-            <UserCircle size={13} />
-            Change user
-          </button>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onChangeUser}
+              className="text-xs text-gray-400 border-card-border hover:text-white hover:border-gray-500 h-8 gap-1.5"
+            >
+              <UserCircle size={13} />
+              Change user
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Title row */}
-        <div className="flex items-baseline gap-3 mb-5">
+        <div className="flex items-baseline gap-3 px-1">
           <h1 className="text-xl font-bold text-white">Your Leagues</h1>
-          <span className="text-xs text-gray-600 font-medium">{totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}</span>
+          <span className="text-xs text-gray-500 font-medium">
+            {totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}
+          </span>
         </div>
 
         {/* Cross-league career stats */}
@@ -485,65 +500,79 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           />
         )}
 
-        {/* League cards */}
-        <div className="space-y-2">
-          {sortedGroups.map(([name, group]) => {
-            const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
-            const latest = seasons[0];
+        {/* League list */}
+        {sortedGroups.length > 0 ? (
+          <Card className="border-card-border bg-card-bg overflow-hidden">
+            <ItemGroup>
+              {sortedGroups.map(([name, group], idx) => {
+                const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
+                const latest = seasons[0];
 
-            return (
-              <button
-                key={name}
-                onClick={() => {
-                  setSelectedGroup(group);
-                  setSelectedLeagueId(latest.league_id);
-                }}
-                className="flex items-center gap-4 w-full text-left bg-card-bg hover:bg-surface-hover border border-card-border hover:border-brand-cyan/25 rounded-xl px-4 py-4 transition-all group"
-              >
-                {/* Avatar */}
-                {latest.avatar ? (
-                  <img
-                    src={avatarUrl(latest.avatar) ?? ''}
-                    alt={name}
-                    className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-11 h-11 rounded-lg bg-brand-purple/15 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/20">
-                    {name.slice(0, 2)}
-                  </div>
-                )}
+                return (
+                  // eslint-disable-next-line react/jsx-key
+                  <React.Fragment key={name}>
+                    {idx > 0 && <ItemSeparator className="bg-card-border/60" />}
+                    <Item
+                      asChild
+                      className="rounded-none hover:bg-white/5 transition-colors cursor-pointer text-white"
+                    >
+                      <button
+                        onClick={() => {
+                          setSelectedGroup(group);
+                          setSelectedLeagueId(latest.league_id);
+                        }}
+                      >
+                        <ItemMedia className="size-11 rounded-lg overflow-hidden shrink-0 self-center">
+                          {latest.avatar ? (
+                            <img
+                              src={avatarUrl(latest.avatar) ?? ''}
+                              alt={name}
+                              className="size-full object-cover"
+                            />
+                          ) : (
+                            <div className="size-full bg-brand-purple/15 flex items-center justify-center text-brand-purple font-bold text-base border border-brand-purple/20 rounded-lg">
+                              {name.slice(0, 2)}
+                            </div>
+                          )}
+                        </ItemMedia>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white group-hover:text-brand-cyan transition-colors truncate leading-snug">
-                    {name}
-                  </div>
-                  <div className="flex items-center gap-2.5 mt-1">
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Users size={11} />
-                      {latest.settings.num_teams} teams
-                    </span>
-                    <span className="text-gray-700">·</span>
-                    <div className="flex items-center gap-1">
-                      {seasons.map((l) => (
-                        <span
-                          key={l.league_id}
-                          className="text-[11px] text-gray-500 bg-white/4 px-1.5 py-0.5 rounded border border-card-border/80 font-medium"
-                        >
-                          {l.season}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                        <ItemContent>
+                          <ItemTitle className="text-white font-semibold group-hover/item:text-brand-cyan transition-colors">
+                            {name}
+                          </ItemTitle>
+                          <ItemDescription className="flex items-center gap-2 text-gray-500 not-italic">
+                            <span className="flex items-center gap-1">
+                              <Users size={11} />
+                              {latest.settings.num_teams} teams
+                            </span>
+                            <span className="text-gray-700">·</span>
+                            <span className="flex items-center gap-1">
+                              {seasons.map((l) => (
+                                <span
+                                  key={l.league_id}
+                                  className="text-[11px] bg-white/4 px-1.5 py-0.5 rounded border border-card-border/80 font-medium"
+                                >
+                                  {l.season}
+                                </span>
+                              ))}
+                            </span>
+                          </ItemDescription>
+                        </ItemContent>
 
-                <ChevronRight size={16} className="text-gray-600 group-hover:text-brand-cyan transition-colors flex-shrink-0" />
-              </button>
-            );
-          })}
-        </div>
-
-        {sortedGroups.length === 0 && (
+                        <ItemActions>
+                          <ChevronRight
+                            size={16}
+                            className="text-gray-600 group-hover/item:text-brand-cyan transition-colors"
+                          />
+                        </ItemActions>
+                      </button>
+                    </Item>
+                  </React.Fragment>
+                );
+              })}
+            </ItemGroup>
+          </Card>
+        ) : (
           <div className="text-center py-16 text-gray-600">
             <Trophy size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No leagues found for this user.</p>
@@ -567,52 +596,55 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   return (
     <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans relative overflow-hidden">
       {/* Ambient glow */}
-      <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-brand-cyan/6 blur-[100px]" />
-      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-64 w-64 rounded-full bg-brand-purple/5 blur-[120px]" />
+      <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/5 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-64 w-64 rounded-full bg-brand-purple/4 blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex justify-center mb-7">
-          <div className="w-16 h-16 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-[0_0_40px_rgba(0,229,255,0.12)]">
-            <span className="text-brand-cyan font-bold text-4xl leading-none" style={{ marginTop: '-3px' }}>∞</span>
+      <Card className="relative z-10 w-full max-w-sm border-card-border shadow-[0_0_60px_rgba(0,229,255,0.04)] gap-0 py-0">
+        <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
+          <div className="w-12 h-12 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-[0_0_30px_rgba(0,229,255,0.1)]">
+            <span className="text-brand-cyan font-bold text-3xl leading-none" style={{ marginTop: '-2px' }}>∞</span>
           </div>
-        </div>
+          <div className="space-y-1.5">
+            <CardTitle className="text-2xl font-bold tracking-tight text-white">recordbook.fyi</CardTitle>
+            <CardDescription>Fantasy football analytics for your Sleeper leagues</CardDescription>
+          </div>
+        </CardHeader>
 
-        {/* Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">recordbook.fyi</h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Fantasy football analytics for your Sleeper leagues
-          </p>
-        </div>
+        <CardContent className="pt-0 pb-8">
+          <form id="username-form" onSubmit={handleSubmit}>
+            <Field>
+              <FieldLabel htmlFor="username">Username</FieldLabel>
+              <Input
+                id="username"
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="e.g. sleeperuser123"
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="focus-visible:ring-brand-cyan/30 focus-visible:border-brand-cyan/50 h-10"
+              />
+            </Field>
+          </form>
+        </CardContent>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="Enter your Sleeper username"
-            autoFocus
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-brand-cyan/50 focus:ring-1 focus:ring-brand-cyan/20 transition-all text-sm"
-          />
-          <button
+        <CardFooter className="flex-col gap-3 border-t border-border pt-6 pb-6">
+          <Button
             type="submit"
+            form="username-form"
             disabled={!value.trim()}
-            className="w-full bg-brand-cyan disabled:opacity-30 disabled:cursor-not-allowed text-[#0b0e14] py-3.5 rounded-xl font-bold transition-all text-sm hover:brightness-110 shadow-[0_4px_20px_rgba(0,229,255,0.2)] disabled:shadow-none"
+            size="lg"
+            className="w-full bg-brand-cyan text-[#0b0e14] font-bold hover:brightness-110 disabled:opacity-40 disabled:shadow-none shadow-[0_4px_20px_rgba(0,229,255,0.2)] transition-all"
           >
             View Dashboard
-          </button>
-        </form>
-
-        {/* Subtle hint */}
-        <p className="text-center text-xs text-gray-700 mt-6">
-          Reads public league data from Sleeper API
-        </p>
-      </div>
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Reads public league data from the Sleeper API
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
