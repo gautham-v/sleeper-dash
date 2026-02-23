@@ -77,9 +77,9 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
                 </button>
               </TableCell>
               <TableCell className="py-3.5 px-3 text-center tabular-nums">
-                <span className="text-green-400 font-semibold">{team.totalWins}</span>
-                <span className="text-gray-600 mx-0.5">–</span>
-                <span className="text-red-400">{team.totalLosses}</span>
+                <span className="text-foreground font-semibold">{team.totalWins}</span>
+                <span className="text-muted-foreground/50 mx-0.5">–</span>
+                <span className="text-muted-foreground">{team.totalLosses}</span>
               </TableCell>
               <TableCell className="py-3.5 px-3 text-center tabular-nums text-gray-300">
                 {(team.winPct * 100).toFixed(1)}%

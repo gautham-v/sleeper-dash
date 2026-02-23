@@ -25,11 +25,11 @@ interface Props {
 }
 
 const TIER_STYLES: Record<TeamTier, { label: string; bg: string; text: string; border: string }> = {
-  Elite:          { label: 'Elite',          bg: 'bg-yellow-900/40',  text: 'text-yellow-400',  border: 'border-yellow-700' },
-  Contender:      { label: 'Contender',      bg: 'bg-indigo-900/40',  text: 'text-indigo-400',  border: 'border-indigo-700' },
-  Average:        { label: 'Average',        bg: 'bg-gray-800/60',    text: 'text-gray-300',    border: 'border-gray-600'   },
-  Rebuilding:     { label: 'Rebuilding',     bg: 'bg-orange-900/40',  text: 'text-orange-400',  border: 'border-orange-700' },
-  'Cellar Dweller': { label: 'Cellar Dweller', bg: 'bg-red-900/40',  text: 'text-red-400',     border: 'border-red-700'    },
+  Elite:            { label: 'Elite',          bg: 'bg-foreground',   text: 'text-background', border: 'border-foreground'   },
+  Contender:        { label: 'Contender',      bg: 'bg-muted',        text: 'text-foreground', border: 'border-border'       },
+  Average:          { label: 'Average',        bg: 'bg-muted',        text: 'text-muted-foreground', border: 'border-border' },
+  Rebuilding:       { label: 'Rebuilding',     bg: 'bg-muted',        text: 'text-muted-foreground', border: 'border-border' },
+  'Cellar Dweller': { label: 'Cellar Dweller', bg: 'bg-muted',        text: 'text-muted-foreground', border: 'border-border' },
 };
 
 function TierBadge({ tier }: { tier: TeamTier }) {
@@ -52,21 +52,21 @@ function CompareBar({ valueA, valueB, labelA, labelB }: { valueA: number; valueB
 
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs text-gray-400 mb-1">
-        <span className={aLeads ? 'text-indigo-400 font-semibold' : ''}>{valueA}</span>
-        <span className={bLeads ? 'text-emerald-400 font-semibold' : ''}>{valueB}</span>
+      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+        <span className={aLeads ? 'text-foreground font-semibold' : ''}>{valueA}</span>
+        <span className={bLeads ? 'text-foreground font-semibold' : ''}>{valueB}</span>
       </div>
       <div className="flex h-2 rounded-full overflow-hidden">
         <div
-          className={`transition-all ${aLeads ? 'bg-indigo-500' : 'bg-indigo-800'}`}
+          className={`transition-all ${aLeads ? 'bg-foreground' : 'bg-foreground/25'}`}
           style={{ width: `${pctA}%` }}
         />
         <div
-          className={`transition-all ${bLeads ? 'bg-emerald-500' : 'bg-emerald-800'}`}
+          className={`transition-all ${bLeads ? 'bg-foreground' : 'bg-foreground/25'}`}
           style={{ width: `${pctB}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
+      <div className="flex justify-between text-xs text-muted-foreground mt-1">
         <span className="truncate max-w-[45%]">{labelA}</span>
         <span className="truncate max-w-[45%] text-right">{labelB}</span>
       </div>
@@ -86,12 +86,12 @@ function StatRow({ label, valueA, valueB, higherIsBetter = true }: {
   const bWins = !isNaN(numA) && !isNaN(numB) && (higherIsBetter ? numB > numA : numB < numA);
 
   return (
-    <div className="flex items-center py-3 border-b border-gray-800 last:border-0">
-      <div className={`w-1/3 text-right text-sm font-medium tabular-nums ${aWins ? 'text-indigo-400' : 'text-gray-300'}`}>
+    <div className="flex items-center py-3 border-b border-border last:border-0">
+      <div className={`w-1/3 text-right text-sm font-medium tabular-nums ${aWins ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
         {valueA}
       </div>
-      <div className="w-1/3 text-center text-xs text-gray-500 px-2">{label}</div>
-      <div className={`w-1/3 text-left text-sm font-medium tabular-nums ${bWins ? 'text-emerald-400' : 'text-gray-300'}`}>
+      <div className="w-1/3 text-center text-xs text-muted-foreground px-2">{label}</div>
+      <div className={`w-1/3 text-left text-sm font-medium tabular-nums ${bWins ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
         {valueB}
       </div>
     </div>
@@ -104,7 +104,6 @@ export function TeamComparison({ leagueId }: Props) {
 
   const { data: history, isLoading } = useLeagueHistory(leagueId);
 
-  // All unique users across all seasons
   const allUsers = useMemo(() => {
     if (!history) return [];
     const seen = new Map<string, { userId: string; displayName: string; avatar: string | null }>();
@@ -113,7 +112,6 @@ export function TeamComparison({ leagueId }: Props) {
         if (!seen.has(userId)) {
           seen.set(userId, { userId, displayName: team.displayName, avatar: team.avatar });
         } else {
-          // Keep most recent display name
           seen.get(userId)!.displayName = team.displayName;
         }
       }
@@ -121,13 +119,11 @@ export function TeamComparison({ leagueId }: Props) {
     return Array.from(seen.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [history]);
 
-  // All-time stats for every user
   const allTimeStats = useMemo((): Map<string, TeamAllTimeStats> => {
     if (!history) return new Map();
     return calcAllTimeStats(history);
   }, [history]);
 
-  // H2H record between the two selected teams
   const h2h = useMemo(() => {
     if (!history || !teamAId || !teamBId || teamAId === teamBId) return null;
     return calcH2H(history, teamAId, teamBId);
@@ -141,7 +137,7 @@ export function TeamComparison({ leagueId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
         <Loader2 className="animate-spin mr-2" size={20} />
         Loading full league history…
       </div>
@@ -150,7 +146,7 @@ export function TeamComparison({ leagueId }: Props) {
 
   if (!history || history.length === 0) {
     return (
-      <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500">
+      <div className="bg-muted/50 rounded-xl p-8 text-center text-muted-foreground">
         No historical data available for this league.
       </div>
     );
@@ -161,45 +157,33 @@ export function TeamComparison({ leagueId }: Props) {
   return (
     <div className="space-y-6">
       {/* Team selectors */}
-      <div className="bg-gray-900 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Select Teams to Compare</h3>
+      <div className="bg-card-bg rounded-xl p-5 border border-card-border">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Select Teams to Compare</h3>
         <div className="grid grid-cols-2 gap-4">
-          {/* Team A */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Team A</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">Team A</label>
             <Select value={teamAId} onValueChange={setTeamAId}>
-              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white focus:ring-indigo-500">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Select team —" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectContent>
                 {allUsers.map((u) => (
-                  <SelectItem
-                    key={u.userId}
-                    value={u.userId}
-                    disabled={u.userId === teamBId}
-                    className="text-white focus:bg-gray-700"
-                  >
+                  <SelectItem key={u.userId} value={u.userId} disabled={u.userId === teamBId}>
                     {u.displayName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {/* Team B */}
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Team B</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">Team B</label>
             <Select value={teamBId} onValueChange={setTeamBId}>
-              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white focus:ring-emerald-500">
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Select team —" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectContent>
                 {allUsers.map((u) => (
-                  <SelectItem
-                    key={u.userId}
-                    value={u.userId}
-                    disabled={u.userId === teamAId}
-                    className="text-white focus:bg-gray-700"
-                  >
+                  <SelectItem key={u.userId} value={u.userId} disabled={u.userId === teamAId}>
                     {u.displayName}
                   </SelectItem>
                 ))}
@@ -211,7 +195,7 @@ export function TeamComparison({ leagueId }: Props) {
 
       {/* Prompt when not both selected */}
       {(!teamAId || !teamBId || teamAId === teamBId) && (
-        <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
+        <div className="bg-muted/50 rounded-xl p-8 text-center text-muted-foreground text-sm">
           Select two different teams above to see the comparison.
         </div>
       )}
@@ -221,12 +205,9 @@ export function TeamComparison({ leagueId }: Props) {
         <>
           {/* Team headers */}
           <div className="grid grid-cols-2 gap-4">
-            {[{ info: teamAInfo, stats: statsA, color: 'indigo' }, { info: teamBInfo, stats: statsB, color: 'emerald' }].map(
-              ({ info, stats, color }, idx) => (
-                <div
-                  key={idx}
-                  className={`bg-gray-900 rounded-xl p-5 border ${color === 'indigo' ? 'border-indigo-800/50' : 'border-emerald-800/50'}`}
-                >
+            {([{ info: teamAInfo, stats: statsA }, { info: teamBInfo, stats: statsB }] as const).map(
+              ({ info, stats }, idx) => (
+                <div key={idx} className="bg-card-bg rounded-xl p-5 border border-card-border">
                   <div className="flex items-center gap-3 mb-3">
                     <Avatar avatar={info?.avatar ?? null} name={info?.displayName ?? ''} size="lg" />
                     <div className="min-w-0">
@@ -236,7 +217,9 @@ export function TeamComparison({ leagueId }: Props) {
                       </div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">{stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in league</div>
+                  <div className="text-xs text-muted-foreground">
+                    {stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in league
+                  </div>
                 </div>
               ),
             )}
@@ -244,18 +227,21 @@ export function TeamComparison({ leagueId }: Props) {
 
           {/* Head-to-Head */}
           {h2h && (
-            <div className="bg-gray-900 rounded-xl p-5">
+            <div className="bg-card-bg rounded-xl p-5 border border-card-border">
               <div className="flex items-center gap-2 mb-4">
-                <Swords size={16} className="text-gray-400" />
+                <Swords size={16} className="text-muted-foreground" />
                 <h3 className="font-semibold text-white">Head-to-Head</h3>
-                <span className="text-xs text-gray-500 ml-auto">{h2h.games.length} matchup{h2h.games.length !== 1 ? 's' : ''} all-time</span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {h2h.games.length} matchup{h2h.games.length !== 1 ? 's' : ''} all-time
+                </span>
               </div>
 
               {h2h.games.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-2">These teams have never faced each other.</p>
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  These teams have never faced each other.
+                </p>
               ) : (
                 <div className="space-y-4">
-                  {/* Overall win count */}
                   <CompareBar
                     valueA={h2h.teamAWins}
                     valueB={h2h.teamBWins}
@@ -263,22 +249,20 @@ export function TeamComparison({ leagueId }: Props) {
                     labelB={`${teamBInfo?.displayName} Wins`}
                   />
 
-                  {/* Playoff breakdown (if any playoff matchups exist) */}
                   {(h2h.playoffAWins > 0 || h2h.playoffBWins > 0) && (
-                    <div className="flex items-center justify-between text-xs bg-yellow-950/40 border border-yellow-800/30 rounded-lg px-3 py-2">
-                      <span className={`font-semibold tabular-nums ${h2h.playoffAWins > h2h.playoffBWins ? 'text-indigo-400' : 'text-gray-300'}`}>
+                    <div className="flex items-center justify-between text-xs bg-yellow-500/5 border border-yellow-500/15 rounded-lg px-3 py-2">
+                      <span className={`font-semibold tabular-nums ${h2h.playoffAWins > h2h.playoffBWins ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                         {h2h.playoffAWins}
                       </span>
                       <span className="text-yellow-500/80 text-center flex-1 text-center">🏆 Playoff record</span>
-                      <span className={`font-semibold tabular-nums ${h2h.playoffBWins > h2h.playoffAWins ? 'text-emerald-400' : 'text-gray-300'}`}>
+                      <span className={`font-semibold tabular-nums ${h2h.playoffBWins > h2h.playoffAWins ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                         {h2h.playoffBWins}
                       </span>
                     </div>
                   )}
 
-                  {/* Points */}
                   <div>
-                    <div className="text-xs text-gray-500 mb-1 text-center">Total Points Scored (H2H)</div>
+                    <div className="text-xs text-muted-foreground mb-1 text-center">Total Points Scored (H2H)</div>
                     <CompareBar
                       valueA={h2h.teamAPoints}
                       valueB={h2h.teamBPoints}
@@ -289,36 +273,36 @@ export function TeamComparison({ leagueId }: Props) {
 
                   {/* Game log */}
                   <div className="mt-3">
-                    <div className="text-xs text-gray-500 mb-2">All-time matchups</div>
+                    <div className="text-xs text-muted-foreground mb-2">All-time matchups</div>
                     <div className="space-y-1.5 max-h-64 overflow-y-auto">
                       {[...h2h.games].reverse().map((g, i) => (
                         <div
                           key={i}
-                          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${g.isPlayoff ? 'bg-yellow-950/30 border border-yellow-800/20' : 'bg-gray-800/60'}`}
+                          className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${g.isPlayoff ? 'bg-yellow-500/5 border border-yellow-500/15' : 'bg-muted/30'}`}
                         >
                           <span className="text-xs w-24 shrink-0">
                             {g.isPlayoff ? (
                               <span className="text-yellow-500/80">{g.season} Playoffs</span>
                             ) : (
-                              <span className="text-gray-400">{g.season} Wk {g.week}</span>
+                              <span className="text-muted-foreground">{g.season} Wk {g.week}</span>
                             )}
                           </span>
                           <div className="flex items-center gap-2 flex-1 justify-center">
-                            <span className={`tabular-nums font-medium ${g.winner === 'A' ? 'text-indigo-400' : 'text-gray-300'}`}>
+                            <span className={`tabular-nums font-medium ${g.winner === 'A' ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                               {g.teamAPoints}
                             </span>
-                            <span className="text-gray-600 text-xs">vs</span>
-                            <span className={`tabular-nums font-medium ${g.winner === 'B' ? 'text-emerald-400' : 'text-gray-300'}`}>
+                            <span className="text-muted-foreground/50 text-xs">vs</span>
+                            <span className={`tabular-nums font-medium ${g.winner === 'B' ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                               {g.teamBPoints}
                             </span>
                           </div>
                           <span className="text-xs w-16 text-right">
                             {g.winner === 'A' ? (
-                              <span className="text-indigo-400 font-semibold">{teamAInfo?.displayName?.split(' ')[0]} W</span>
+                              <span className="text-foreground font-semibold">{teamAInfo?.displayName?.split(' ')[0]} W</span>
                             ) : g.winner === 'B' ? (
-                              <span className="text-emerald-400 font-semibold">{teamBInfo?.displayName?.split(' ')[0]} W</span>
+                              <span className="text-foreground font-semibold">{teamBInfo?.displayName?.split(' ')[0]} W</span>
                             ) : (
-                              <span className="text-gray-500">Tie</span>
+                              <span className="text-muted-foreground">Tie</span>
                             )}
                           </span>
                         </div>
@@ -331,21 +315,22 @@ export function TeamComparison({ leagueId }: Props) {
           )}
 
           {/* All-time stats comparison */}
-          <div className="bg-gray-900 rounded-xl p-5">
+          <div className="bg-card-bg rounded-xl p-5 border border-card-border">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={16} className="text-gray-400" />
+              <TrendingUp size={16} className="text-muted-foreground" />
               <h3 className="font-semibold text-white">All-Time Stats</h3>
-              <span className="text-xs text-gray-500 ml-auto">Across {seasons.length} season{seasons.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                Across {seasons.length} season{seasons.length !== 1 ? 's' : ''}
+              </span>
             </div>
 
-            {/* Column headers */}
-            <div className="flex items-center pb-2 mb-1 border-b border-gray-800">
+            <div className="flex items-center pb-2 mb-1 border-b border-border">
               <div className="w-1/3 text-right">
-                <span className="text-xs font-semibold text-indigo-400 truncate block">{teamAInfo?.displayName}</span>
+                <span className="text-xs font-semibold text-foreground truncate block">{teamAInfo?.displayName}</span>
               </div>
               <div className="w-1/3" />
               <div className="w-1/3 text-left">
-                <span className="text-xs font-semibold text-emerald-400 truncate block">{teamBInfo?.displayName}</span>
+                <span className="text-xs font-semibold text-foreground truncate block">{teamBInfo?.displayName}</span>
               </div>
             </div>
 
@@ -362,7 +347,6 @@ export function TeamComparison({ leagueId }: Props) {
               </>
             )}
 
-            {/* Win bar */}
             <div className="mt-4">
               <CompareBar
                 valueA={statsA.totalWins}
@@ -374,20 +358,20 @@ export function TeamComparison({ leagueId }: Props) {
           </div>
 
           {/* Season-by-season breakdown */}
-          <div className="bg-gray-900 rounded-xl overflow-hidden">
+          <div className="bg-card-bg rounded-xl overflow-hidden border border-card-border">
             <div className="flex items-center gap-2 px-5 pt-5 pb-3">
-              <Trophy size={16} className="text-gray-400" />
+              <Trophy size={16} className="text-muted-foreground" />
               <h3 className="font-semibold text-white">Season-by-Season</h3>
             </div>
             <div className="overflow-x-auto">
               <Table className="min-w-[480px]">
                 <TableHeader>
-                  <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                  <TableRow className="text-muted-foreground text-xs uppercase tracking-wider border-b border-border">
                     <TableHead className="text-left py-3 px-5">Season</TableHead>
-                    <TableHead className="text-center py-3 px-3 text-indigo-400">{teamAInfo?.displayName}</TableHead>
-                    <TableHead className="text-center py-3 px-3 text-indigo-400/60">Rank</TableHead>
-                    <TableHead className="text-center py-3 px-3 text-emerald-400">{teamBInfo?.displayName}</TableHead>
-                    <TableHead className="text-center py-3 px-3 text-emerald-400/60">Rank</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-foreground">{teamAInfo?.displayName}</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-muted-foreground">Rank</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-foreground">{teamBInfo?.displayName}</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-muted-foreground">Rank</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -402,18 +386,18 @@ export function TeamComparison({ leagueId }: Props) {
                     const bBetter = sA && sB && sB.rank < sA.rank;
 
                     return (
-                      <TableRow key={season} className="border-b border-gray-800 hover:bg-gray-800/40 transition-colors">
-                        <TableCell className="py-3 px-5 text-gray-400 font-medium">{season}</TableCell>
-                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${aBetter ? 'text-indigo-400' : 'text-gray-300'}`}>
+                      <TableRow key={season} className="border-b border-border hover:bg-muted/40 transition-colors">
+                        <TableCell className="py-3 px-5 text-muted-foreground font-medium">{season}</TableCell>
+                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${aBetter ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                           {aRecord}
                         </TableCell>
-                        <TableCell className={`py-3 px-3 text-center text-xs ${aBetter ? 'text-indigo-400' : 'text-gray-500'}`}>
+                        <TableCell className={`py-3 px-3 text-center text-xs ${aBetter ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {aRankDisplay}
                         </TableCell>
-                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${bBetter ? 'text-emerald-400' : 'text-gray-300'}`}>
+                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${bBetter ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                           {bRecord}
                         </TableCell>
-                        <TableCell className={`py-3 px-3 text-center text-xs ${bBetter ? 'text-emerald-400' : 'text-gray-500'}`}>
+                        <TableCell className={`py-3 px-3 text-center text-xs ${bBetter ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {bRankDisplay}
                         </TableCell>
                       </TableRow>
@@ -422,7 +406,7 @@ export function TeamComparison({ leagueId }: Props) {
                 </TableBody>
               </Table>
             </div>
-            <div className="px-5 py-3 text-xs text-gray-500">
+            <div className="px-5 py-3 text-xs text-muted-foreground">
               Record reflects the full season (regular season + playoffs). 🏆 = won the championship.
             </div>
           </div>

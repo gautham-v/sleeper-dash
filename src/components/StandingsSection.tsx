@@ -24,18 +24,18 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
   }, [history]);
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800/60 overflow-hidden">
-      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-800">
+    <div className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
+      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-card-border">
         <h3 className="font-semibold text-white flex items-center gap-2">
           <Trophy size={15} className="text-yellow-500" /> Standings
         </h3>
-        <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1">
+        <div className="flex gap-1 bg-muted rounded-lg p-1">
           <button
             onClick={() => setMode('alltime')}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
               mode === 'alltime'
-                ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             All-Time
@@ -44,8 +44,8 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
             onClick={() => setMode('current')}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
               mode === 'current'
-                ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             This Season
@@ -57,7 +57,7 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
         allTimeStats.length > 0 ? (
           <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
         ) : (
-          <div className="p-8 text-center text-gray-500 text-sm">
+          <div className="p-8 text-center text-muted-foreground text-sm">
             Loading all-time standings…
           </div>
         )

@@ -1,5 +1,6 @@
 import { Trophy, TrendingUp, TrendingDown, Zap, Star, AlertTriangle, Skull } from 'lucide-react';
 import type { LeagueSeasonRecord } from '../types/sleeper';
+import React from 'react';
 
 interface LeagueRecordsProps {
   data: LeagueSeasonRecord[];
@@ -10,20 +11,18 @@ interface RecordRowProps {
   label: string;
   primary: string;
   secondary?: string;
-  accentBg: string;
-  accentText: string;
 }
 
-function RecordRow({ icon, label, primary, secondary, accentBg, accentText }: RecordRowProps) {
+function RecordRow({ icon, label, primary, secondary }: RecordRowProps) {
   return (
-    <div className="flex items-center gap-2.5 py-2.5 border-b border-gray-800/50 last:border-0">
-      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${accentBg} ${accentText}`}>
+    <div className="flex items-center gap-2.5 py-2.5 border-b border-border last:border-0">
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">{label}</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{label}</div>
         <div className="font-semibold text-white text-sm truncate leading-tight">{primary}</div>
-        {secondary && <div className="text-xs text-gray-500 mt-0.5 truncate">{secondary}</div>}
+        {secondary && <div className="text-xs text-muted-foreground mt-0.5 truncate">{secondary}</div>}
       </div>
     </div>
   );
@@ -31,8 +30,8 @@ function RecordRow({ icon, label, primary, secondary, accentBg, accentText }: Re
 
 function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-      <div className="px-3 py-2.5 bg-gray-800/40 border-b border-gray-800">
+    <div className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
+      <div className="px-3 py-2.5 bg-muted/40 border-b border-card-border">
         <h3 className="text-xs font-bold text-white uppercase tracking-wider">{record.season} Season</h3>
       </div>
 
@@ -46,8 +45,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.champion.wins}–${record.champion.losses} · ${record.champion.pointsFor.toFixed(1)} pts`
               : undefined
           }
-          accentBg="bg-yellow-950"
-          accentText="text-yellow-400"
         />
 
         <RecordRow
@@ -59,8 +56,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.lastPlace.wins}–${record.lastPlace.losses} · ${record.lastPlace.pointsFor.toFixed(1)} pts`
               : undefined
           }
-          accentBg="bg-red-950"
-          accentText="text-red-400"
         />
 
         <RecordRow
@@ -72,8 +67,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.highestScoringTeam.pointsFor.toFixed(1)} pts for the season`
               : undefined
           }
-          accentBg="bg-emerald-950"
-          accentText="text-emerald-400"
         />
 
         <RecordRow
@@ -85,8 +78,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.lowestScoringTeam.pointsFor.toFixed(1)} pts for the season`
               : undefined
           }
-          accentBg="bg-orange-950"
-          accentText="text-orange-400"
         />
 
         <RecordRow
@@ -102,8 +93,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.biggestBlowout.isPlayoff ? 'Playoffs' : `Wk ${record.biggestBlowout.week}`} · ${record.biggestBlowout.winnerPts.toFixed(2)}–${record.biggestBlowout.loserPts.toFixed(2)} (+${record.biggestBlowout.margin.toFixed(2)})`
               : undefined
           }
-          accentBg="bg-purple-950"
-          accentText="text-purple-400"
         />
 
         <RecordRow
@@ -115,8 +104,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.highestWeeklyScore.isPlayoff ? 'Playoffs' : `Wk ${record.highestWeeklyScore.week}`} · ${record.highestWeeklyScore.points.toFixed(2)} pts`
               : undefined
           }
-          accentBg="bg-indigo-950"
-          accentText="text-indigo-400"
         />
 
         <RecordRow
@@ -128,8 +115,6 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
               ? `${record.lowestWeeklyScore.isPlayoff ? 'Playoffs' : `Wk ${record.lowestWeeklyScore.week}`} · ${record.lowestWeeklyScore.points.toFixed(2)} pts`
               : undefined
           }
-          accentBg="bg-gray-800"
-          accentText="text-gray-400"
         />
       </div>
     </div>
@@ -139,7 +124,7 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
 export function LeagueRecords({ data }: LeagueRecordsProps) {
   if (data.length === 0) {
     return (
-      <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500">
+      <div className="bg-muted/50 rounded-xl p-8 text-center text-muted-foreground">
         No historical data available.
       </div>
     );
@@ -153,5 +138,3 @@ export function LeagueRecords({ data }: LeagueRecordsProps) {
     </div>
   );
 }
-
-import React from 'react';

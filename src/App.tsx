@@ -137,16 +137,13 @@ function LeagueDashboard({
 
   return (
     <div className="relative min-h-screen bg-base-bg text-white font-sans">
-      {/* Ambient glow orbs */}
-      <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-brand-cyan/5 blur-[120px]" />
-      <div className="pointer-events-none fixed right-0 top-1/2 h-96 w-96 rounded-full bg-brand-purple/5 blur-[140px]" />
 
       <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
         {/* Sidebar Navigation */}
         <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-base-bg/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
           <div className="p-4 sm:p-5 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
+              <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
                 <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
               </div>
               <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
@@ -222,7 +219,7 @@ function LeagueDashboard({
                 onClick={() => handleTabChange(id)}
                 className={`flex items-center gap-2.5 xl:gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 justify-start ${
                   activeTab === id
-                    ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full glow-box-cyan'
+                    ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
                 }`}
               >
@@ -256,10 +253,8 @@ function LeagueDashboard({
               <div className="text-xs text-gray-400 font-medium sm:hidden">
                 {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-purple to-brand-cyan p-[2px]">
-                <div className="w-full h-full rounded-full bg-base-bg flex items-center justify-center">
-                  <UserCircle size={20} className="text-white" />
-                </div>
+              <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center bg-card-bg">
+                <UserCircle size={20} className="text-muted-foreground" />
               </div>
             </div>
           </header>
@@ -302,16 +297,16 @@ function LeagueDashboard({
 
                   {/* Luck Index */}
                   {showLuck && (
-                    <div className="bg-gray-900 rounded-xl border border-gray-800/60 overflow-hidden">
-                      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-800">
+                    <div className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
+                      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-card-border">
                         <h3 className="font-semibold text-white">Luck Index</h3>
-                        <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1">
+                        <div className="flex gap-1 bg-muted rounded-lg p-1">
                           <button
                             onClick={() => setLuckMode('alltime')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                               luckMode === 'alltime'
-                                ? 'bg-gray-700 text-white shadow-sm'
-                                : 'text-gray-500 hover:text-gray-300'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                             }`}
                           >
                             All-Time
@@ -320,8 +315,8 @@ function LeagueDashboard({
                             onClick={() => setLuckMode('season')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                               luckMode === 'season'
-                                ? 'bg-gray-700 text-white shadow-sm'
-                                : 'text-gray-500 hover:text-gray-300'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                             }`}
                           >
                             {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
@@ -443,8 +438,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
 
   return (
     <div className="min-h-screen bg-base-bg text-white flex flex-col items-center">
-      {/* Ambient bg */}
-      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 h-64 w-96 bg-brand-cyan/4 blur-[100px] rounded-full" />
 
       <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5">
 
@@ -591,14 +584,10 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans relative overflow-hidden">
-      {/* Ambient glow */}
-      <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-brand-cyan/5 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-1/4 left-1/4 h-64 w-64 rounded-full bg-brand-purple/4 blur-[120px]" />
-
-      <Card className="relative z-10 w-full max-w-sm border-card-border shadow-[0_0_60px_rgba(0,229,255,0.04)] gap-0 py-0">
+    <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans">
+      <Card className="relative z-10 w-full max-w-sm border-card-border gap-0 py-0">
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
-          <div className="w-12 h-12 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-[0_0_30px_rgba(0,229,255,0.1)]">
+          <div className="w-12 h-12 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
             <span className="text-brand-cyan font-bold text-3xl leading-none" style={{ marginTop: '-2px' }}>∞</span>
           </div>
           <div className="space-y-1.5">
@@ -633,7 +622,7 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
             form="username-form"
             disabled={!value.trim()}
             size="lg"
-            className="w-full bg-brand-cyan text-[#0b0e14] font-bold hover:brightness-110 disabled:opacity-40 disabled:shadow-none shadow-[0_4px_20px_rgba(0,229,255,0.2)] transition-all"
+            className="w-full font-bold"
           >
             View Dashboard
           </Button>

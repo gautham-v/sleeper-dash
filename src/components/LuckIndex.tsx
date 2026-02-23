@@ -14,20 +14,20 @@ function LuckBar({ value, max }: { value: number; max: number }) {
   return (
     <div className="flex items-center gap-2 flex-1">
       {/* Left (unlucky) side */}
-      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden flex justify-end">
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden flex justify-end">
         {!isLucky && (
           <div
-            className="h-full bg-red-500 rounded-full"
+            className="h-full bg-foreground/60 rounded-full"
             style={{ width: `${pct * 100}%` }}
           />
         )}
       </div>
-      <div className="w-px h-4 bg-gray-600 shrink-0" />
+      <div className="w-px h-4 bg-border shrink-0" />
       {/* Right (lucky) side */}
-      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         {isLucky && (
           <div
-            className="h-full bg-green-500 rounded-full"
+            className="h-full bg-foreground rounded-full"
             style={{ width: `${pct * 100}%` }}
           />
         )}
@@ -41,16 +41,16 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-500 px-5 pt-4 pb-3">
+      <p className="text-xs text-muted-foreground px-5 pt-4 pb-3">
         Luck = Actual wins minus expected wins (if you played every team each week).
         Positive = lucky, Negative = unlucky.
       </p>
       {entries.map((entry, i) => (
         <div
           key={entry.userId || entry.rosterId}
-          className="flex items-center gap-4 px-5 py-4 border-t border-gray-800 hover:bg-gray-800/30 transition-colors"
+          className="flex items-center gap-4 px-5 py-4 border-t border-border hover:bg-muted/30 transition-colors"
         >
-          <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
+          <span className="text-muted-foreground w-4 text-center text-sm">{i + 1}</span>
           <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
           <button
             className="w-24 sm:w-32 shrink-0 text-left group"
@@ -60,7 +60,7 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
             <div className={`font-medium text-white text-sm leading-tight truncate ${entry.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
               {entry.teamName}
             </div>
-            <div className="text-gray-500 text-xs">
+            <div className="text-muted-foreground text-xs">
               {entry.actualWins}W · {entry.expectedWins}exp
             </div>
           </button>
@@ -68,10 +68,10 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
           <div
             className={`w-14 text-right font-bold tabular-nums text-sm shrink-0 ${
               entry.luckScore > 0
-                ? 'text-green-400'
+                ? 'text-foreground'
                 : entry.luckScore < 0
-                ? 'text-red-400'
-                : 'text-gray-400'
+                ? 'text-muted-foreground'
+                : 'text-muted-foreground'
             }`}
           >
             {entry.luckScore > 0 ? '+' : ''}
@@ -79,7 +79,7 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
           </div>
         </div>
       ))}
-      <div className="flex justify-between text-xs text-gray-600 px-5 py-3 border-t border-gray-800">
+      <div className="flex justify-between text-xs text-muted-foreground/60 px-5 py-3 border-t border-border">
         <span>Most Unlucky</span>
         <span>Most Lucky</span>
       </div>

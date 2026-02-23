@@ -83,10 +83,10 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                     </div>
                   </button>
                 </TableCell>
-                <TableCell className="py-3.5 px-3 text-center font-semibold text-green-400">
+                <TableCell className="py-3.5 px-3 text-center font-semibold text-foreground">
                   {team.wins}
                 </TableCell>
-                <TableCell className="py-3.5 px-3 text-center text-red-400">
+                <TableCell className="py-3.5 px-3 text-center text-muted-foreground">
                   {team.losses}
                 </TableCell>
                 {hasPlayoffData && (
@@ -109,11 +109,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                 <TableCell className="py-3.5 px-3 pr-5 text-right">
                   {team.streak ? (
                     <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        team.streak.startsWith('W')
-                          ? 'bg-green-900/50 text-green-400'
-                          : 'bg-red-900/50 text-red-400'
-                      }`}
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground"
                     >
                       {team.streak}
                     </span>
