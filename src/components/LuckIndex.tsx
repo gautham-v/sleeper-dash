@@ -47,15 +47,16 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
       </p>
       {entries.map((entry, i) => {
         const showUsername = entry.teamName !== entry.displayName;
+        const scorePositive = entry.luckScore > 0;
         return (
           <div
             key={entry.userId || entry.rosterId}
-            className="flex items-center gap-4 px-5 py-4 border-t border-border hover:bg-muted/30 transition-colors"
+            className="flex items-center gap-3 px-5 py-3.5 border-t border-border hover:bg-muted/30 transition-colors"
           >
-            <span className="text-muted-foreground w-4 text-center text-sm">{i + 1}</span>
+            <span className="text-muted-foreground w-4 text-center text-sm shrink-0">{i + 1}</span>
             <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
             <button
-              className="w-24 sm:w-36 shrink-0 text-left group"
+              className="flex-1 min-w-0 text-left group"
               onClick={() => entry.userId && onSelectManager?.(entry.userId)}
               disabled={!entry.userId || !onSelectManager}
             >
@@ -65,18 +66,19 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
               {showUsername && (
                 <div className="text-muted-foreground text-xs truncate">{entry.displayName}</div>
               )}
-            </button>
-            <LuckBar value={entry.luckScore} max={maxLuck} />
-            <div className="w-16 text-right shrink-0">
-              <div
-                className={`font-bold tabular-nums text-sm ${
-                  entry.luckScore > 0 ? 'text-foreground' : 'text-muted-foreground'
-                }`}
-              >
-                {entry.luckScore > 0 ? '+' : ''}
-                {entry.luckScore.toFixed(1)}
+              <div className="text-muted-foreground text-xs mt-0.5 sm:hidden tabular-nums">
+                {entry.actualWins}W · {entry.expectedWins}exp
               </div>
-              <div className="text-muted-foreground text-xs tabular-nums">
+            </button>
+            {/* Bar: visible on sm+ only */}
+            <div className="hidden sm:flex items-center flex-[2]">
+              <LuckBar value={entry.luckScore} max={maxLuck} />
+            </div>
+            <div className="shrink-0 text-right min-w-[3rem]">
+              <div className={`font-bold tabular-nums text-sm ${scorePositive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {scorePositive ? '+' : ''}{entry.luckScore.toFixed(1)}
+              </div>
+              <div className="text-muted-foreground text-xs tabular-nums hidden sm:block">
                 {entry.actualWins}W · {entry.expectedWins}exp
               </div>
             </div>

@@ -111,11 +111,11 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
 
   return (
     <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5">
+      <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 sm:pt-5 flex-wrap">
         <TabsList className="bg-muted rounded-lg p-1 h-auto gap-0">
           <TabsTrigger
             value="rankings"
-            className="px-3 py-1 rounded-md text-xs font-medium h-auto
+            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
               data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
               text-muted-foreground hover:text-foreground"
           >
@@ -123,7 +123,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
           </TabsTrigger>
           <TabsTrigger
             value="standings"
-            className="px-3 py-1 rounded-md text-xs font-medium h-auto
+            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
               data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
               text-muted-foreground hover:text-foreground"
           >
@@ -131,11 +131,12 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
           </TabsTrigger>
           <TabsTrigger
             value="luck"
-            className="px-3 py-1 rounded-md text-xs font-medium h-auto
+            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
               data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
               text-muted-foreground hover:text-foreground"
           >
-            Luck Index
+            <span className="sm:hidden">Luck</span>
+            <span className="hidden sm:inline">Luck Index</span>
           </TabsTrigger>
         </TabsList>
 
@@ -144,12 +145,12 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs h-7 border-card-border text-muted-foreground hover:text-foreground"
+              className="gap-1.5 text-xs h-7 border-card-border text-muted-foreground hover:text-foreground ml-auto"
             >
               {selectedLabel} <ChevronDown size={11} />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[120px]">
+          <DropdownMenuContent align="end" collisionPadding={8} className="min-w-[120px]">
             <DropdownMenuItem
               className={selectedSeason === 'alltime' ? 'text-brand-cyan' : ''}
               onClick={() => setSelectedSeason('alltime')}

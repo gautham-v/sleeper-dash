@@ -126,9 +126,9 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
   return (
     <div className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-card-border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Trophy size={14} className="text-yellow-500" />
-          <span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0 flex-1">
+          <Trophy size={14} className="text-yellow-500 shrink-0" />
+          <span className="truncate">
             Spanning {seasons.length} season{seasons.length !== 1 ? 's' : ''}{' '}
             ({seasons[0]}–{seasons[seasons.length - 1]})
           </span>
@@ -163,19 +163,19 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
         </DropdownMenu>
       </div>
 
-      <Table className="min-w-[520px]">
+      <Table className="w-full">
         <TableHeader>
           <TableRow className="border-gray-700 hover:bg-transparent">
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 pl-5 h-auto w-[38%]">
+            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 pl-4 h-auto">
               Record
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 h-auto w-[28%]">
+            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">
               Holder
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 text-right h-auto w-[14%]">
+            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto">
               Value
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 pr-5 h-auto hidden sm:table-cell">
+            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 h-auto hidden sm:table-cell">
               Context
             </TableHead>
           </TableRow>
@@ -185,25 +185,25 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
             const meta = RECORD_META[record.id] ?? { icon: <Star size={14} />, accentText: 'text-foreground' };
             return (
               <TableRow key={record.id} className="border-gray-800 hover:bg-gray-800/50">
-                <TableCell className="py-3.5 px-3 pl-5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 flex items-center justify-center text-muted-foreground flex-shrink-0">
+                <TableCell className="py-3 px-3 pl-4 w-[40%]">
+                  <div className="flex items-start gap-1.5">
+                    <div className="w-4 h-4 flex items-center justify-center text-muted-foreground flex-shrink-0 mt-0.5">
                       {meta.icon}
                     </div>
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-snug">
                       {record.category}
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-3.5 px-3">
+                <TableCell className="py-3 px-2 w-[38%]">
                   <HolderCell record={record} onSelectManager={onSelectManager} />
                 </TableCell>
-                <TableCell className="py-3.5 px-3 text-right">
-                  <span className={`font-bold text-base tabular-nums ${meta.accentText}`}>
+                <TableCell className="py-3 px-2 pr-4 text-right w-[22%]">
+                  <span className={`font-bold text-sm sm:text-base tabular-nums ${meta.accentText}`}>
                     {record.value}
                   </span>
                 </TableCell>
-                <TableCell className="py-3.5 px-3 pr-5 text-xs text-muted-foreground hidden sm:table-cell">
+                <TableCell className="py-3 px-2 pr-4 text-xs text-muted-foreground hidden sm:table-cell">
                   {record.context}
                 </TableCell>
               </TableRow>

@@ -19,19 +19,19 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
 
   return (
     <>
-      <Table className="min-w-[520px]">
+      <Table className="w-full">
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 pl-5 h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto">
               #
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">
               Team
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">
               W–L
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">
               Win%
             </TableHead>
             {hasPlayoffData && (
@@ -56,18 +56,18 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
         <TableBody>
           {sorted.map((team, i) => (
             <TableRow key={team.userId} className="border-border hover:bg-muted/30">
-              <TableCell className="py-3.5 px-3 pl-5">
-                <span className="text-muted-foreground w-4 text-center inline-block">{i + 1}</span>
+              <TableCell className="py-3 px-2 pl-4">
+                <span className="text-muted-foreground w-4 text-center inline-block text-sm">{i + 1}</span>
               </TableCell>
-              <TableCell className="py-3.5 px-3">
+              <TableCell className="py-3 px-2">
                 <button
-                  className="flex items-center gap-2.5 text-left group w-full"
+                  className="flex items-center gap-2 text-left group w-full"
                   onClick={() => team.userId && onSelectManager?.(team.userId)}
                   disabled={!team.userId || !onSelectManager}
                 >
                   <Avatar avatar={team.avatar} name={team.displayName} size="sm" />
                   <div className="min-w-0">
-                    <div className={`font-medium text-white leading-tight truncate max-w-[140px] sm:max-w-none ${team.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
+                    <div className={`font-medium text-white text-sm leading-tight truncate ${team.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
                       {team.displayName}
                     </div>
                     <div className="text-muted-foreground text-xs">
@@ -76,12 +76,12 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
                   </div>
                 </button>
               </TableCell>
-              <TableCell className="py-3.5 px-3 text-center tabular-nums">
+              <TableCell className="py-3 px-2 text-center tabular-nums text-sm">
                 <span className="text-foreground font-semibold">{team.totalWins}</span>
                 <span className="text-muted-foreground/50 mx-0.5">–</span>
                 <span className="text-muted-foreground">{team.totalLosses}</span>
               </TableCell>
-              <TableCell className="py-3.5 px-3 text-center tabular-nums text-foreground">
+              <TableCell className="py-3 px-2 text-center tabular-nums text-foreground text-sm">
                 {(team.winPct * 100).toFixed(1)}%
               </TableCell>
               {hasPlayoffData && (
@@ -95,10 +95,10 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
                   )}
                 </TableCell>
               )}
-              <TableCell className="py-3.5 px-3 text-right text-muted-foreground tabular-nums hidden sm:table-cell">
+              <TableCell className="py-3 px-2 text-right text-muted-foreground tabular-nums hidden sm:table-cell">
                 {team.avgPointsFor.toFixed(0)}
               </TableCell>
-              <TableCell className="py-3.5 px-3 pr-5 text-right">
+              <TableCell className="py-3 px-2 pr-4 text-right">
                 {team.titles > 0 ? (
                   <span className="text-yellow-400 font-semibold tabular-nums">
                     {'🏆'.repeat(Math.min(team.titles, 3))}
@@ -112,7 +112,7 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
           ))}
         </TableBody>
       </Table>
-      <div className="py-3.5 px-5 text-xs text-muted-foreground border-t border-border">
+      <div className="py-3 px-4 text-xs text-muted-foreground border-t border-border">
         Sorted by total wins · Avg PF is per-season average
       </div>
     </>

@@ -120,7 +120,7 @@ export function LeagueDashboard({
               <Menu size={22} />
             </button>
             <div className="text-center min-w-0 mx-3 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 leading-none mb-0.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
                 recordbook.fyi
               </div>
               <div className="text-sm font-bold text-white truncate leading-tight">

@@ -21,6 +21,69 @@ import type {
 const REGULAR_SEASON_WEEKS = 14; // Regular season weeks for matchup calculations
 const TOTAL_SEASON_WEEKS = 18;   // Full season (incl. playoffs) for transactions
 
+/**
+ * Derives each team's playoff finish label from the winners bracket.
+ * Placement matches (p field) give exact finishes; other bracket losers
+ * are labelled by their exit round relative to the championship.
+ */
+function computePlayoffFinishes(
+  bracket: BracketMatch[],
+  rosterToUser: Map<number, string>,
+): Map<string, string> {
+  const result = new Map<string, string>();
+  if (!bracket.length) return result;
+
+  const maxRound = Math.max(...bracket.map((b) => b.r));
+
+  // Placement matches (p field set) give us exact finishes
+  for (const match of bracket) {
+    if (match.p == null) continue;
+    const winLabel = match.p === 1 ? 'Won Championship' : match.p === 2 ? '3rd Place' : '5th Place';
+    const loseLabel = match.p === 1 ? 'Runner-Up' : match.p === 2 ? '4th Place' : '6th Place';
+    if (match.w != null) {
+      const uid = rosterToUser.get(match.w);
+      if (uid) result.set(uid, winLabel);
+    }
+    if (match.l != null) {
+      const uid = rosterToUser.get(match.l);
+      if (uid) result.set(uid, loseLabel);
+    }
+  }
+
+  // If no p=1 match found, fall back to the last-round match as the championship
+  if (!bracket.some((b) => b.p === 1)) {
+    const champMatch = bracket.find((b) => b.r === maxRound);
+    if (champMatch?.w != null) {
+      const uid = rosterToUser.get(champMatch.w);
+      if (uid) result.set(uid, 'Won Championship');
+    }
+    if (champMatch?.l != null) {
+      const uid = rosterToUser.get(champMatch.l);
+      if (uid) result.set(uid, 'Runner-Up');
+    }
+  }
+
+  // Championship round is the highest round that has a placement match (or maxRound)
+  const champRound = Math.max(
+    ...bracket.filter((b) => b.p === 1).map((b) => b.r),
+    maxRound,
+  );
+
+  // Label remaining bracket losers by their exit round
+  for (const match of bracket) {
+    if (match.p != null) continue;
+    if (match.l != null) {
+      const uid = rosterToUser.get(match.l);
+      if (uid && !result.has(uid)) {
+        const label = match.r === champRound - 1 ? 'Lost Semi-Final' : 'Lost in Playoffs';
+        result.set(uid, label);
+      }
+    }
+  }
+
+  return result;
+}
+
 export function useUser(username: string) {
   return useQuery({
     queryKey: ['user', username],
@@ -577,6 +640,8 @@ export function useLeagueHistory(leagueId: string | null) {
           }
         }
 
+        const playoffFinishByUserId = computePlayoffFinishes(typedBracket, rosterToUser);
+
         seasons.push({
           season,
           leagueId: league_id,
@@ -584,6 +649,7 @@ export function useLeagueHistory(leagueId: string | null) {
           matchups: allMatchups,
           rosterToUser,
           championUserId,
+          playoffFinishByUserId,
         });
       }
 

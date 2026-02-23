@@ -204,20 +204,18 @@ export function TeamComparison({ leagueId }: Props) {
       {teamAId && teamBId && teamAId !== teamBId && statsA && statsB && (
         <>
           {/* Team headers */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {([{ info: teamAInfo, stats: statsA }, { info: teamBInfo, stats: statsB }] as const).map(
               ({ info, stats }, idx) => (
-                <div key={idx} className="bg-card-bg rounded-xl p-5 border border-card-border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Avatar avatar={info?.avatar ?? null} name={info?.displayName ?? ''} size="lg" />
-                    <div className="min-w-0">
-                      <div className="font-bold text-white truncate">{info?.displayName}</div>
-                      <div className="mt-1">
-                        <TierBadge tier={stats.tier} />
-                      </div>
+                <div key={idx} className="bg-card-bg rounded-xl p-3 sm:p-4 border border-card-border">
+                  <div className="flex items-center gap-2 mb-2 min-w-0">
+                    <Avatar avatar={info?.avatar ?? null} name={info?.displayName ?? ''} size="sm" />
+                    <div className="font-bold text-white text-sm truncate min-w-0">
+                      {info?.displayName}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <TierBadge tier={stats.tier} />
+                  <div className="text-xs text-muted-foreground mt-1.5">
                     {stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in league
                   </div>
                 </div>

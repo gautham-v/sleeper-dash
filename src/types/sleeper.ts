@@ -155,11 +155,13 @@ export interface HistoricalSeason {
     wins: number;
     losses: number;
     pointsFor: number;
-    rank: number; // 1 = champion
+    rank: number;
   }>;
   matchups: WeeklyMatchup[];
   rosterToUser: Map<number, string>; // rosterId -> userId
   championUserId: string | null;
+  /** Maps userId -> playoff finish label, e.g. "Won Championship", "Runner-Up", "Lost Semi-Final" */
+  playoffFinishByUserId: Map<string, string>;
 }
 
 export interface TeamAllTimeStats {
