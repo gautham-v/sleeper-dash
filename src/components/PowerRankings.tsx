@@ -34,7 +34,7 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
                 onClick={() => r.userId && onSelectManager?.(r.userId)}
                 disabled={!r.userId || !onSelectManager}
               >
-                <div className={`font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
+                <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
                   {r.teamName}
                 </div>
                 <div className="text-gray-500 text-xs">{r.displayName}</div>

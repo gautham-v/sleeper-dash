@@ -126,25 +126,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
             {/* Key stats row */}
             <div className="flex flex-wrap gap-4 mt-4">
               <div>
-                <div className="text-2xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
+                <div className="text-xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
                 <div className="text-xs text-gray-500">Win Rate</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
+                <div className="text-xl font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
                 <div className="text-xs text-gray-500">Career Record ({totalGames} games)</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                <div className="text-xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
                 <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
               </div>
               {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
                 <div>
-                  <div className="text-2xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
+                  <div className="text-xl font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
                   <div className="text-xs text-gray-500">Playoff Record</div>
                 </div>
               )}
               <div>
-                <div className="text-2xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                <div className="text-xl font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
                 <div className="text-xs text-gray-500">All-Time Points</div>
               </div>
             </div>

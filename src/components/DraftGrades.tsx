@@ -65,7 +65,7 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
       <div className="overflow-x-auto">
         <table className="w-full text-xs min-w-[600px]">
           <thead>
-            <tr className="text-gray-500 border-b border-gray-700">
+            <tr className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
               <th className="text-left p-3 font-normal">Team</th>
               <th className="text-center p-3 font-normal">PF</th>
               <th className="text-center p-3 font-normal">Grade</th>
@@ -88,7 +88,7 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
                 <tr key={rosterId} className="border-b border-gray-800 hover:bg-gray-800/30">
                   <td className="p-3">
                     <div className="font-medium text-white">{team?.teamName ?? `Team ${rosterId}`}</div>
-                    <div className="text-gray-500">{team?.displayName}</div>
+                    <div className="text-xs text-gray-500">{team?.displayName}</div>
                   </td>
                   <td className="p-3 text-center text-white tabular-nums">{pts.toFixed(1)}</td>
                   <td className="p-3 text-center">

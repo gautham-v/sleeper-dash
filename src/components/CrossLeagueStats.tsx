@@ -20,12 +20,12 @@ function StatCard({
 }) {
   return (
     <div className="flex flex-col gap-1 px-4 py-3">
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
+      <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium uppercase tracking-wider">
         <Icon size={11} className="text-gray-600" />
         {label}
       </div>
       <div className="text-lg font-bold text-white leading-tight">{value}</div>
-      {sub && <div className="text-[11px] text-gray-600">{sub}</div>}
+      {sub && <div className="text-xs text-gray-500">{sub}</div>}
     </div>
   );
 }
@@ -53,8 +53,8 @@ export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueS
   return (
     <div className="mb-5">
       <div className="flex items-baseline gap-2 mb-2.5">
-        <h2 className="text-[13px] font-semibold text-gray-300">Career Stats</h2>
-        <span className="text-[11px] text-gray-600">{seasonLabel} across {leagueLabel}</span>
+        <h2 className="text-sm font-semibold text-gray-300">Career Stats</h2>
+        <span className="text-xs text-gray-500">{seasonLabel} across {leagueLabel}</span>
       </div>
 
       <div className="bg-card-bg border border-card-border rounded-xl overflow-hidden">

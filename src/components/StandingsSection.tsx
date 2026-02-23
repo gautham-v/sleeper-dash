@@ -26,7 +26,7 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
           <Trophy size={16} className="text-yellow-500" /> Standings
         </h3>
         <div className="flex items-center bg-gray-800 rounded-lg p-0.5 text-xs font-medium">

@@ -33,7 +33,7 @@ function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
   return (
     <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
       <div className="px-4 py-3 bg-gray-800/40 border-b border-gray-800">
-        <h3 className="font-bold text-white">{record.season} Season</h3>
+        <h3 className="text-sm font-semibold text-white">{record.season} Season</h3>
       </div>
 
       <div className="px-4 py-1">

@@ -118,7 +118,7 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
       {/* Power Rankings */}
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
           <div className="flex items-center mb-3">
-            <h3 className="font-semibold text-white">Power Rankings</h3>
+            <h3 className="text-sm font-semibold text-white">Power Rankings</h3>
           </div>
 
           {/* Toggle */}
