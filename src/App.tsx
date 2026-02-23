@@ -218,9 +218,7 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
     <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans">
       <Card className="relative z-10 w-full max-w-sm border-card-border gap-0 py-0">
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
-          <div className="w-12 h-12 rounded-2xl bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
-            <span className="text-brand-cyan font-bold text-3xl leading-none" style={{ marginTop: '-2px' }}>∞</span>
-          </div>
+          <span className="text-5xl leading-none">📖</span>
           <div className="space-y-1.5">
             <CardTitle className="text-2xl font-bold tracking-tight text-white">recordbook.fyi</CardTitle>
             <CardDescription>Fantasy football analytics for your Sleeper leagues</CardDescription>
