@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  BookOpen, Trophy, ChevronLeft, ChevronRight, UserCircle, Loader2, Layers,
+  BookOpen, Trophy, ChevronLeft, ChevronRight, UserCircle, Loader2, Layers, BarChart2, LogOut,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { useDashboardData } from '@/hooks/useLeagueData';
+import { useDashboardData, useCrossLeagueStats } from '@/hooks/useLeagueData';
+import { CrossLeagueStats } from '@/components/CrossLeagueStats';
 import { Overview } from '@/components/Overview';
 import { AllTimeRecords } from '@/components/AllTimeRecords';
 import { ManagersList } from '@/components/ManagersList';
