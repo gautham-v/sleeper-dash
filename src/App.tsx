@@ -64,7 +64,10 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
         initialLeagueId={selectedLeagueId}
         allLeagueGroups={sortedGroups}
         userId={user.user_id}
+        userDisplayName={user.display_name}
+        userAvatar={user.avatar ?? null}
         onBack={() => setSelectedLeagueId(null)}
+        onChangeUser={onChangeUser}
       />
     );
   }

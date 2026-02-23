@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Trophy, Menu, ChevronLeft, UserCircle, Loader2 } from 'lucide-react';
+import {
+  BookOpen, Trophy, ChevronLeft, ChevronRight, UserCircle, Loader2, Layers,
+} from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useDashboardData } from '@/hooks/useLeagueData';
 import { Overview } from '@/components/Overview';
@@ -10,20 +12,24 @@ import { TeamComparison } from '@/components/TeamComparison';
 import { LeagueTables } from '@/components/LeagueTables';
 import { SidebarNav, type SidebarNavProps } from '@/components/SidebarNav';
 import { TABS, type TabId } from '@/lib/tabs';
+import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
 
 export function LeagueDashboard({
-  initialLeagueId, allLeagueGroups, userId, onBack,
+  initialLeagueId, allLeagueGroups, userId, userDisplayName, userAvatar, onBack, onChangeUser,
 }: {
   initialLeagueId: string;
   allLeagueGroups: [string, SleeperLeague[]][];
   userId: string;
+  userDisplayName: string;
+  userAvatar: string | null;
   onBack: () => void;
+  onChangeUser: () => void;
 }) {
   const [leagueId, setLeagueId] = useState(initialLeagueId);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [leagueSheetOpen, setLeagueSheetOpen] = useState(false);
 
   const { league, currentWeek, isOffseason, isLoading, computed } = useDashboardData(leagueId);
 
@@ -47,7 +53,6 @@ export function LeagueDashboard({
 
   const handleTabChange = (id: TabId) => {
     setActiveTab(id);
-    setMobileMenuOpen(false);
     if (id !== 'managers') {
       setSelectedManagerId(null);
       window.history.pushState(null, '', window.location.pathname + window.location.search);
@@ -87,6 +92,7 @@ export function LeagueDashboard({
   };
 
   const activeLabel = TABS.find((t) => t.id === activeTab)?.label ?? 'Overview';
+  const showingManagerProfile = activeTab === 'managers' && selectedManagerId;
 
   return (
     <div className="relative min-h-screen bg-base-bg text-white font-sans">
@@ -97,43 +103,30 @@ export function LeagueDashboard({
           <SidebarNav {...sidebarProps} />
         </aside>
 
-        {/* Mobile Sidebar Drawer */}
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent
-            side="left"
-            className="p-0 bg-base-bg text-white border-r border-card-border w-72 max-w-[85vw] [&>button]:hidden"
-          >
-            <SidebarNav {...sidebarProps} onClose={() => setMobileMenuOpen(false)} />
-          </SheetContent>
-        </Sheet>
-
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col min-w-0">
 
           {/* Mobile Top Header */}
-          <header className="xl:hidden h-14 border-b border-card-border px-4 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="text-gray-400 hover:text-white transition-colors p-2 -ml-2"
-              aria-label="Open navigation"
-            >
-              <Menu size={22} />
-            </button>
-            <div className="text-center min-w-0 mx-3 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
-                recordbook.fyi
+          <header className="xl:hidden h-14 border-b border-card-border px-4 flex items-center bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
+            {showingManagerProfile ? (
+              <>
+                <button
+                  onClick={handleBackFromProfile}
+                  className="text-gray-400 hover:text-white transition-colors p-2 -ml-2"
+                  aria-label="Back to managers"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+                <span className="text-sm font-bold text-white ml-1">Manager Profile</span>
+              </>
+            ) : (
+              <div className="flex-1 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
+                  recordbook.fyi
+                </div>
+                <div className="text-sm font-bold text-white leading-tight">{activeLabel}</div>
               </div>
-              <div className="text-sm font-bold text-white truncate leading-tight">
-                {activeTab === 'managers' && selectedManagerId ? 'Manager Profile' : activeLabel}
-              </div>
-            </div>
-            <button
-              onClick={onBack}
-              className="text-gray-500 hover:text-white transition-colors p-2 -mr-2"
-              aria-label="Back to leagues"
-            >
-              <ChevronLeft size={22} />
-            </button>
+            )}
           </header>
 
           {/* Desktop Top Header */}
@@ -236,11 +229,139 @@ export function LeagueDashboard({
                   <span>{label}</span>
                 </button>
               ))}
+              <button
+                onClick={() => setLeagueSheetOpen(true)}
+                className="flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors text-gray-500 hover:text-gray-300"
+              >
+                <Layers size={20} />
+                <span>League</span>
+              </button>
             </div>
           </nav>
 
         </main>
       </div>
+
+      {/* Mobile League Sheet */}
+      <Sheet open={leagueSheetOpen} onOpenChange={setLeagueSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 max-h-[85vh] overflow-y-auto [&>button]:hidden"
+        >
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-gray-700" />
+          </div>
+
+          <div className="px-5 pb-8 space-y-5">
+            {/* User */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-800">
+              <div className="flex items-center gap-3">
+                {userAvatar ? (
+                  <img
+                    src={avatarUrl(userAvatar) ?? ''}
+                    alt={userDisplayName}
+                    className="w-9 h-9 rounded-full border border-card-border"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center">
+                    <UserCircle size={18} className="text-brand-cyan/70" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
+                  <div className="text-sm font-semibold text-white">{userDisplayName}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => { setLeagueSheetOpen(false); onChangeUser(); }}
+                className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                Change
+              </button>
+            </div>
+
+            {/* Current league */}
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                Current League
+              </div>
+              <div className="flex items-center gap-3 bg-card-bg rounded-xl p-3 border border-card-border">
+                {league?.avatar ? (
+                  <img
+                    src={avatarUrl(league.avatar) ?? ''}
+                    alt={league.name}
+                    className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
+                    {league?.name?.slice(0, 2) ?? '??'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="font-semibold text-white text-sm truncate">{league?.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {league?.season} · {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Switch League */}
+            {allLeagueGroups.length > 1 && (
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                  Switch League
+                </div>
+                <div className="space-y-2">
+                  {allLeagueGroups.map(([name, group]) => {
+                    const latest = [...group].sort((a, b) => Number(b.season) - Number(a.season))[0];
+                    const isActive = group.some((g) => g.league_id === leagueId);
+                    return (
+                      <button
+                        key={latest.league_id}
+                        onClick={() => { handleChangeLeague(latest.league_id); setLeagueSheetOpen(false); }}
+                        className={`w-full flex items-center gap-3 rounded-xl p-3 text-sm text-left transition-colors ${
+                          isActive
+                            ? 'bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan'
+                            : 'bg-card-bg border border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
+                        }`}
+                      >
+                        {latest.avatar ? (
+                          <img
+                            src={avatarUrl(latest.avatar) ?? ''}
+                            alt={name}
+                            className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple text-xs font-bold flex-shrink-0 border border-brand-purple/20">
+                            {name.slice(0, 2)}
+                          </div>
+                        )}
+                        <span className="font-medium truncate flex-1">{name}</span>
+                        {isActive && (
+                          <span className="text-xs text-brand-cyan flex-shrink-0">Current</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Back to All Leagues */}
+            <button
+              onClick={() => { setLeagueSheetOpen(false); onBack(); }}
+              className="w-full flex items-center justify-between bg-card-bg rounded-xl p-4 border border-card-border hover:border-gray-500 transition-colors group"
+            >
+              <div className="text-left">
+                <div className="font-medium text-white text-sm">All Leagues & Career Stats</div>
+                <div className="text-xs text-gray-500 mt-0.5">View your stats across all leagues</div>
+              </div>
+              <ChevronRight size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0" />
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
