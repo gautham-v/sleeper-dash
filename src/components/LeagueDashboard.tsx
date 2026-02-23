@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  BookOpen, Trophy, ChevronLeft, ChevronRight, UserCircle, Loader2, Layers, BarChart2, LogOut,
+  BookOpen, Trophy, ChevronLeft, ChevronRight, UserCircle, Loader2, Layers, BarChart2, LogOut, Info, Mail,
 } from 'lucide-react';
+import { AboutModal } from '@/components/AboutModal';
+import { ContactModal } from '@/components/ContactModal';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useDashboardData, useCrossLeagueStats } from '@/hooks/useLeagueData';
 import { CrossLeagueStats } from '@/components/CrossLeagueStats';
@@ -471,6 +473,24 @@ export function LeagueDashboard({
               <span className="text-xs text-gray-500 group-hover:text-gray-300">All Leagues</span>
               <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 flex-shrink-0" />
             </button>
+
+            {/* About / Contact */}
+            <div className="border-t border-gray-800 pt-3 flex items-center gap-1">
+              <AboutModal>
+                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
+                  <Info size={12} />
+                  About
+                </button>
+              </AboutModal>
+              <span className="text-gray-700 text-xs">·</span>
+              <ContactModal>
+                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
+                  <Mail size={12} />
+                  Contact
+                </button>
+              </ContactModal>
+              <span className="text-[10px] text-gray-700 ml-auto">Built in Seattle 🌧️</span>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
