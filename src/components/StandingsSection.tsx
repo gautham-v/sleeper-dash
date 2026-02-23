@@ -24,28 +24,28 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
   }, [history]);
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Trophy size={16} className="text-yellow-500" /> Standings
+    <div className="bg-gray-900 rounded-xl border border-gray-800/60 overflow-hidden">
+      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-800">
+        <h3 className="font-semibold text-white flex items-center gap-2">
+          <Trophy size={15} className="text-yellow-500" /> Standings
         </h3>
-        <div className="flex items-center bg-gray-800 rounded-lg p-0.5 text-xs font-medium">
+        <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1">
           <button
             onClick={() => setMode('alltime')}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
               mode === 'alltime'
                 ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-400 hover:text-gray-200'
+                : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             All-Time
           </button>
           <button
             onClick={() => setMode('current')}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
               mode === 'current'
                 ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-400 hover:text-gray-200'
+                : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             This Season
@@ -57,13 +57,13 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
         allTimeStats.length > 0 ? (
           <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
         ) : (
-          <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
+          <div className="p-8 text-center text-gray-500 text-sm">
             Loading all-time standings…
           </div>
         )
       ) : (
         <Standings standings={currentStandings} onSelectManager={onSelectManager} />
       )}
-    </section>
+    </div>
   );
 }

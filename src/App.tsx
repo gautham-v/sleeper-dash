@@ -302,34 +302,31 @@ function LeagueDashboard({
 
                   {/* Luck Index */}
                   {showLuck && (
-                    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-white">Luck Index</h3>
-                          <span className="text-xs text-gray-500">actual vs. expected wins</span>
+                    <div className="bg-gray-900 rounded-xl border border-gray-800/60 overflow-hidden">
+                      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-800">
+                        <h3 className="font-semibold text-white">Luck Index</h3>
+                        <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1">
+                          <button
+                            onClick={() => setLuckMode('alltime')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                              luckMode === 'alltime'
+                                ? 'bg-gray-700 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                          >
+                            All-Time
+                          </button>
+                          <button
+                            onClick={() => setLuckMode('season')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                              luckMode === 'season'
+                                ? 'bg-gray-700 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                          >
+                            {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
+                          </button>
                         </div>
-                      </div>
-                      <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start w-fit">
-                        <button
-                          onClick={() => setLuckMode('alltime')}
-                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                            luckMode === 'alltime'
-                              ? 'bg-gray-700 text-white shadow-sm'
-                              : 'text-gray-500 hover:text-gray-300'
-                          }`}
-                        >
-                          All-Time
-                        </button>
-                        <button
-                          onClick={() => setLuckMode('season')}
-                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                            luckMode === 'season'
-                              ? 'bg-gray-700 text-white shadow-sm'
-                              : 'text-gray-500 hover:text-gray-300'
-                          }`}
-                        >
-                          {mostRecentSeason ? `${mostRecentSeason} Season` : 'This Season'}
-                        </button>
                       </div>
                       <LuckIndex
                         entries={activeLuck}
