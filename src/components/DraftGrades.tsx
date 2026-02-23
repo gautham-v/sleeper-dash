@@ -1,4 +1,13 @@
 import type { SleeperDraftPick, SleeperRoster } from '../types/sleeper';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface DraftGradesProps {
   picks: SleeperDraftPick[];
@@ -8,13 +17,13 @@ interface DraftGradesProps {
 }
 
 const POSITION_COLORS: Record<string, string> = {
-  QB: 'bg-red-900/50 text-red-300',
-  RB: 'bg-green-900/50 text-green-300',
-  WR: 'bg-blue-900/50 text-blue-300',
-  TE: 'bg-yellow-900/50 text-yellow-300',
-  K: 'bg-gray-700 text-gray-300',
-  DEF: 'bg-purple-900/50 text-purple-300',
-  DST: 'bg-purple-900/50 text-purple-300',
+  QB: 'bg-red-900/50 text-red-300 border-red-800/50',
+  RB: 'bg-green-900/50 text-green-300 border-green-800/50',
+  WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
+  TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
+  K: 'bg-gray-700 text-gray-300 border-gray-600',
+  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
+  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
 };
 
 function gradeFromRank(rank: number, total: number): { grade: string; color: string } {
@@ -63,20 +72,20 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
 
       {/* Draft board grid */}
       <div className="overflow-x-auto">
-        <table className="w-full text-xs min-w-[600px]">
-          <thead>
-            <tr className="text-gray-500 border-b border-gray-700">
-              <th className="text-left p-3 font-normal">Team</th>
-              <th className="text-center p-3 font-normal">PF</th>
-              <th className="text-center p-3 font-normal">Grade</th>
+        <Table className="text-xs min-w-[600px]">
+          <TableHeader>
+            <TableRow className="border-b border-gray-700">
+              <TableHead className="text-left p-3 font-normal text-gray-400 uppercase tracking-wider">Team</TableHead>
+              <TableHead className="text-center p-3 font-normal text-gray-400 uppercase tracking-wider">PF</TableHead>
+              <TableHead className="text-center p-3 font-normal text-gray-400 uppercase tracking-wider">Grade</TableHead>
               {Array.from({ length: totalRounds }, (_, i) => (
-                <th key={i} className="text-center p-3 font-normal text-gray-600">
+                <TableHead key={i} className="text-center p-3 font-normal text-gray-600 uppercase tracking-wider">
                   R{i + 1}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {[...picksByRoster.entries()].map(([rosterId, rPicks]) => {
               const team = rosterMap.get(rosterId);
               const pts = rosterPoints.get(rosterId) ?? 0;
@@ -85,39 +94,40 @@ export function DraftGrades({ picks, rosters, rosterMap, totalRounds }: DraftGra
               const picksByRound = new Map(rPicks.map((p) => [p.round, p]));
 
               return (
-                <tr key={rosterId} className="border-b border-gray-800 hover:bg-gray-800/30">
-                  <td className="p-3">
+                <TableRow key={rosterId} className="border-b border-gray-800 hover:bg-gray-800/30">
+                  <TableCell className="p-3">
                     <div className="font-medium text-white">{team?.teamName ?? `Team ${rosterId}`}</div>
-                    <div className="text-gray-500">{team?.displayName}</div>
-                  </td>
-                  <td className="p-3 text-center text-white tabular-nums">{pts.toFixed(1)}</td>
-                  <td className="p-3 text-center">
+                    <div className="text-xs text-gray-500">{team?.displayName}</div>
+                  </TableCell>
+                  <TableCell className="p-3 text-center text-white tabular-nums">{pts.toFixed(1)}</TableCell>
+                  <TableCell className="p-3 text-center">
                     <span className={`font-bold text-sm ${color}`}>{grade}</span>
-                  </td>
+                  </TableCell>
                   {Array.from({ length: totalRounds }, (_, i) => {
                     const pick = picksByRound.get(i + 1);
-                    if (!pick) return <td key={i} className="p-3 text-center text-gray-700">—</td>;
-                    const posClass = POSITION_COLORS[pick.metadata.position] ?? 'bg-gray-700 text-gray-300';
+                    if (!pick) return <TableCell key={i} className="p-3 text-center text-gray-700">—</TableCell>;
+                    const posClass = POSITION_COLORS[pick.metadata.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                     return (
-                      <td key={i} className="p-3 text-center">
+                      <TableCell key={i} className="p-3 text-center">
                         <div className="flex flex-col items-center gap-0.5">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-xs font-semibold ${posClass}`}
+                          <Badge
+                            variant="outline"
+                            className={`px-1.5 py-0.5 text-xs font-semibold ${posClass}`}
                           >
                             {pick.metadata.position}
-                          </span>
+                          </Badge>
                           <span className="text-gray-400 text-xs leading-tight max-w-16 truncate">
                             {pick.metadata.last_name}
                           </span>
                         </div>
-                      </td>
+                      </TableCell>
                     );
                   })}
-                </tr>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

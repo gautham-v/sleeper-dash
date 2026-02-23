@@ -3,6 +3,8 @@ import { Loader2, Trophy, Skull, Flame, Zap, TrendingUp, TrendingDown, Star, Ale
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import type { AllTimeRecordEntry } from '../types/sleeper';
 
 interface Props {
@@ -66,53 +68,57 @@ function RecordCard({ record, onSelectManager }: { record: AllTimeRecordEntry; o
     : null;
 
   return (
-    <div className={`rounded-2xl border ${meta.accentBorder} ${meta.accentBg} p-5 flex flex-col gap-4`}>
-      {/* Category header */}
-      <div className="flex items-center gap-2">
-        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeBg} ${meta.accentText}`}>
-          {meta.icon}
-        </div>
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{record.category}</span>
-      </div>
-
-      {/* Holder(s) */}
-      {isTied && allHolders ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400 bg-gray-700/50 px-2 py-0.5 rounded-full">Tied</span>
-            <span className={`font-bold text-xl tabular-nums ${meta.accentText}`}>{record.value}</span>
+    <Card className={`rounded-2xl border ${meta.accentBorder} ${meta.accentBg} shadow-none`}>
+      <CardContent className="p-5 flex flex-col gap-4">
+        {/* Category header */}
+        <div className="flex items-center gap-2">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.badgeBg} ${meta.accentText}`}>
+            {meta.icon}
           </div>
-          {allHolders.map((h, i) => (
-            <HolderButton
-              key={i}
-              holderId={h.holderId}
-              holder={h.holder}
-              avatar={h.avatar}
-              onSelectManager={onSelectManager}
-            />
-          ))}
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{record.category}</span>
         </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <button
-            className="flex items-center gap-3 min-w-0 group"
-            onClick={() => record.holderId && onSelectManager?.(record.holderId)}
-            disabled={!record.holderId || !onSelectManager}
-          >
-            <Avatar avatar={record.avatar} name={record.holder} size="md" />
-            <span className={`font-bold text-white text-base truncate ${record.holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors cursor-pointer' : ''}`}>
-              {record.holder}
-            </span>
-          </button>
-          <span className={`ml-auto font-bold text-xl tabular-nums ${meta.accentText} flex-shrink-0`}>
-            {record.value}
-          </span>
-        </div>
-      )}
 
-      {/* Context */}
-      <div className="text-xs text-gray-500">{record.context}</div>
-    </div>
+        {/* Holder(s) */}
+        {isTied && allHolders ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-xs font-medium text-gray-400 bg-gray-700/50 border-gray-600 rounded-full px-2 py-0.5">
+                Tied
+              </Badge>
+              <span className={`font-bold text-xl tabular-nums ${meta.accentText}`}>{record.value}</span>
+            </div>
+            {allHolders.map((h, i) => (
+              <HolderButton
+                key={i}
+                holderId={h.holderId}
+                holder={h.holder}
+                avatar={h.avatar}
+                onSelectManager={onSelectManager}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button
+              className="flex items-center gap-3 min-w-0 group"
+              onClick={() => record.holderId && onSelectManager?.(record.holderId)}
+              disabled={!record.holderId || !onSelectManager}
+            >
+              <Avatar avatar={record.avatar} name={record.holder} size="md" />
+              <span className={`font-bold text-white text-base truncate ${record.holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors cursor-pointer' : ''}`}>
+                {record.holder}
+              </span>
+            </button>
+            <span className={`ml-auto font-bold text-xl tabular-nums ${meta.accentText} flex-shrink-0`}>
+              {record.value}
+            </span>
+          </div>
+        )}
+
+        {/* Context */}
+        <div className="text-xs text-gray-500">{record.context}</div>
+      </CardContent>
+    </Card>
   );
 }
 

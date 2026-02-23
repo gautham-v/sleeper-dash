@@ -1,5 +1,6 @@
 import type { BlowoutGame } from '../types/sleeper';
 import { Zap, Flame } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface BlowoutsProps {
   blowouts: BlowoutGame[];
@@ -18,54 +19,56 @@ function GameCard({
   onSelectManager?: (userId: string) => void;
 }) {
   const accent = variant === 'blowout' ? 'text-orange-400' : 'text-cyan-400';
-  const bg = variant === 'blowout' ? 'border-orange-900/40' : 'border-cyan-900/40';
+  const borderClass = variant === 'blowout' ? 'border-orange-900/40' : 'border-cyan-900/40';
 
   return (
-    <div className={`bg-gray-900 rounded-xl p-4 border ${bg}`}>
-      <div className="text-xs text-gray-500 mb-3">
-        {game.season ? `${game.season} · ` : ''}{game.isPlayoff ? 'Playoffs' : `Week ${game.week}`}
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <button
-            className="text-left group w-full"
-            onClick={() => game.winner.userId && onSelectManager?.(game.winner.userId)}
-            disabled={!game.winner.userId || !onSelectManager}
-          >
-            <div className={`font-semibold text-white text-sm truncate ${game.winner.userId && onSelectManager ? 'group-hover:text-orange-300 transition-colors' : ''}`}>
-              {game.winner.teamName}
-            </div>
-          </button>
-          <div className="text-xs text-gray-400">Winner</div>
+    <Card className={`bg-gray-900 rounded-xl border ${borderClass} shadow-none`}>
+      <CardContent className="p-4">
+        <div className="text-xs text-gray-500 mb-3">
+          {game.season ? `${game.season} · ` : ''}{game.isPlayoff ? 'Playoffs' : `Week ${game.week}`}
         </div>
-        <div className="text-center shrink-0">
-          <div className="flex items-center gap-1 text-lg font-bold tabular-nums">
-            <span className="text-white">{game.winner.points.toFixed(2)}</span>
-            <span className="text-gray-600 text-sm">–</span>
-            <span className="text-gray-400">{game.loser.points.toFixed(2)}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <button
+              className="text-left group w-full"
+              onClick={() => game.winner.userId && onSelectManager?.(game.winner.userId)}
+              disabled={!game.winner.userId || !onSelectManager}
+            >
+              <div className={`font-semibold text-white text-sm truncate ${game.winner.userId && onSelectManager ? 'group-hover:text-orange-300 transition-colors' : ''}`}>
+                {game.winner.teamName}
+              </div>
+            </button>
+            <div className="text-xs text-gray-400">Winner</div>
           </div>
-          <div className={`text-xs font-semibold ${accent}`}>
-            {variant === 'blowout' ? (
-              <span>+{game.margin.toFixed(2)} margin</span>
-            ) : (
-              <span>{game.margin.toFixed(2)} apart</span>
-            )}
+          <div className="text-center shrink-0">
+            <div className="flex items-center gap-1 text-lg font-bold tabular-nums">
+              <span className="text-white">{game.winner.points.toFixed(2)}</span>
+              <span className="text-gray-600 text-sm">–</span>
+              <span className="text-gray-400">{game.loser.points.toFixed(2)}</span>
+            </div>
+            <div className={`text-xs font-semibold ${accent}`}>
+              {variant === 'blowout' ? (
+                <span>+{game.margin.toFixed(2)} margin</span>
+              ) : (
+                <span>{game.margin.toFixed(2)} apart</span>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 text-right">
+            <button
+              className="text-right group w-full"
+              onClick={() => game.loser.userId && onSelectManager?.(game.loser.userId)}
+              disabled={!game.loser.userId || !onSelectManager}
+            >
+              <div className={`font-semibold text-gray-400 text-sm truncate ${game.loser.userId && onSelectManager ? 'group-hover:text-orange-300 transition-colors' : ''}`}>
+                {game.loser.teamName}
+              </div>
+            </button>
+            <div className="text-xs text-gray-500">Loser</div>
           </div>
         </div>
-        <div className="flex-1 min-w-0 text-right">
-          <button
-            className="text-right group w-full"
-            onClick={() => game.loser.userId && onSelectManager?.(game.loser.userId)}
-            disabled={!game.loser.userId || !onSelectManager}
-          >
-            <div className={`font-semibold text-gray-400 text-sm truncate ${game.loser.userId && onSelectManager ? 'group-hover:text-orange-300 transition-colors' : ''}`}>
-              {game.loser.teamName}
-            </div>
-          </button>
-          <div className="text-xs text-gray-500">Loser</div>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
