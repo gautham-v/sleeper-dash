@@ -1,20 +1,57 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Mail, Globe, Linkedin, ExternalLink, MessageSquare } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export function ContactModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const startYRef = useRef(0);
+  const isDraggingRef = useRef(false);
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setDragY(0);
+    setOpen(next);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startYRef.current = e.touches[0].clientY;
+    isDraggingRef.current = true;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const dy = Math.max(0, e.touches[0].clientY - startYRef.current);
+    setDragY(dy);
+  };
+
+  const onTouchEnd = () => {
+    isDraggingRef.current = false;
+    if (dragY > 80) {
+      setOpen(false); // dragY resets via onOpenChange
+    } else {
+      setDragY(0); // snap back
+    }
+  };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent
         side="bottom"
-        className="bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 max-h-[90vh] overflow-y-auto [&>button]:hidden sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-card-border"
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: isDraggingRef.current ? 'none' : 'transform 0.25s ease-out',
+        }}
+        className="bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 max-h-[75vh] overflow-y-auto [&>button]:hidden sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-card-border"
       >
-        {/* Mobile drag handle */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-gray-700" />
+        {/* Mobile drag handle — full-width touch target */}
+        <div
+          className="sm:hidden flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          <div className="w-10 h-1.5 rounded-full bg-gray-600" />
         </div>
 
         {/* Desktop close button */}
@@ -28,7 +65,7 @@ export function ContactModal({ children }: { children: React.ReactNode }) {
 
         <SheetTitle className="sr-only">Contact</SheetTitle>
 
-        <div className="px-5 pb-8 pt-4 sm:pt-6 sm:px-7 space-y-6">
+        <div className="px-5 pb-8 pt-2 sm:pt-6 sm:px-7 space-y-6">
 
           {/* Header */}
           <div className="flex items-center gap-3">
