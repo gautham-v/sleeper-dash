@@ -2,8 +2,9 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Trophy, BookOpen, Scale, Users,
-  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
+  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard, Menu,
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats, useLeagueHistory } from './hooks/useLeagueData';
 import { CrossLeagueStats } from './components/CrossLeagueStats';
@@ -46,6 +47,7 @@ function LeagueDashboard({
   const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [luckMode, setLuckMode] = useState<'alltime' | 'season'>('alltime');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { league, currentWeek, isOffseason, isLoading, computed } =
@@ -89,6 +91,7 @@ function LeagueDashboard({
   // When switching tabs away from managers, clear selected manager
   const handleTabChange = (id: TabId) => {
     setActiveTab(id);
+    setMobileNavOpen(false);
     if (id !== 'managers') {
       setSelectedManagerId(null);
       window.history.pushState(null, '', window.location.pathname + window.location.search);
@@ -127,6 +130,99 @@ function LeagueDashboard({
 
   const activeTabMeta = TABS.find((tab) => tab.id === activeTab);
 
+  // Shared sidebar content — used in both the desktop aside and mobile Sheet
+  const sidebarContent = (
+    <>
+      <div className="p-4 sm:p-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
+            <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
+          </div>
+          <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
+        </div>
+        <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors" title="Back to Leagues">
+          <ChevronLeft size={20} />
+        </button>
+      </div>
+
+      <div className="px-4 sm:px-5 mb-4 sm:mb-6">
+        <div className="flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border">
+          {league?.avatar ? (
+            <img
+              src={avatarUrl(league.avatar) ?? ''}
+              alt={league.name}
+              className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
+              {league?.name?.slice(0, 2) ?? '??'}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              {multipleSeasons ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setYearDropdownOpen((o) => !o)}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                  >
+                    {league?.season ?? '—'} <ChevronDown size={12} />
+                  </button>
+                  {yearDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 py-1 overflow-hidden min-w-[100px]">
+                      {sortedSeasons.map((s) => (
+                        <button
+                          key={s.league_id}
+                          onClick={() => {
+                            setLeagueId(s.league_id);
+                            setActiveTab('overview');
+                            setSelectedManagerId(null);
+                            setYearDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                            s.league_id === leagueId
+                              ? 'bg-brand-cyan/20 text-brand-cyan font-medium'
+                              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          {s.season}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-500">{league?.season}</span>
+              )}
+              <span className="text-gray-600 text-xs">
+                {isOffseason ? '• Offseason' : `• Wk ${currentWeek}`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <nav className="flex-1 overflow-y-auto no-scrollbar px-3 pb-6 flex flex-col gap-1">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => handleTabChange(id)}
+            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative ${
+              activeTab === id
+                ? 'bg-brand-cyan/10 text-brand-cyan before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full glow-box-cyan'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+            }`}
+          >
+            <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+
   return (
     <div className="relative min-h-screen bg-base-bg text-white font-sans">
       {/* Ambient glow orbs */}
@@ -134,108 +230,37 @@ function LeagueDashboard({
       <div className="pointer-events-none fixed right-0 top-1/2 h-96 w-96 rounded-full bg-brand-purple/5 blur-[140px]" />
 
       <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
-        {/* Sidebar Navigation */}
-        <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-base-bg/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
-          <div className="p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
-                <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
-              </div>
-              <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
-            </div>
-            <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors" title="Back to Leagues">
-              <ChevronLeft size={20} />
-            </button>
-          </div>
-
-          <div className="px-4 sm:px-5 mb-4 sm:mb-6">
-            <div className="flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border">
-              {league?.avatar ? (
-                <img
-                  src={avatarUrl(league.avatar) ?? ''}
-                  alt={league.name}
-                  className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
-                  {league?.name?.slice(0, 2) ?? '??'}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  {multipleSeasons ? (
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        onClick={() => setYearDropdownOpen((o) => !o)}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
-                      >
-                        {league?.season ?? '—'} <ChevronDown size={12} />
-                      </button>
-                      {yearDropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 py-1 overflow-hidden min-w-[100px]">
-                          {sortedSeasons.map((s) => (
-                            <button
-                              key={s.league_id}
-                              onClick={() => {
-                                setLeagueId(s.league_id);
-                                setActiveTab('overview');
-                                setSelectedManagerId(null);
-                                setYearDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                                s.league_id === leagueId
-                                  ? 'bg-brand-cyan/20 text-brand-cyan font-medium'
-                                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              {s.season}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-500">{league?.season}</span>
-                  )}
-                  <span className="text-gray-600 text-xs">
-                    {isOffseason ? '• Offseason' : `• Wk ${currentWeek}`}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <nav className="flex-1 overflow-y-auto no-scrollbar px-3 sm:px-4 pb-4 sm:pb-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-1.5">
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => handleTabChange(id)}
-                className={`flex items-center gap-2.5 xl:gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 justify-start ${
-                  activeTab === id
-                    ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full glow-box-cyan'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                }`}
-              >
-                <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
-                <span className="truncate">{label}</span>
-              </button>
-            ))}
-          </nav>
+        {/* Desktop Sidebar — hidden on mobile */}
+        <aside className="hidden xl:flex xl:w-72 flex-shrink-0 flex-col border-r border-card-border/80 bg-base-bg/85 h-screen sticky top-0 backdrop-blur-md">
+          {sidebarContent}
         </aside>
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col min-w-0">
           {/* Top Header */}
-          <header className="h-16 sm:h-20 border-b border-card-border px-4 sm:px-8 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="sm:hidden min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">recordbook.fyi</div>
-              <div className="text-sm font-bold text-white truncate">
-                {activeTab === 'managers' && selectedManagerId ? 'Manager Profile' : activeTabMeta?.label ?? 'Overview'}
+          <header className="h-16 border-b border-card-border px-4 sm:px-6 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-20">
+            {/* Mobile: hamburger + current tab label */}
+            <div className="flex items-center gap-3 xl:hidden">
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <button className="p-2 -ml-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors" aria-label="Open navigation">
+                    <Menu size={22} />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col pt-0 pb-0">
+                  {sidebarContent}
+                </SheetContent>
+              </Sheet>
+              <div className="min-w-0">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">recordbook.fyi</div>
+                <div className="text-sm font-bold text-white truncate">
+                  {activeTab === 'managers' && selectedManagerId ? 'Manager Profile' : activeTabMeta?.label ?? 'Overview'}
+                </div>
               </div>
             </div>
-            <div className="items-center gap-6 hidden sm:flex text-sm font-medium text-gray-400">
+
+            {/* Desktop: breadcrumb info */}
+            <div className="items-center gap-6 hidden xl:flex text-sm font-medium text-gray-400">
               <div className="flex items-center gap-2">
                 <Trophy size={16} className="text-yellow-500" /> League Record Book
               </div>
@@ -244,13 +269,13 @@ function LeagueDashboard({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 sm:gap-4 ml-auto">
-              <div className="text-xs text-gray-400 font-medium sm:hidden">
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="text-xs text-gray-400 font-medium xl:hidden">
                 {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
               </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-purple to-brand-cyan p-[2px]">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-purple to-brand-cyan p-[2px]">
                 <div className="w-full h-full rounded-full bg-base-bg flex items-center justify-center">
-                  <UserCircle size={20} className="text-white" />
+                  <UserCircle size={18} className="text-white" />
                 </div>
               </div>
             </div>
