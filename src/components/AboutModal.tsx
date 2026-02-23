@@ -43,7 +43,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
           <section className="space-y-2">
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">The Story</h3>
             <p className="text-sm text-gray-300 leading-relaxed">
-              Hey, I'm <span className="text-white font-semibold">Gautham</span> 👋 — a software engineer based in{' '}
+              Hey, I'm <span className="text-white font-semibold">Gautham</span> 👋 — a product manager based in{' '}
               <span className="text-white font-semibold">Seattle, WA</span> 🌧️🏔️. I built recordbook.fyi because I
               wanted deeper historical stats for my own Sleeper leagues and figured other fantasy nerds might too.
             </p>
