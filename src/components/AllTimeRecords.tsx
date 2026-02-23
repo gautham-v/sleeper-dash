@@ -163,7 +163,13 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
         </DropdownMenu>
       </div>
 
-      <Table className="w-full">
+      <Table className="w-full table-fixed">
+        <colgroup>
+          <col className="w-[42%]" />
+          <col className="w-[34%]" />
+          <col className="w-[24%]" />
+          <col className="hidden sm:table-column" />
+        </colgroup>
         <TableHeader>
           <TableRow className="border-gray-700 hover:bg-transparent">
             <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-3 px-3 pl-4 h-auto">

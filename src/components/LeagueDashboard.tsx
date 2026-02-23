@@ -101,7 +101,7 @@ export function LeagueDashboard({
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent
             side="left"
-            className="p-0 bg-base-bg border-r border-card-border w-72 max-w-[85vw] [&>button]:hidden"
+            className="p-0 bg-base-bg text-white border-r border-card-border w-72 max-w-[85vw] [&>button]:hidden"
           >
             <SidebarNav {...sidebarProps} onClose={() => setMobileMenuOpen(false)} />
           </SheetContent>

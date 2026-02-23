@@ -42,7 +42,7 @@ export function SidebarNav({
           <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
             <span className="text-brand-cyan font-bold text-lg leading-none" style={{ marginTop: '-2px' }}>∞</span>
           </div>
-          <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
+          <span className="font-bold text-xl tracking-tight text-white">recordbook.fyi</span>
         </div>
         <button
           onClick={onClose ?? onBack}
