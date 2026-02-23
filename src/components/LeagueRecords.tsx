@@ -1,3 +1,4 @@
+'use client';
 import { Trophy, TrendingUp, TrendingDown, Zap, Star, AlertTriangle, Skull } from 'lucide-react';
 import type { LeagueSeasonRecord } from '../types/sleeper';
 import React from 'react';

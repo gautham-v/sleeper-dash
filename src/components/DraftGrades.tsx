@@ -1,3 +1,4 @@
+'use client';
 import type { SleeperDraftPick, SleeperRoster } from '../types/sleeper';
 import {
   Table,

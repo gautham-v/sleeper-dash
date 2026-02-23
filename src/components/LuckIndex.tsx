@@ -1,3 +1,4 @@
+'use client';
 import type { LuckEntry } from '../types/sleeper';
 import { Avatar } from './Avatar';
 

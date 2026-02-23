@@ -1,3 +1,4 @@
+'use client';
 import { avatarUrl } from '../utils/calculations';
 
 interface AvatarProps {

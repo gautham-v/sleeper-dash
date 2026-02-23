@@ -1,3 +1,4 @@
+'use client';
 import { useState, useMemo } from 'react';
 import { ChevronDown, Trophy, TrendingUp } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -17,6 +18,7 @@ import {
 import type { TeamStanding, LuckEntry } from '../types/sleeper';
 
 interface LeagueTablesProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   computed: any;
   leagueId: string;
   onSelectManager?: (userId: string) => void;

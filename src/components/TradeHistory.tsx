@@ -1,3 +1,4 @@
+'use client';
 import type { SleeperTransaction } from '../types/sleeper';
 import { ArrowLeftRight } from 'lucide-react';
 

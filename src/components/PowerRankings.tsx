@@ -1,3 +1,4 @@
+'use client';
 import type { PowerRanking } from '../types/sleeper';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';

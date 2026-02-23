@@ -1,3 +1,4 @@
+'use client';
 import type { BlowoutGame } from '../types/sleeper';
 import { Zap, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';

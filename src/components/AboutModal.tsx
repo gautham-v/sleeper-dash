@@ -1,3 +1,4 @@
+'use client';
 import { useState, useRef } from 'react';
 import { X, Globe, Linkedin, Mail, ExternalLink } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -7,6 +8,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
   const [dragY, setDragY] = useState(0);
   const startYRef = useRef(0);
   const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setDragY(0);
@@ -16,6 +18,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
   const onTouchStart = (e: React.TouchEvent) => {
     startYRef.current = e.touches[0].clientY;
     isDraggingRef.current = true;
+    setIsDragging(true);
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
@@ -26,6 +29,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
 
   const onTouchEnd = () => {
     isDraggingRef.current = false;
+    setIsDragging(false);
     if (dragY > 80) {
       setOpen(false);
     } else {
@@ -42,7 +46,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
           maxHeight: '75dvh',
           overflowY: 'hidden',
           transform: `translateY(${dragY}px)`,
-          transition: isDraggingRef.current ? 'none' : 'transform 0.25s ease-out',
+          transition: isDragging ? 'none' : 'transform 0.25s ease-out',
         }}
         className="flex flex-col bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 [&>button]:hidden sm:max-w-xl sm:mx-auto sm:rounded-2xl sm:border sm:border-card-border"
       >

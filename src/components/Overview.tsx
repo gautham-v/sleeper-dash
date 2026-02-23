@@ -1,3 +1,4 @@
+'use client';
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,11 +9,12 @@ import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats } from '../utils/calculations';
 
 interface OverviewProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   computed: any;
   leagueId: string;
   userId: string;
   onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "records" | "compare") => void;
-  onViewMyProfile: () => void;
+  onViewMyProfile?: () => void;
   onSelectManager?: (userId: string) => void;
 }
 
