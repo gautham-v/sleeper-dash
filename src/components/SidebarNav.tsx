@@ -3,6 +3,8 @@ import { ChevronDown, BarChart2 } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
+import { AboutModal } from '@/components/AboutModal';
+import { ContactModal } from '@/components/ContactModal';
 
 export type SidebarNavProps = {
   league: SleeperLeague | null | undefined;
@@ -155,6 +157,22 @@ export function SidebarNav({
           </>
         )}
       </nav>
+
+      {/* Footer links */}
+      <div className="px-4 sm:px-5 py-4 border-t border-card-border/40 flex items-center gap-1 shrink-0">
+        <AboutModal>
+          <button className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+            About
+          </button>
+        </AboutModal>
+        <span className="text-gray-700 text-xs">·</span>
+        <ContactModal>
+          <button className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+            Contact
+          </button>
+        </ContactModal>
+        <span className="text-gray-700 text-xs ml-auto">🌧️ Seattle</span>
+      </div>
     </div>
   );
 }

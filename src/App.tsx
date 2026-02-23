@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Trophy, Users, Loader2, ChevronRight, UserCircle } from 'lucide-react';
+import { AboutModal } from '@/components/AboutModal';
+import { ContactModal } from '@/components/ContactModal';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +78,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
 
   return (
     <div className="min-h-screen bg-base-bg text-white flex flex-col items-center">
-      <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5">
+      <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5 pb-16">
 
         <Card className="border-card-border bg-card-bg">
           <CardContent className="flex items-center justify-between py-4 px-5">
@@ -199,6 +201,25 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-4 pt-2 bg-gradient-to-t from-base-bg via-base-bg/80 to-transparent pointer-events-none">
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 pointer-events-auto">
+          <AboutModal>
+            <button className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5">
+              About
+            </button>
+          </AboutModal>
+          <span>·</span>
+          <ContactModal>
+            <button className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5">
+              Contact
+            </button>
+          </ContactModal>
+          <span>·</span>
+          <span className="text-gray-700">Made in Seattle 🌧️</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -215,7 +236,7 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-base-bg flex items-center justify-center px-4 font-sans">
+    <div className="min-h-screen bg-base-bg flex flex-col items-center justify-center px-4 font-sans gap-5">
       <Card className="relative z-10 w-full max-w-sm border-card-border gap-0 py-0">
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
           <span className="text-5xl leading-none">📖</span>
@@ -260,6 +281,23 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
           </p>
         </CardFooter>
       </Card>
+
+      {/* Footer */}
+      <div className="flex items-center gap-1.5 text-xs text-gray-600">
+        <AboutModal>
+          <button className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5">
+            About
+          </button>
+        </AboutModal>
+        <span>·</span>
+        <ContactModal>
+          <button className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5">
+            Contact
+          </button>
+        </ContactModal>
+        <span>·</span>
+        <span className="text-gray-700">Free & open · Made in Seattle 🌧️</span>
+      </div>
     </div>
   );
 }
