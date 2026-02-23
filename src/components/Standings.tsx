@@ -1,5 +1,14 @@
 import type { TeamStanding } from '../types/sleeper';
 import { Avatar } from './Avatar';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 interface StandingsProps {
   standings: TeamStanding[];
@@ -13,7 +22,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
 
   return (
     <div className="bg-gray-900 rounded-xl overflow-hidden">
-      {/* ── Mobile card list (hidden sm+) ── */}
+      {/* Mobile card list (hidden sm+) */}
       <div className="sm:hidden divide-y divide-gray-800">
         {standings.map((team, i) => {
           const isPlayoff = i < Math.ceil(standings.length / 3);
@@ -50,11 +59,16 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                 </div>
                 <div className="text-xs text-gray-400 tabular-nums">{team.pointsFor.toFixed(0)}</div>
                 {team.streak && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    team.streak.startsWith('W') ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-                  }`}>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full border-0 ${
+                      team.streak.startsWith('W')
+                        ? 'bg-green-900/50 text-green-400'
+                        : 'bg-red-900/50 text-red-400'
+                    }`}
+                  >
                     {team.streak}
-                  </span>
+                  </Badge>
                 )}
               </div>
             </button>
@@ -62,40 +76,40 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
         })}
       </div>
 
-      {/* ── Desktop table (hidden below sm) ── */}
+      {/* Desktop table (hidden below sm) */}
       <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
-              <th className="text-left py-4 px-3 pl-5">#</th>
-              <th className="text-left py-4 px-3">Team</th>
-              <th className="text-center py-4 px-3">W</th>
-              <th className="text-center py-4 px-3">L</th>
+        <Table>
+          <TableHeader>
+            <TableRow className="text-gray-400 border-b border-gray-700 text-xs uppercase tracking-wider">
+              <TableHead className="text-left py-4 px-3 pl-5">#</TableHead>
+              <TableHead className="text-left py-4 px-3">Team</TableHead>
+              <TableHead className="text-center py-4 px-3">W</TableHead>
+              <TableHead className="text-center py-4 px-3">L</TableHead>
               {hasPlayoffData && (
-                <th className="text-center py-4 px-3" title="Playoff record">Playoff</th>
+                <TableHead className="text-center py-4 px-3" title="Playoff record">Playoff</TableHead>
               )}
-              <th className="text-right py-4 px-3">PF</th>
-              <th className="text-right py-4 px-3">PA</th>
-              <th className="text-right py-4 px-3 pr-5">Streak</th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead className="text-right py-4 px-3">PF</TableHead>
+              <TableHead className="text-right py-4 px-3">PA</TableHead>
+              <TableHead className="text-right py-4 px-3 pr-5">Streak</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {standings.map((team, i) => {
               const isPlayoff = i < Math.ceil(standings.length / 3);
               return (
-                <tr
+                <TableRow
                   key={team.rosterId}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="py-3.5 px-3 pl-5">
+                  <TableCell className="py-3.5 px-3 pl-5">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 w-4 text-center">{i + 1}</span>
                       {isPlayoff && (
                         <span className="w-1 h-4 rounded-full bg-green-500 inline-block" title="Playoff position" />
                       )}
                     </div>
-                  </td>
-                  <td className="py-3.5 px-3">
+                  </TableCell>
+                  <TableCell className="py-3.5 px-3">
                     <button
                       className="flex items-center gap-2.5 text-left group w-full"
                       onClick={() => team.userId && onSelectManager?.(team.userId)}
@@ -109,11 +123,11 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                         <div className="text-gray-500 text-xs truncate">{team.displayName}</div>
                       </div>
                     </button>
-                  </td>
-                  <td className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</td>
-                  <td className="py-3.5 px-3 text-center text-red-400">{team.losses}</td>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-3 text-center font-semibold text-green-400">{team.wins}</TableCell>
+                  <TableCell className="py-3.5 px-3 text-center text-red-400">{team.losses}</TableCell>
                   {hasPlayoffData && (
-                    <td className="py-3.5 px-3 text-center">
+                    <TableCell className="py-3.5 px-3 text-center">
                       {(team.playoffWins ?? 0) > 0 || (team.playoffLosses ?? 0) > 0 ? (
                         <span className="text-xs font-medium tabular-nums text-yellow-400">
                           {team.playoffWins ?? 0}–{team.playoffLosses ?? 0}
@@ -121,30 +135,31 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                       ) : (
                         <span className="text-gray-600 text-xs">—</span>
                       )}
-                    </td>
+                    </TableCell>
                   )}
-                  <td className="py-3.5 px-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</td>
-                  <td className="py-3.5 px-3 text-right text-gray-400 tabular-nums">{team.pointsAgainst.toFixed(2)}</td>
-                  <td className="py-3.5 px-3 pr-5 text-right">
+                  <TableCell className="py-3.5 px-3 text-right text-white tabular-nums">{team.pointsFor.toFixed(2)}</TableCell>
+                  <TableCell className="py-3.5 px-3 text-right text-gray-400 tabular-nums">{team.pointsAgainst.toFixed(2)}</TableCell>
+                  <TableCell className="py-3.5 px-3 pr-5 text-right">
                     {team.streak ? (
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      <Badge
+                        variant="outline"
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border-0 ${
                           team.streak.startsWith('W')
                             ? 'bg-green-900/50 text-green-400'
                             : 'bg-red-900/50 text-red-400'
                         }`}
                       >
                         {team.streak}
-                      </span>
+                      </Badge>
                     ) : (
                       <span className="text-gray-600">—</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <div className="py-3 px-4 sm:px-5 text-xs text-gray-500 flex items-center gap-4">

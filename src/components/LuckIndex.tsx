@@ -1,5 +1,6 @@
 import type { LuckEntry } from '../types/sleeper';
 import { Avatar } from './Avatar';
+import { Button } from '@/components/ui/button';
 
 interface LuckIndexProps {
   entries: LuckEntry[];
@@ -41,33 +42,35 @@ export function LuckIndex({ entries, onSelectManager }: LuckIndexProps) {
 
   return (
     <div>
-      <p className="text-xs text-gray-500 mb-5">
-        Luck = Actual wins minus expected wins (if you played every team each week).
-        Positive = lucky, Negative = unlucky.
+      <p className="text-xs text-gray-500 mb-3">
+        Actual wins vs. expected wins if you played every team each week.
       </p>
       <div className="bg-gray-900 rounded-xl overflow-hidden">
         {entries.map((entry, i) => (
           <div
             key={entry.userId || entry.rosterId}
-            className="flex items-center gap-4 px-5 py-4 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
+            className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 last:border-0 hover:bg-gray-800/30 transition-colors"
           >
-            <span className="text-gray-500 w-4 text-center text-sm">{i + 1}</span>
+            <span className="text-gray-600 w-4 text-center text-xs shrink-0">{i + 1}</span>
             <Avatar avatar={entry.avatar} name={entry.displayName} size="sm" />
-            <button
-              className="w-24 sm:w-32 shrink-0 text-left group"
+            <Button
+              variant="ghost"
+              className="w-20 sm:w-28 shrink-0 h-auto p-0 justify-start group hover:bg-transparent"
               onClick={() => entry.userId && onSelectManager?.(entry.userId)}
               disabled={!entry.userId || !onSelectManager}
             >
-              <div className={`font-medium text-white text-sm leading-tight truncate ${entry.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
-                {entry.teamName}
+              <div className="text-left">
+                <div className={`font-medium text-white text-xs leading-tight truncate ${entry.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
+                  {entry.teamName}
+                </div>
+                <div className="text-gray-500 text-xs">
+                  {entry.actualWins}W · {entry.expectedWins}exp
+                </div>
               </div>
-              <div className="text-gray-500 text-xs">
-                {entry.actualWins}W · {entry.expectedWins}exp
-              </div>
-            </button>
+            </Button>
             <LuckBar value={entry.luckScore} max={maxLuck} />
             <div
-              className={`w-14 text-right font-bold tabular-nums text-sm shrink-0 ${
+              className={`w-12 text-right font-bold tabular-nums text-sm shrink-0 ${
                 entry.luckScore > 0
                   ? 'text-green-400'
                   : entry.luckScore < 0

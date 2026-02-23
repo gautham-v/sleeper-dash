@@ -4,6 +4,21 @@ import { useLeagueHistory } from '../hooks/useLeagueData';
 import { calcAllTimeStats, calcH2H } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import type { TeamAllTimeStats, TeamTier } from '../types/sleeper';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface Props {
   leagueId: string;
@@ -152,34 +167,44 @@ export function TeamComparison({ leagueId }: Props) {
           {/* Team A */}
           <div>
             <label className="block text-xs text-gray-500 mb-1.5">Team A</label>
-            <select
-              value={teamAId}
-              onChange={(e) => setTeamAId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-            >
-              <option value="">— Select team —</option>
-              {allUsers.map((u) => (
-                <option key={u.userId} value={u.userId} disabled={u.userId === teamBId}>
-                  {u.displayName}
-                </option>
-              ))}
-            </select>
+            <Select value={teamAId} onValueChange={setTeamAId}>
+              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white focus:ring-indigo-500">
+                <SelectValue placeholder="— Select team —" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                {allUsers.map((u) => (
+                  <SelectItem
+                    key={u.userId}
+                    value={u.userId}
+                    disabled={u.userId === teamBId}
+                    className="text-white focus:bg-gray-700"
+                  >
+                    {u.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {/* Team B */}
           <div>
             <label className="block text-xs text-gray-500 mb-1.5">Team B</label>
-            <select
-              value={teamBId}
-              onChange={(e) => setTeamBId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-            >
-              <option value="">— Select team —</option>
-              {allUsers.map((u) => (
-                <option key={u.userId} value={u.userId} disabled={u.userId === teamAId}>
-                  {u.displayName}
-                </option>
-              ))}
-            </select>
+            <Select value={teamBId} onValueChange={setTeamBId}>
+              <SelectTrigger className="w-full bg-gray-800 border-gray-700 text-white focus:ring-emerald-500">
+                <SelectValue placeholder="— Select team —" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                {allUsers.map((u) => (
+                  <SelectItem
+                    key={u.userId}
+                    value={u.userId}
+                    disabled={u.userId === teamAId}
+                    className="text-white focus:bg-gray-700"
+                  >
+                    {u.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -355,17 +380,17 @@ export function TeamComparison({ leagueId }: Props) {
               <h3 className="font-semibold text-white">Season-by-Season</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[480px]">
-                <thead>
-                  <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                    <th className="text-left py-3 px-5">Season</th>
-                    <th className="text-center py-3 px-3 text-indigo-400">{teamAInfo?.displayName}</th>
-                    <th className="text-center py-3 px-3 text-indigo-400/60">Rank</th>
-                    <th className="text-center py-3 px-3 text-emerald-400">{teamBInfo?.displayName}</th>
-                    <th className="text-center py-3 px-3 text-emerald-400/60">Rank</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="min-w-[480px]">
+                <TableHeader>
+                  <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <TableHead className="text-left py-3 px-5">Season</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-indigo-400">{teamAInfo?.displayName}</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-indigo-400/60">Rank</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-emerald-400">{teamBInfo?.displayName}</TableHead>
+                    <TableHead className="text-center py-3 px-3 text-emerald-400/60">Rank</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {seasons.map((season) => {
                     const sA = statsA.seasons.find((s) => s.season === season);
                     const sB = statsB.seasons.find((s) => s.season === season);
@@ -377,25 +402,25 @@ export function TeamComparison({ leagueId }: Props) {
                     const bBetter = sA && sB && sB.rank < sA.rank;
 
                     return (
-                      <tr key={season} className="border-b border-gray-800 hover:bg-gray-800/40 transition-colors">
-                        <td className="py-3 px-5 text-gray-400 font-medium">{season}</td>
-                        <td className={`py-3 px-3 text-center font-semibold tabular-nums ${aBetter ? 'text-indigo-400' : 'text-gray-300'}`}>
+                      <TableRow key={season} className="border-b border-gray-800 hover:bg-gray-800/40 transition-colors">
+                        <TableCell className="py-3 px-5 text-gray-400 font-medium">{season}</TableCell>
+                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${aBetter ? 'text-indigo-400' : 'text-gray-300'}`}>
                           {aRecord}
-                        </td>
-                        <td className={`py-3 px-3 text-center text-xs ${aBetter ? 'text-indigo-400' : 'text-gray-500'}`}>
+                        </TableCell>
+                        <TableCell className={`py-3 px-3 text-center text-xs ${aBetter ? 'text-indigo-400' : 'text-gray-500'}`}>
                           {aRankDisplay}
-                        </td>
-                        <td className={`py-3 px-3 text-center font-semibold tabular-nums ${bBetter ? 'text-emerald-400' : 'text-gray-300'}`}>
+                        </TableCell>
+                        <TableCell className={`py-3 px-3 text-center font-semibold tabular-nums ${bBetter ? 'text-emerald-400' : 'text-gray-300'}`}>
                           {bRecord}
-                        </td>
-                        <td className={`py-3 px-3 text-center text-xs ${bBetter ? 'text-emerald-400' : 'text-gray-500'}`}>
+                        </TableCell>
+                        <TableCell className={`py-3 px-3 text-center text-xs ${bBetter ? 'text-emerald-400' : 'text-gray-500'}`}>
                           {bRankDisplay}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <div className="px-5 py-3 text-xs text-gray-500">
               Record reflects the full season (regular season + playoffs). 🏆 = won the championship.

@@ -16,14 +16,14 @@ interface RecordRowProps {
 
 function RecordRow({ icon, label, primary, secondary, accentBg, accentText }: RecordRowProps) {
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-gray-800/60 last:border-0">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${accentBg} ${accentText}`}>
+    <div className="flex items-center gap-2.5 py-2.5 border-b border-gray-800/50 last:border-0">
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${accentBg} ${accentText}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs text-gray-500 mb-0.5">{label}</div>
-        <div className="font-semibold text-white text-sm truncate">{primary}</div>
-        {secondary && <div className="text-xs text-gray-400 mt-0.5">{secondary}</div>}
+        <div className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">{label}</div>
+        <div className="font-semibold text-white text-sm truncate leading-tight">{primary}</div>
+        {secondary && <div className="text-xs text-gray-500 mt-0.5 truncate">{secondary}</div>}
       </div>
     </div>
   );
@@ -32,11 +32,11 @@ function RecordRow({ icon, label, primary, secondary, accentBg, accentText }: Re
 function SeasonCard({ record }: { record: LeagueSeasonRecord }) {
   return (
     <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-      <div className="px-4 py-3 bg-gray-800/40 border-b border-gray-800">
-        <h3 className="text-sm font-semibold text-white">{record.season} Season</h3>
+      <div className="px-3 py-2.5 bg-gray-800/40 border-b border-gray-800">
+        <h3 className="text-xs font-bold text-white uppercase tracking-wider">{record.season} Season</h3>
       </div>
 
-      <div className="px-4 py-1">
+      <div className="px-3 py-0.5">
         <RecordRow
           icon={<Trophy size={14} />}
           label="Champion"

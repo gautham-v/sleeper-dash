@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Trophy } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Standings } from './Standings';
 import { AllTimeStandings } from './AllTimeStandings';
 import { useLeagueHistory } from '../hooks/useLeagueData';
@@ -12,10 +13,8 @@ interface StandingsSectionProps {
   onSelectManager?: (userId: string) => void;
 }
 
-type StandingsMode = 'alltime' | 'current';
-
 export function StandingsSection({ currentStandings, leagueId, onSelectManager }: StandingsSectionProps) {
-  const [mode, setMode] = useState<StandingsMode>('alltime');
+  const [mode, setMode] = useState<'alltime' | 'current'>('alltime');
   const { data: history } = useLeagueHistory(leagueId);
 
   const allTimeStats = useMemo(() => {
@@ -25,45 +24,35 @@ export function StandingsSection({ currentStandings, leagueId, onSelectManager }
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Trophy size={16} className="text-yellow-500" /> Standings
-        </h3>
-        <div className="flex items-center bg-gray-800 rounded-lg p-0.5 text-xs font-medium">
-          <button
-            onClick={() => setMode('alltime')}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              mode === 'alltime'
-                ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            All-Time
-          </button>
-          <button
-            onClick={() => setMode('current')}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              mode === 'current'
-                ? 'bg-gray-700 text-white shadow-sm'
-                : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            This Season
-          </button>
+      <Tabs value={mode} onValueChange={(v) => setMode(v as 'alltime' | 'current')}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Trophy size={16} className="text-yellow-500" /> Standings
+          </h3>
+          <TabsList className="bg-gray-800 h-auto p-0.5">
+            <TabsTrigger value="alltime" className="px-3 py-1.5 text-xs rounded-md data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">
+              All-Time
+            </TabsTrigger>
+            <TabsTrigger value="current" className="px-3 py-1.5 text-xs rounded-md data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400">
+              This Season
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
 
-      {mode === 'alltime' ? (
-        allTimeStats.length > 0 ? (
-          <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
-        ) : (
-          <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
-            Loading all-time standings…
-          </div>
-        )
-      ) : (
-        <Standings standings={currentStandings} onSelectManager={onSelectManager} />
-      )}
+        <TabsContent value="alltime">
+          {allTimeStats.length > 0 ? (
+            <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
+          ) : (
+            <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500 text-sm">
+              Loading all-time standings…
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="current">
+          <Standings standings={currentStandings} onSelectManager={onSelectManager} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }
