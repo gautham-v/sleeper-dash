@@ -1,9 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  Trophy, BookOpen, Scale, Users,
-  Loader2, ChevronRight, ChevronDown, ChevronLeft, UserCircle, LayoutDashboard,
-} from 'lucide-react';
+import { Trophy, Users, Loader2, ChevronRight, UserCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,14 +10,9 @@ import {
   ItemActions, ItemGroup, ItemSeparator,
 } from '@/components/ui/item';
 
-import { useUser, useUserLeaguesAllSeasons, useDashboardData, useCrossLeagueStats } from './hooks/useLeagueData';
+import { useUser, useUserLeaguesAllSeasons, useCrossLeagueStats } from './hooks/useLeagueData';
 import { CrossLeagueStats } from './components/CrossLeagueStats';
-import { Overview } from './components/Overview';
-import { AllTimeRecords } from './components/AllTimeRecords';
-import { ManagersList } from './components/ManagersList';
-import { ManagerProfile } from './components/ManagerProfile';
-import { TeamComparison } from './components/TeamComparison';
-import { LeagueTables } from './components/LeagueTables';
+import { LeagueDashboard } from './components/LeagueDashboard';
 import { avatarUrl } from './utils/calculations';
 import type { SleeperLeague } from './types/sleeper';
 
@@ -28,322 +20,11 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
-const TABS = [
-  { id: 'overview',  label: 'Overview',     icon: LayoutDashboard },
-  { id: 'records',   label: 'Records',      icon: BookOpen },
-  { id: 'managers',  label: 'Managers',     icon: Users },
-  { id: 'h2h',       label: 'Head-to-Head', icon: Scale },
-] as const;
-
-type TabId = (typeof TABS)[number]['id'];
-
-function LeagueDashboard({
-  initialLeagueId,
-  allLeagueGroups,
-  userId,
-  onBack,
-}: {
-  initialLeagueId: string;
-  allLeagueGroups: [string, SleeperLeague[]][];
-  userId: string;
-  onBack: () => void;
-}) {
-  const [leagueId, setLeagueId] = useState(initialLeagueId);
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
-  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const { league, currentWeek, isOffseason, isLoading, computed } =
-    useDashboardData(leagueId);
-
-  const hasMultipleLeagues = allLeagueGroups.length > 1;
-
-  // Hash-based deep-linking for manager profiles
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#managers/')) {
-      const uid = hash.slice('#managers/'.length);
-      if (uid) {
-        setActiveTab('managers');
-        setSelectedManagerId(uid);
-      }
-    }
-  }, []);
-
-  const handleSelectManager = (userId: string) => {
-    setSelectedManagerId(userId);
-    window.history.pushState(null, '', `${window.location.pathname}#managers/${userId}`);
-  };
-
-  const handleBackFromProfile = () => {
-    setSelectedManagerId(null);
-    window.history.pushState(null, '', window.location.pathname + window.location.search);
-  };
-
-  // When switching tabs away from managers, clear selected manager
-  const handleTabChange = (id: TabId) => {
-    setActiveTab(id);
-    if (id !== 'managers') {
-      setSelectedManagerId(null);
-      window.history.pushState(null, '', window.location.pathname + window.location.search);
-    }
-  };
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setLeagueDropdownOpen(false);
-      }
-    }
-    if (leagueDropdownOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [leagueDropdownOpen]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-base-bg">
-        <div className="text-center space-y-3">
-          <Loader2 className="animate-spin text-brand-cyan mx-auto" size={28} />
-          <p className="text-gray-400 text-sm">Loading league data…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!computed) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-base-bg text-gray-500">
-        Failed to load league data.
-      </div>
-    );
-  }
-
-  const activeTabMeta = TABS.find((tab) => tab.id === activeTab);
-
-  return (
-    <div className="relative min-h-screen bg-base-bg text-white font-sans">
-
-      <div className="relative z-10 flex min-h-screen flex-col xl:flex-row">
-        {/* Sidebar Navigation */}
-        <aside className="xl:w-72 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-card-border/80 bg-base-bg/85 xl:h-screen xl:sticky xl:top-0 backdrop-blur-md">
-          <div className="p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20">
-                <span className="text-brand-cyan font-bold text-lg leading-none mt-[-2px]">∞</span>
-              </div>
-              <span className="font-bold text-xl tracking-tight">recordbook.fyi</span>
-            </div>
-            <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors" title="Back to Leagues">
-              <ChevronLeft size={20} />
-            </button>
-          </div>
-
-          <div className="px-4 sm:px-5 mb-4 sm:mb-6">
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={hasMultipleLeagues ? () => setLeagueDropdownOpen((o) => !o) : undefined}
-                disabled={!hasMultipleLeagues}
-                className={`w-full flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border text-left transition-colors ${
-                  hasMultipleLeagues ? 'cursor-pointer hover:border-card-border/60' : 'cursor-default'
-                }`}
-              >
-                {league?.avatar ? (
-                  <img
-                    src={avatarUrl(league.avatar) ?? ''}
-                    alt={league.name}
-                    className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
-                    {league?.name?.slice(0, 2) ?? '??'}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
-                    {hasMultipleLeagues && <ChevronDown size={12} className="text-gray-400 flex-shrink-0 ml-0.5" />}
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {league?.season}{isOffseason ? ' · Offseason' : ` · Wk ${currentWeek}`}
-                  </span>
-                </div>
-              </button>
-
-              {leagueDropdownOpen && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 py-1 overflow-hidden">
-                  {allLeagueGroups.map(([name, group]) => {
-                    const latest = [...group].sort((a, b) => Number(b.season) - Number(a.season))[0];
-                    const isActive = group.some((g) => g.league_id === leagueId);
-                    return (
-                      <button
-                        key={latest.league_id}
-                        onClick={() => {
-                          setLeagueId(latest.league_id);
-                          setActiveTab('overview');
-                          setSelectedManagerId(null);
-                          setLeagueDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center gap-2.5 ${
-                          isActive
-                            ? 'bg-brand-cyan/20 text-brand-cyan font-medium'
-                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                        }`}
-                      >
-                        {latest.avatar ? (
-                          <img
-                            src={avatarUrl(latest.avatar) ?? ''}
-                            alt={name}
-                            className="w-5 h-5 rounded-md object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-md bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-[10px] flex-shrink-0 border border-brand-purple/20">
-                            {name.slice(0, 2)}
-                          </div>
-                        )}
-                        <span className="truncate">{name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <nav className="flex-1 overflow-y-auto no-scrollbar px-3 sm:px-4 pb-4 sm:pb-6 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-1.5">
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => handleTabChange(id)}
-                className={`flex items-center gap-2.5 xl:gap-3 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 justify-start ${
-                  activeTab === id
-                    ? 'bg-brand-cyan/10 text-brand-cyan relative xl:before:absolute xl:before:left-0 xl:before:top-[10%] xl:before:h-[80%] xl:before:w-1 xl:before:bg-brand-cyan xl:before:rounded-r-full'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-                }`}
-              >
-                <Icon size={18} className={activeTab === id ? 'text-brand-cyan' : 'text-gray-500'} />
-                <span className="truncate">{label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col min-w-0">
-          {/* Top Header */}
-          <header className="h-16 sm:h-20 border-b border-card-border px-4 sm:px-8 flex items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="sm:hidden min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">recordbook.fyi</div>
-              <div className="text-sm font-bold text-white truncate">
-                {activeTab === 'managers' && selectedManagerId ? 'Manager Profile' : activeTabMeta?.label ?? 'Overview'}
-              </div>
-            </div>
-            <div className="items-center gap-6 hidden sm:flex text-sm font-medium text-gray-400">
-              <div className="flex items-center gap-2">
-                <Trophy size={16} className="text-yellow-500" /> League Record Book
-              </div>
-              <div className="flex items-center gap-2">
-                <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 sm:gap-4 ml-auto">
-              <div className="text-xs text-gray-400 font-medium sm:hidden">
-                {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
-              </div>
-              <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center bg-card-bg">
-                <UserCircle size={20} className="text-muted-foreground" />
-              </div>
-            </div>
-          </header>
-
-          {/* Dynamic Content */}
-          <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 flex-1 overflow-y-auto">
-            <div className="max-w-[1200px] mx-auto">
-
-              {/* OVERVIEW */}
-              {activeTab === 'overview' && (
-                <div className="space-y-8">
-                  <Overview
-                    computed={computed}
-                    leagueId={leagueId}
-                    userId={userId}
-                    onNavigate={(tab) => {
-                      if (tab === 'compare') handleTabChange('h2h');
-                      else if (tab === 'records') handleTabChange('records');
-                      else handleTabChange(tab as TabId);
-                    }}
-                    onViewMyProfile={() => {
-                      handleSelectManager(userId);
-                      handleTabChange('managers');
-                    }}
-                    onSelectManager={(uid) => {
-                      handleSelectManager(uid);
-                      handleTabChange('managers');
-                    }}
-                  />
-
-                  <LeagueTables
-                    computed={computed}
-                    leagueId={leagueId}
-                    onSelectManager={(uid) => {
-                      handleSelectManager(uid);
-                      handleTabChange('managers');
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* ALL-TIME RECORDS */}
-              {activeTab === 'records' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">All-Time Record Book</h2>
-                  <AllTimeRecords leagueId={leagueId} onSelectManager={(uid) => { handleSelectManager(uid); handleTabChange('managers'); }} />
-                </div>
-              )}
-
-              {/* MANAGERS */}
-              {activeTab === 'managers' && (
-                <div>
-                  {selectedManagerId ? (
-                    <ManagerProfile
-                      leagueId={leagueId}
-                      userId={selectedManagerId}
-                      onBack={handleBackFromProfile}
-                      onSelectManager={handleSelectManager}
-                    />
-                  ) : (
-                    <div>
-                      <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Managers</h2>
-                      <p className="text-gray-400 text-sm mb-6">Click any manager to view their full career stats and trophy case.</p>
-                      <ManagersList leagueId={leagueId} onSelectManager={handleSelectManager} />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* HEAD-TO-HEAD */}
-              {activeTab === 'h2h' && (
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Head-to-Head</h2>
-                  <p className="text-gray-400 text-sm mb-6">Compare any two managers across all seasons of league history.</p>
-                  <TeamComparison leagueId={leagueId} />
-                </div>
-              )}
-
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
-
+// ─── League Selector ───────────────────────────────────────────────────────────
 
 function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () => void }) {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
   const leagues = useUserLeaguesAllSeasons(user.user_id);
 
   const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
@@ -357,7 +38,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
     return maxB - maxA;
   });
 
-  // One root league ID per group (most recent) — used to walk history chains
   const rootLeagueIds = sortedGroups.map(([, group]) => {
     const sorted = [...group].sort((a, b) => Number(b.season) - Number(a.season));
     return sorted[0].league_id;
@@ -383,9 +63,9 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
     return (
       <LeagueDashboard
         initialLeagueId={selectedLeagueId}
-        allLeagueGroups={sortedGroups}
+        allSeasons={selectedGroup}
         userId={user.user_id}
-        onBack={() => setSelectedLeagueId(null)}
+        onBack={() => { setSelectedLeagueId(null); setSelectedGroup([]); }}
       />
     );
   }
@@ -394,10 +74,8 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
 
   return (
     <div className="min-h-screen bg-base-bg text-white flex flex-col items-center">
-
       <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5">
 
-        {/* Header card */}
         <Card className="border-card-border bg-card-bg">
           <CardContent className="flex items-center justify-between py-4 px-5">
             <div className="flex items-center gap-3">
@@ -429,7 +107,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           </CardContent>
         </Card>
 
-        {/* Title row */}
         <div className="flex items-baseline gap-3 px-1">
           <h1 className="text-xl font-bold text-white">Your Leagues</h1>
           <span className="text-xs text-gray-500 font-medium">
@@ -437,7 +114,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           </span>
         </div>
 
-        {/* Cross-league career stats */}
         {totalLeagues > 0 && (
           <CrossLeagueStats
             stats={crossStats.data}
@@ -446,7 +122,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
           />
         )}
 
-        {/* League list */}
         {sortedGroups.length > 0 ? (
           <Card className="border-card-border bg-card-bg overflow-hidden">
             <ItemGroup>
@@ -463,9 +138,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
                       className="rounded-none hover:bg-white/5 transition-colors cursor-pointer text-white"
                     >
                       <button
-                        onClick={() => {
-                          setSelectedLeagueId(latest.league_id);
-                        }}
+                        onClick={() => { setSelectedGroup(group); setSelectedLeagueId(latest.league_id); }}
                       >
                         <ItemMedia className="size-11 rounded-lg overflow-hidden shrink-0 self-center">
                           {latest.avatar ? (
@@ -528,7 +201,8 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
   );
 }
 
-/** Username entry screen */
+// ─── Username Entry Screen ─────────────────────────────────────────────────────
+
 function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   const [value, setValue] = useState('');
 
@@ -590,13 +264,9 @@ function UsernameInput({ onSubmit }: { onSubmit: (username: string) => void }) {
   );
 }
 
-function AppContent({
-  username,
-  onChangeUser,
-}: {
-  username: string;
-  onChangeUser: () => void;
-}) {
+// ─── App Shell ─────────────────────────────────────────────────────────────────
+
+function AppContent({ username, onChangeUser }: { username: string; onChangeUser: () => void }) {
   const user = useUser(username);
 
   if (user.isLoading) {
