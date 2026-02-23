@@ -287,7 +287,7 @@ function LeagueDashboard({
 
               {/* OVERVIEW */}
               {activeTab === 'overview' && (
-                <div className="space-y-8">
+                <div className="space-y-5">
                   <Overview
                     computed={computed}
                     leagueId={leagueId}
@@ -319,14 +319,14 @@ function LeagueDashboard({
 
                   {/* Luck Index */}
                   {showLuck && (
-                    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="bg-gray-900 rounded-xl p-4 border border-gray-800/60">
+                      <div className="flex items-center justify-between mb-2.5">
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-semibold text-white">Luck Index</h3>
                           <span className="text-xs text-gray-500">actual vs. expected wins</span>
                         </div>
                       </div>
-                      <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-4 self-start w-fit">
+                      <div className="flex gap-1 bg-gray-800/60 rounded-lg p-1 mb-3 self-start w-fit">
                         <button
                           onClick={() => setLuckMode('alltime')}
                           className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${

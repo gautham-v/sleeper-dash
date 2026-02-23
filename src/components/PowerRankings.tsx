@@ -12,9 +12,9 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
   const maxScore = Math.max(...rankings.map((r) => r.score));
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-gray-500 mb-5">
-        Weighted score: 50% recent 3-week avg · 30% season avg · 20% win %
+    <div className="space-y-2">
+      <p className="text-xs text-gray-500 mb-4">
+        Weighted: 50% last 3 wks · 30% season avg · 20% win %
       </p>
       {rankings.map((r, i) => {
         const standing = standingsByRoster.get(r.rosterId);
@@ -23,12 +23,12 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
 
         return (
-          <div key={r.rosterId} className="bg-gray-900 rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-gray-500 font-bold w-6 text-center text-sm">
-                {medal ?? `${i + 1}`}
+          <div key={r.rosterId} className="bg-gray-900 rounded-xl p-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="text-gray-500 font-bold w-5 text-center text-sm shrink-0">
+                {medal ?? <span className="text-xs">{i + 1}</span>}
               </span>
-              <Avatar avatar={r.avatar} name={r.displayName} size="md" />
+              <Avatar avatar={r.avatar} name={r.displayName} size="sm" />
               <button
                 className="flex-1 min-w-0 text-left group"
                 onClick={() => r.userId && onSelectManager?.(r.userId)}
@@ -37,46 +37,33 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
                 <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-indigo-400 transition-colors' : ''}`}>
                   {r.teamName}
                 </div>
-                <div className="text-gray-500 text-xs">{r.displayName}</div>
+                <div className="text-gray-500 text-xs truncate">{r.displayName}</div>
               </button>
               <div className="text-right shrink-0">
-                <div className="text-lg font-bold text-indigo-400">{r.score.toFixed(1)}</div>
+                <div className="text-base font-bold text-indigo-400 tabular-nums">{r.score.toFixed(1)}</div>
                 {standing && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-600 tabular-nums">
                     {standing.wins}–{standing.losses}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Score bar */}
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-3">
-              <div
-                className="h-full bg-indigo-500 rounded-full transition-all"
-                style={{ width: `${barWidth}%` }}
-              />
+            {/* Score bar + inline stats */}
+            <div className="mt-2.5 flex items-center gap-3">
+              <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 rounded-full transition-all"
+                  style={{ width: `${barWidth}%` }}
+                />
+              </div>
             </div>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="bg-gray-800 rounded-lg p-2.5">
-                <div className="text-gray-400">
-                  <span className="sm:hidden">L3</span>
-                  <span className="hidden sm:inline">Last 3 Avg</span>
-                </div>
-                <div className="text-white font-semibold">{r.recentAvg.toFixed(1)}</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-2.5">
-                <div className="text-gray-400">
-                  <span className="sm:hidden">Avg</span>
-                  <span className="hidden sm:inline">Season Avg</span>
-                </div>
-                <div className="text-white font-semibold">{r.seasonAvg.toFixed(1)}</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg p-2.5">
-                <div className="text-gray-400">Win %</div>
-                <div className="text-white font-semibold">{r.winPct.toFixed(1)}%</div>
-              </div>
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+              <span>L3 <span className="text-gray-300 font-medium">{r.recentAvg.toFixed(1)}</span></span>
+              <span className="text-gray-700">·</span>
+              <span>Avg <span className="text-gray-300 font-medium">{r.seasonAvg.toFixed(1)}</span></span>
+              <span className="text-gray-700">·</span>
+              <span>Win% <span className="text-gray-300 font-medium">{r.winPct.toFixed(0)}%</span></span>
             </div>
           </div>
         );

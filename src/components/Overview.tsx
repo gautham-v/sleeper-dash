@@ -43,40 +43,40 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
     <div className="space-y-6">
       {/* Champion Hero */}
       {computed.champion && (
-        <div className="relative overflow-hidden bg-gradient-to-r from-yellow-950/60 via-amber-900/30 to-yellow-950/60 rounded-2xl border border-yellow-700/30 p-6 sm:p-8">
+        <div className="relative overflow-hidden bg-gradient-to-r from-yellow-950/60 via-amber-900/30 to-yellow-950/60 rounded-2xl border border-yellow-700/30 p-4 sm:p-6">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-yellow-500/5 blur-3xl" />
             <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-amber-500/5 blur-3xl" />
           </div>
-          <div className="relative flex items-center gap-5 sm:gap-6">
-            <div className="flex-shrink-0 w-16 h-16 rounded-full bg-yellow-900/50 border border-yellow-600/40 flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.15)]">
-              <Trophy size={30} className="text-yellow-400" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-yellow-900/50 border border-yellow-600/40 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.15)]">
+              <Trophy size={22} className="text-yellow-400" />
             </div>
             <button
               className="flex-1 min-w-0 text-left group"
               onClick={() => computed.champion.userId && onSelectManager?.(computed.champion.userId)}
               disabled={!computed.champion.userId || !onSelectManager}
             >
-              <div className="text-xs font-semibold uppercase tracking-widest text-yellow-500/80 mb-1">Reigning Champion</div>
-              <div className={`text-2xl sm:text-3xl font-bold text-white leading-tight truncate ${computed.champion.userId && onSelectManager ? 'group-hover:text-yellow-300 transition-colors' : ''}`}>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-yellow-500/80 mb-0.5">Reigning Champion</div>
+              <div className={`text-xl sm:text-2xl font-bold text-white leading-tight truncate ${computed.champion.userId && onSelectManager ? 'group-hover:text-yellow-300 transition-colors' : ''}`}>
                 {computed.champion.teamName}
               </div>
               <div className="text-gray-400 text-sm mt-0.5">{computed.champion.displayName}</div>
             </button>
-            <Avatar avatar={computed.champion.avatar} name={computed.champion.displayName} size="xl" />
+            <Avatar avatar={computed.champion.avatar} name={computed.champion.displayName} size="lg" />
           </div>
         </div>
       )}
 
       {/* My Stats */}
       {myStats && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="flex items-start gap-4">
-            <Avatar avatar={myStats.avatar} name={myStats.displayName} size="lg" />
+        <div className="bg-card-bg border border-card-border rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <Avatar avatar={myStats.avatar} name={myStats.displayName} size="md" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="font-bold text-white text-lg leading-tight">{myStats.displayName}</h3>
+                  <h3 className="font-bold text-white text-base leading-tight">{myStats.displayName}</h3>
                   <div className="text-xs text-gray-500 mt-0.5">{myStats.totalSeasons} season{myStats.totalSeasons !== 1 ? 's' : ''} in the league</div>
                 </div>
                 <button
@@ -86,7 +86,7 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
                   Full Profile <ChevronRight size={13} />
                 </button>
               </div>
-              <div className="flex flex-wrap gap-4 mt-3">
+              <div className="flex flex-wrap gap-3 mt-2.5">
                 <div>
                   <div className="text-xl font-bold text-brand-cyan tabular-nums">{(myStats.winPct * 100).toFixed(1)}%</div>
                   <div className="text-xs text-gray-500">Win Rate</div>
@@ -116,8 +116,8 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
       )}
 
       {/* Power Rankings */}
-      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800/60 flex flex-col">
-          <div className="flex items-center mb-3">
+      <div className="bg-gray-900 rounded-xl p-4 border border-gray-800/60 flex flex-col">
+          <div className="flex items-center mb-2.5">
             <h3 className="text-sm font-semibold text-white">Power Rankings</h3>
           </div>
 
@@ -154,7 +154,7 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
                 {allTimeRankings.map((mgr, idx) => {
                   const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
                   return (
-                    <div key={mgr.userId} className="flex items-center gap-3 bg-gray-800/50 rounded-xl px-4 py-3">
+                    <div key={mgr.userId} className="flex items-center gap-2.5 bg-gray-800/40 rounded-xl px-3 py-2.5">
                       <span className="text-sm w-5 text-center flex-shrink-0">
                         {medal ?? <span className="text-gray-500 text-xs font-medium">{idx + 1}</span>}
                       </span>
@@ -166,14 +166,14 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
                         </div>
                       </div>
                       {mgr.titles > 0 && (
-                        <div className="flex items-center gap-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-2 py-1 flex-shrink-0">
+                        <div className="flex items-center gap-1 bg-yellow-900/30 border border-yellow-700/40 rounded-lg px-2 py-0.5 flex-shrink-0">
                           <Trophy size={10} className="text-yellow-400" />
                           <span className="text-yellow-400 font-bold text-xs">{mgr.titles}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <TrendingUp size={11} className="text-brand-cyan" />
-                        <span className="text-brand-cyan font-bold text-sm">
+                        <span className="text-brand-cyan font-bold text-sm tabular-nums">
                           {(mgr.winPct * 100).toFixed(1)}%
                         </span>
                       </div>
