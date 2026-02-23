@@ -203,7 +203,7 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 left-0 right-0 flex justify-center pb-4 pt-2 bg-gradient-to-t from-base-bg via-base-bg/80 to-transparent pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center pb-4 pt-2 bg-gradient-to-t from-base-bg via-base-bg/80 to-transparent pointer-events-none">
         <div className="flex items-center gap-1.5 text-xs text-gray-600 pointer-events-auto">
           <AboutModal>
             <button className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5">
