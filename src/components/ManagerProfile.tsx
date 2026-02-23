@@ -275,12 +275,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           </div>
 
           {/* Records held */}
-          {myRecords.length > 0 && (
-            <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Award size={16} className="text-brand-cyan" />
-                <span className="font-semibold text-white">League Records Held</span>
-              </div>
+          <div className="bg-card-bg border border-card-border rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Award size={16} className="text-brand-cyan" />
+              <span className="font-semibold text-white">League Records Held</span>
+            </div>
+            {myRecords.length > 0 ? (
               <div className="space-y-3">
                 {myRecords.map((r) => (
                   <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
@@ -292,8 +292,16 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-4">
+                <div className="text-2xl mb-2">📋</div>
+                <div className="text-sm font-medium text-gray-300">No records yet</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  The recordbook is wide open — someone's gotta claim these.
+                </div>
+              </div>
+            )}
+          </div>
         </TabsContent>
 
         {/* H2H SECTION */}
