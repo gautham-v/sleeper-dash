@@ -39,26 +39,25 @@ type TabId = (typeof TABS)[number]['id'];
 
 function LeagueDashboard({
   initialLeagueId,
-  allSeasons,
+  allLeagueGroups,
   userId,
   onBack,
 }: {
   initialLeagueId: string;
-  allSeasons: SleeperLeague[];
+  allLeagueGroups: [string, SleeperLeague[]][];
   userId: string;
   onBack: () => void;
 }) {
   const [leagueId, setLeagueId] = useState(initialLeagueId);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+  const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { league, currentWeek, isOffseason, isLoading, computed } =
     useDashboardData(leagueId);
 
-  const sortedSeasons = [...allSeasons].sort((a, b) => Number(b.season) - Number(a.season));
-  const multipleSeasons = sortedSeasons.length > 1;
+  const hasMultipleLeagues = allLeagueGroups.length > 1;
 
   // Hash-based deep-linking for manager profiles
   useEffect(() => {
@@ -95,12 +94,12 @@ function LeagueDashboard({
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setYearDropdownOpen(false);
+        setLeagueDropdownOpen(false);
       }
     }
-    if (yearDropdownOpen) document.addEventListener('mousedown', handleClick);
+    if (leagueDropdownOpen) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [yearDropdownOpen]);
+  }, [leagueDropdownOpen]);
 
   if (isLoading) {
     return (
@@ -142,60 +141,73 @@ function LeagueDashboard({
           </div>
 
           <div className="px-4 sm:px-5 mb-4 sm:mb-6">
-            <div className="flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border">
-              {league?.avatar ? (
-                <img
-                  src={avatarUrl(league.avatar) ?? ''}
-                  alt={league.name}
-                  className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
-                  {league?.name?.slice(0, 2) ?? '??'}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  {multipleSeasons ? (
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        onClick={() => setYearDropdownOpen((o) => !o)}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
-                      >
-                        {league?.season ?? '—'} <ChevronDown size={12} />
-                      </button>
-                      {yearDropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 py-1 overflow-hidden min-w-[100px]">
-                          {sortedSeasons.map((s) => (
-                            <button
-                              key={s.league_id}
-                              onClick={() => {
-                                setLeagueId(s.league_id);
-                                setActiveTab('overview');
-                                setSelectedManagerId(null);
-                                setYearDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                                s.league_id === leagueId
-                                  ? 'bg-brand-cyan/20 text-brand-cyan font-medium'
-                                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              {s.season}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-500">{league?.season}</span>
-                  )}
-                  <span className="text-gray-600 text-xs">
-                    {isOffseason ? '• Offseason' : `• Wk ${currentWeek}`}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={hasMultipleLeagues ? () => setLeagueDropdownOpen((o) => !o) : undefined}
+                disabled={!hasMultipleLeagues}
+                className={`w-full flex items-center gap-3 bg-card-bg p-3 rounded-2xl border border-card-border text-left transition-colors ${
+                  hasMultipleLeagues ? 'cursor-pointer hover:border-card-border/60' : 'cursor-default'
+                }`}
+              >
+                {league?.avatar ? (
+                  <img
+                    src={avatarUrl(league.avatar) ?? ''}
+                    alt={league.name}
+                    className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
+                    {league?.name?.slice(0, 2) ?? '??'}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <h2 className="text-sm font-bold text-white truncate leading-tight">{league?.name ?? 'League'}</h2>
+                    {hasMultipleLeagues && <ChevronDown size={12} className="text-gray-400 flex-shrink-0 ml-0.5" />}
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {league?.season}{isOffseason ? ' · Offseason' : ` · Wk ${currentWeek}`}
                   </span>
                 </div>
-              </div>
+              </button>
+
+              {leagueDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 py-1 overflow-hidden">
+                  {allLeagueGroups.map(([name, group]) => {
+                    const latest = [...group].sort((a, b) => Number(b.season) - Number(a.season))[0];
+                    const isActive = group.some((g) => g.league_id === leagueId);
+                    return (
+                      <button
+                        key={latest.league_id}
+                        onClick={() => {
+                          setLeagueId(latest.league_id);
+                          setActiveTab('overview');
+                          setSelectedManagerId(null);
+                          setLeagueDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2.5 text-xs transition-colors flex items-center gap-2.5 ${
+                          isActive
+                            ? 'bg-brand-cyan/20 text-brand-cyan font-medium'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        {latest.avatar ? (
+                          <img
+                            src={avatarUrl(latest.avatar) ?? ''}
+                            alt={name}
+                            className="w-5 h-5 rounded-md object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-md bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-[10px] flex-shrink-0 border border-brand-purple/20">
+                            {name.slice(0, 2)}
+                          </div>
+                        )}
+                        <span className="truncate">{name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -332,7 +344,6 @@ function LeagueDashboard({
 
 function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () => void }) {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<SleeperLeague[]>([]);
   const leagues = useUserLeaguesAllSeasons(user.user_id);
 
   const grouped = leagues.data?.reduce<Record<string, SleeperLeague[]>>((acc, league) => {
@@ -372,12 +383,9 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
     return (
       <LeagueDashboard
         initialLeagueId={selectedLeagueId}
-        allSeasons={selectedGroup}
+        allLeagueGroups={sortedGroups}
         userId={user.user_id}
-        onBack={() => {
-          setSelectedLeagueId(null);
-          setSelectedGroup([]);
-        }}
+        onBack={() => setSelectedLeagueId(null)}
       />
     );
   }
@@ -456,7 +464,6 @@ function LeagueSelector({ user, onChangeUser }: { user: any; onChangeUser: () =>
                     >
                       <button
                         onClick={() => {
-                          setSelectedGroup(group);
                           setSelectedLeagueId(latest.league_id);
                         }}
                       >

@@ -769,6 +769,156 @@ export function calcAllTimeRecords(history: HistoricalSeason[]): AllTimeRecordEn
   return records;
 }
 
+/** Compute records for a single season. */
+export function calcSeasonRecords(season: HistoricalSeason): AllTimeRecordEntry[] {
+  const records: AllTimeRecordEntry[] = [];
+  const teams = [...season.teams.values()];
+
+  type CoHolder = { holderId: string | null; holder: string; avatar: string | null };
+  const toEntryCoHolders = (ts: typeof teams): CoHolder[] =>
+    ts.map((t) => ({ holderId: t.userId, holder: t.displayName, avatar: t.avatar }));
+  const toMapCoHolders = (
+    entries: [string, { name: string; avatar: string | null }][],
+  ): CoHolder[] => entries.map(([uid, v]) => ({ holderId: uid, holder: v.name, avatar: v.avatar }));
+
+  if (teams.length > 0) {
+    const maxWins = Math.max(...teams.map((t) => t.wins));
+    const [first, ...rest] = teams.filter((t) => t.wins === maxWins);
+    if (first) {
+      records.push({
+        id: 'season-wins', category: 'Most Wins',
+        holderId: first.userId, holder: first.displayName, avatar: first.avatar,
+        value: `${maxWins} wins`, rawValue: maxWins,
+        context: `${first.wins}–${first.losses} record`,
+        ...(rest.length > 0 && { coHolders: toEntryCoHolders(rest) }),
+      });
+    }
+    const maxPts = Math.max(...teams.map((t) => t.pointsFor));
+    const [topScorer, ...scoreRest] = teams.filter((t) => t.pointsFor === maxPts);
+    if (topScorer) {
+      records.push({
+        id: 'highest-season-pts', category: 'Most Points Scored',
+        holderId: topScorer.userId, holder: topScorer.displayName, avatar: topScorer.avatar,
+        value: `${maxPts.toFixed(1)} pts`, rawValue: maxPts,
+        context: 'Season total',
+        ...(scoreRest.length > 0 && { coHolders: toEntryCoHolders(scoreRest) }),
+      });
+    }
+  }
+
+  type WeeklyScore = { userId: string; name: string; avatar: string | null; pts: number; week: number };
+  let highestWeek: WeeklyScore | null = null;
+  let lowestWeek: WeeklyScore | null = null;
+  let biggestBlowout: {
+    winnerUserId: string; winnerName: string; winnerAvatar: string | null;
+    loserName: string; margin: number; week: number;
+  } | null = null;
+  const blowoutWinsMap = new Map<string, { name: string; avatar: string | null; count: number }>();
+  const playoffWinsMap = new Map<string, { name: string; avatar: string | null; wins: number; losses: number }>();
+
+  for (const matchup of season.matchups) {
+    const { team1, team2 } = matchup;
+    if (team1.points === 0 && team2.points === 0) continue;
+    const userId1 = season.rosterToUser.get(team1.rosterId);
+    const userId2 = season.rosterToUser.get(team2.rosterId);
+    if (!userId1 || !userId2) continue;
+    const t1 = season.teams.get(userId1);
+    const t2 = season.teams.get(userId2);
+    const name1 = t1?.displayName ?? `Team ${team1.rosterId}`;
+    const name2 = t2?.displayName ?? `Team ${team2.rosterId}`;
+    const avatar1 = t1?.avatar ?? null;
+    const avatar2 = t2?.avatar ?? null;
+
+    for (const [pts, uid, name, avatar] of [
+      [team1.points, userId1, name1, avatar1],
+      [team2.points, userId2, name2, avatar2],
+    ] as [number, string, string, string | null][]) {
+      if (pts > 0) {
+        if (!highestWeek || pts > highestWeek.pts) highestWeek = { userId: uid, name, avatar, pts, week: matchup.week };
+        if (!lowestWeek || pts < lowestWeek.pts) lowestWeek = { userId: uid, name, avatar, pts, week: matchup.week };
+      }
+    }
+
+    const margin = Math.abs(team1.points - team2.points);
+    const [winnerUserId, loserUserId, winnerName, loserName, winnerAvatar] =
+      team1.points >= team2.points
+        ? [userId1, userId2, name1, name2, avatar1]
+        : [userId2, userId1, name2, name1, avatar2];
+
+    if (!biggestBlowout || margin > biggestBlowout.margin) {
+      biggestBlowout = { winnerUserId, winnerName, winnerAvatar, loserName, margin, week: matchup.week };
+    }
+    if (margin > 30) {
+      const bw = blowoutWinsMap.get(winnerUserId) ?? { name: winnerName, avatar: winnerAvatar, count: 0 };
+      bw.count++; bw.name = winnerName;
+      blowoutWinsMap.set(winnerUserId, bw);
+    }
+    if (matchup.isPlayoff) {
+      const pw = playoffWinsMap.get(winnerUserId) ?? { name: winnerName, avatar: winnerAvatar, wins: 0, losses: 0 };
+      pw.wins++; pw.name = winnerName;
+      playoffWinsMap.set(winnerUserId, pw);
+      const pl = playoffWinsMap.get(loserUserId) ?? { name: loserName, avatar: null, wins: 0, losses: 0 };
+      pl.losses++; pl.name = loserName;
+      playoffWinsMap.set(loserUserId, pl);
+    }
+  }
+
+  if (highestWeek) {
+    records.push({
+      id: 'highest-weekly', category: 'Highest Single-Week Score',
+      holderId: highestWeek.userId, holder: highestWeek.name, avatar: highestWeek.avatar,
+      value: `${highestWeek.pts.toFixed(2)} pts`, rawValue: highestWeek.pts,
+      context: `Week ${highestWeek.week}`, week: highestWeek.week,
+    });
+  }
+  if (lowestWeek) {
+    records.push({
+      id: 'lowest-weekly', category: 'Lowest Single-Week Score',
+      holderId: lowestWeek.userId, holder: lowestWeek.name, avatar: lowestWeek.avatar,
+      value: `${lowestWeek.pts.toFixed(2)} pts`, rawValue: lowestWeek.pts,
+      context: `Week ${lowestWeek.week}`, week: lowestWeek.week,
+    });
+  }
+  if (biggestBlowout) {
+    records.push({
+      id: 'biggest-blowout', category: 'Biggest Blowout',
+      holderId: biggestBlowout.winnerUserId, holder: biggestBlowout.winnerName,
+      avatar: biggestBlowout.winnerAvatar,
+      value: `+${biggestBlowout.margin.toFixed(2)} pts`, rawValue: biggestBlowout.margin,
+      context: `Wk ${biggestBlowout.week} · def. ${biggestBlowout.loserName}`,
+      week: biggestBlowout.week,
+    });
+  }
+  if (blowoutWinsMap.size > 0) {
+    const maxBW = Math.max(...[...blowoutWinsMap.values()].map((v) => v.count));
+    if (maxBW > 0) {
+      const [[uid0, bw0], ...rest] = [...blowoutWinsMap.entries()].filter(([, v]) => v.count === maxBW);
+      records.push({
+        id: 'blowout-wins', category: 'Most Blowout Wins',
+        holderId: uid0, holder: bw0.name, avatar: bw0.avatar,
+        value: `${maxBW} blowout${maxBW !== 1 ? 's' : ''}`, rawValue: maxBW,
+        context: 'Wins by 30+ points',
+        ...(rest.length > 0 && { coHolders: toMapCoHolders(rest) }),
+      });
+    }
+  }
+  if (playoffWinsMap.size > 0) {
+    const maxPW = Math.max(...[...playoffWinsMap.values()].map((v) => v.wins));
+    if (maxPW > 0) {
+      const [[uid0, pw0], ...rest] = [...playoffWinsMap.entries()].filter(([, v]) => v.wins === maxPW);
+      records.push({
+        id: 'playoff-wins', category: 'Most Playoff Wins',
+        holderId: uid0, holder: pw0.name, avatar: pw0.avatar,
+        value: `${maxPW} win${maxPW !== 1 ? 's' : ''}`, rawValue: maxPW,
+        context: `${pw0.wins}–${pw0.losses} in the playoffs`,
+        ...(rest.length > 0 && { coHolders: toMapCoHolders(rest) }),
+      });
+    }
+  }
+
+  return records;
+}
+
 /** Compute blowouts and closest games across all historical seasons. */
 export function calcAllTimeBlowouts(
   history: HistoricalSeason[],
