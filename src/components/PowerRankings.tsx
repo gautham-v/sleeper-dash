@@ -36,7 +36,7 @@ export function PowerRankings({ rankings, standings, onSelectManager }: PowerRan
                 disabled={!r.userId || !onSelectManager}
               >
                 <div className="text-left min-w-0">
-                  <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-muted-foreground transition-colors' : ''}`}>
+                  <div className={`text-sm font-semibold text-white truncate ${r.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
                     {r.teamName}
                   </div>
                   <div className="text-muted-foreground text-xs truncate">{r.displayName}</div>

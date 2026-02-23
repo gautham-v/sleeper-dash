@@ -18,34 +18,34 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
     <>
       <Table className="min-w-[480px]">
         <TableHeader>
-          <TableRow className="border-gray-700 hover:bg-transparent">
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 pl-5 h-auto">
+          <TableRow className="border-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 pl-5 h-auto">
               #
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 h-auto">
               Team
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
               W
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto">
               L
             </TableHead>
             {hasPlayoffData && (
               <TableHead
-                className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto hidden sm:table-cell"
+                className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto hidden sm:table-cell"
                 title="Playoff record"
               >
                 Playoff
               </TableHead>
             )}
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto">
               PF
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto hidden sm:table-cell">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto hidden sm:table-cell">
               PA
             </TableHead>
-            <TableHead className="text-gray-400 text-xs uppercase tracking-wider font-medium py-4 px-3 pr-5 text-right h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 pr-5 text-right h-auto">
               Streak
             </TableHead>
           </TableRow>
@@ -56,7 +56,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
             return (
               <TableRow
                 key={team.rosterId}
-                className="border-gray-800 hover:bg-gray-800/50"
+                className="border-border hover:bg-muted/30"
               >
                 <TableCell className="py-3.5 px-3 pl-5">
                   <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                       <div className={`font-medium text-white leading-tight truncate max-w-[120px] sm:max-w-none ${team.userId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
                         {team.teamName}
                       </div>
-                      <div className="text-gray-500 text-xs truncate max-w-[120px] sm:max-w-none">
+                      <div className="text-muted-foreground text-xs truncate max-w-[120px] sm:max-w-none">
                         {team.displayName}
                       </div>
                     </div>
@@ -103,7 +103,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                 <TableCell className="py-3.5 px-3 text-right text-white tabular-nums">
                   {team.pointsFor.toFixed(2)}
                 </TableCell>
-                <TableCell className="py-3.5 px-3 text-right text-gray-400 tabular-nums hidden sm:table-cell">
+                <TableCell className="py-3.5 px-3 text-right text-muted-foreground tabular-nums hidden sm:table-cell">
                   {team.pointsAgainst.toFixed(2)}
                 </TableCell>
                 <TableCell className="py-3.5 px-3 pr-5 text-right">
@@ -114,7 +114,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                       {team.streak}
                     </span>
                   ) : (
-                    <span className="text-gray-600">—</span>
+                    <span className="text-muted-foreground/40">—</span>
                   )}
                 </TableCell>
               </TableRow>
@@ -122,7 +122,7 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
           })}
         </TableBody>
       </Table>
-      <div className="py-3.5 px-5 text-xs text-gray-500 flex items-center gap-4 border-t border-gray-800">
+      <div className="py-3.5 px-5 text-xs text-muted-foreground flex items-center gap-4 border-t border-border">
         <span className="flex items-center gap-2">
           <span className="w-1 h-3 rounded-full bg-green-500 inline-block" />
           Playoff position

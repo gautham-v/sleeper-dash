@@ -179,7 +179,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
               {allTimeRankings.map((mgr, idx) => {
                 const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
                 return (
-                  <div key={mgr.userId} className="flex items-center gap-2.5 bg-muted/40 rounded-xl px-3 py-2.5">
+                  <div key={mgr.userId} className="flex items-center gap-2.5 bg-muted/30 rounded-xl px-3 py-2.5">
                     <span className="text-sm w-5 text-center flex-shrink-0">
                       {medal ?? <span className="text-muted-foreground text-xs font-medium">{idx + 1}</span>}
                     </span>
@@ -189,7 +189,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
                       onClick={() => mgr.userId && onSelectManager?.(mgr.userId)}
                       disabled={!mgr.userId || !onSelectManager}
                     >
-                      <div className="font-semibold text-white text-sm truncate group-hover:text-muted-foreground transition-colors">
+                      <div className="font-semibold text-white text-sm truncate group-hover:text-brand-cyan transition-colors">
                         {mgr.displayName}
                       </div>
                       <div className="text-xs text-muted-foreground">
