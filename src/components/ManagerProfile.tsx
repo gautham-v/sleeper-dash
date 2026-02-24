@@ -9,6 +9,7 @@ import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DraftingTab } from './DraftingTab';
 import { TradingTab } from './TradingTab';
 import {
@@ -213,7 +214,31 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           setActiveSection(section);
         }}
       >
-        <TabsList className="bg-card-bg border border-card-border">
+        {/* Mobile: Select dropdown */}
+        <div className="sm:hidden">
+          <Select
+            value={activeSection}
+            onValueChange={(v) => {
+              const section = v as typeof activeSection;
+              if (section === 'drafting') setDraftingUnlocked(true);
+              if (section === 'trading') setTradingUnlocked(true);
+              setActiveSection(section);
+            }}
+          >
+            <SelectTrigger className="bg-card-bg border-card-border text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card-bg border-card-border text-white">
+              <SelectItem value="overview">Overview</SelectItem>
+              <SelectItem value="h2h">Head-to-Head</SelectItem>
+              <SelectItem value="seasons">Season Log</SelectItem>
+              <SelectItem value="drafting">Drafting</SelectItem>
+              <SelectItem value="trading">Trades</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Desktop: Tab list */}
+        <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>

@@ -14,6 +14,9 @@ import {
   LogOut,
   Info,
   Mail,
+  MoreHorizontal,
+  Scale,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
@@ -274,7 +277,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Mobile Bottom Tab Bar */}
           <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-card-border bg-base-bg/95 backdrop-blur-md">
             <div className="flex h-16">
-              {TABS.map(({ id, label, icon: Icon }) => (
+              {TABS.filter(({ id }) => !['h2h', 'trades'].includes(id)).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => handleTabChange(id)}
@@ -288,10 +291,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               ))}
               <button
                 onClick={() => setLeagueSheetOpen(true)}
-                className="flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors text-gray-500 hover:text-gray-300"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+                  ['h2h', 'trades'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
+                }`}
               >
-                <Layers size={20} />
-                <span>League</span>
+                <MoreHorizontal size={20} />
+                <span>More</span>
               </button>
             </div>
           </nav>
@@ -310,6 +315,37 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="px-5 pb-8 space-y-5">
+            {/* Quick nav — H2H and Trades */}
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                More Pages
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { handleTabChange('h2h'); setLeagueSheetOpen(false); }}
+                  className={`flex items-center gap-2.5 rounded-xl p-3 text-sm font-medium text-left transition-colors border ${
+                    activeTab === 'h2h'
+                      ? 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan'
+                      : 'bg-card-bg border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
+                  }`}
+                >
+                  <Scale size={16} className="flex-shrink-0" />
+                  Head-to-Head
+                </button>
+                <button
+                  onClick={() => { handleTabChange('trades'); setLeagueSheetOpen(false); }}
+                  className={`flex items-center gap-2.5 rounded-xl p-3 text-sm font-medium text-left transition-colors border ${
+                    activeTab === 'trades'
+                      ? 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan'
+                      : 'bg-card-bg border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
+                  }`}
+                >
+                  <ArrowLeftRight size={16} className="flex-shrink-0" />
+                  Trades
+                </button>
+              </div>
+            </div>
+
             {/* User section — only if logged in */}
             {sessionUser && (
               <div className="flex items-center justify-between py-3 border-b border-gray-800">

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { Avatar } from './Avatar';
 import type { ManagerDraftSummary, AnalyzedPick } from '../types/sleeper';
@@ -135,9 +135,15 @@ interface DraftClassRow {
   bustRate: number;
 }
 
+const DRAFT_CLASS_PREVIEW = 5;
+
 function BestDraftClasses({
   rows, onSelectManager,
 }: { rows: DraftClassRow[]; onSelectManager: (id: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? rows : rows.slice(0, DRAFT_CLASS_PREVIEW);
+  const canExpand = rows.length > DRAFT_CLASS_PREVIEW;
+
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
@@ -157,7 +163,7 @@ function BestDraftClasses({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row, i) => (
+          {visible.map((row, i) => (
             <TableRow
               key={`${row.managerId}-${row.season}`}
               className="border-card-border hover:bg-muted/30 cursor-pointer"
@@ -185,6 +191,14 @@ function BestDraftClasses({
           ))}
         </TableBody>
       </Table>
+      {canExpand && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 hover:text-gray-300 border-t border-card-border transition-colors"
+        >
+          {expanded ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show all {rows.length}</>}
+        </button>
+      )}
     </div>
   );
 }
@@ -197,6 +211,8 @@ interface PickRow extends AnalyzedPick {
   managerAvatar: string | null;
 }
 
+const PICK_TABLE_PREVIEW = 10;
+
 function PickTable({
   title, icon: Icon, iconClass, rows, emptyText,
 }: {
@@ -206,6 +222,10 @@ function PickTable({
   rows: PickRow[];
   emptyText: string;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? rows : rows.slice(0, PICK_TABLE_PREVIEW);
+  const canExpand = rows.length > PICK_TABLE_PREVIEW;
+
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
@@ -215,56 +235,66 @@ function PickTable({
       {rows.length === 0 ? (
         <p className="px-5 pb-5 text-sm text-gray-500">{emptyText}</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-card-border hover:bg-transparent">
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Player</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto hidden sm:table-cell">Manager</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Season</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Rd/Pick</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">WAR</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto">Surplus</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((pick, i) => {
-              const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
-              return (
-                <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
-                  <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
-                  <TableCell className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
-                        {pick.position}
-                      </span>
-                      <span className="text-sm font-medium text-white">{pick.playerName}</span>
-                      {pick.isKeeper && (
-                        <span className="text-[10px] text-yellow-500 font-medium">K</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3 px-2 hidden sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <Avatar avatar={pick.managerAvatar} name={pick.managerName} size="sm" />
-                      <span className="text-sm text-gray-300 truncate max-w-[100px]">{pick.managerName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3 px-2 text-right text-sm text-gray-400 hidden sm:table-cell">{pick.season}</TableCell>
-                  <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400">
-                    R{pick.round} #{pick.pickNo}
-                  </TableCell>
-                  <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
-                    {pick.war.toFixed(1)}
-                  </TableCell>
-                  <TableCell className={`py-3 px-2 pr-4 text-right tabular-nums text-sm font-medium ${surplusColor(pick.surplus)}`}>
-                    {surplusLabel(pick.surplus)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-card-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Player</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto hidden sm:table-cell">Manager</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Season</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Rd/Pick</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">WAR</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto">Surplus</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((pick, i) => {
+                const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                return (
+                  <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
+                    <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
+                    <TableCell className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
+                          {pick.position}
+                        </span>
+                        <span className="text-sm font-medium text-white">{pick.playerName}</span>
+                        {pick.isKeeper && (
+                          <span className="text-[10px] text-yellow-500 font-medium">K</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-2 hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <Avatar avatar={pick.managerAvatar} name={pick.managerName} size="sm" />
+                        <span className="text-sm text-gray-300 truncate max-w-[100px]">{pick.managerName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-2 text-right text-sm text-gray-400 hidden sm:table-cell">{pick.season}</TableCell>
+                    <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400">
+                      R{pick.round} #{pick.pickNo}
+                    </TableCell>
+                    <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
+                      {pick.war.toFixed(1)}
+                    </TableCell>
+                    <TableCell className={`py-3 px-2 pr-4 text-right tabular-nums text-sm font-medium ${surplusColor(pick.surplus)}`}>
+                      {surplusLabel(pick.surplus)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {canExpand && (
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 hover:text-gray-300 border-t border-card-border transition-colors"
+            >
+              {expanded ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show all {rows.length}</>}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
