@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2 } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -10,6 +11,7 @@ import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DraftingTab } from './DraftingTab';
 import { TradingTab } from './TradingTab';
 import { FranchiseOutlookTab } from './FranchiseOutlookTab';
@@ -27,9 +29,11 @@ interface Props {
   userId: string;
   onBack: () => void;
   onSelectManager?: (userId: string) => void;
+  onViewCareerStats?: () => void;
 }
 
-export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
+export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onViewCareerStats }: Props) {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'franchise'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
   const [tradingUnlocked, setTradingUnlocked] = useState(false);
@@ -161,10 +165,19 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
-        <ChevronLeft size={16} /> Back to Managers
-      </Button>
+      {/* Back button + Career Stats link */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
+          <ChevronLeft size={16} /> Back to Managers
+        </Button>
+        <button
+          onClick={() => router.push(`/league/${leagueId}/career`)}
+          className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
+        >
+          <BarChart2 size={13} />
+          View Career Stats
+        </button>
+      </div>
 
       {/* Profile header */}
       <Card className="bg-card-bg border-card-border rounded-2xl">
@@ -202,6 +215,17 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
                   <div className="text-xs text-gray-500">All-Time Points</div>
                 </div>
               </div>
+
+              {/* View Career Stats across all leagues */}
+              {onViewCareerStats && (
+                <button
+                  onClick={() => onViewCareerStats()}
+                  className="mt-3 flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
+                >
+                  <BarChart2 size={13} />
+                  View career stats across all leagues
+                </button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -218,7 +242,33 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           setActiveSection(section);
         }}
       >
-        <TabsList className="bg-card-bg border border-card-border">
+        {/* Mobile: Select dropdown */}
+        <div className="sm:hidden">
+          <Select
+            value={activeSection}
+            onValueChange={(v) => {
+              const section = v as typeof activeSection;
+              if (section === 'drafting') setDraftingUnlocked(true);
+              if (section === 'trading') setTradingUnlocked(true);
+              if (section === 'franchise') setFranchiseUnlocked(true);
+              setActiveSection(section);
+            }}
+          >
+            <SelectTrigger className="bg-card-bg border-card-border text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card-bg border-card-border text-white">
+              <SelectItem value="overview">Overview</SelectItem>
+              <SelectItem value="h2h">Head-to-Head</SelectItem>
+              <SelectItem value="seasons">Season Log</SelectItem>
+              <SelectItem value="drafting">Drafting</SelectItem>
+              <SelectItem value="trading">Trades</SelectItem>
+              <SelectItem value="franchise">Franchise</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Desktop: Tab list */}
+        <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>

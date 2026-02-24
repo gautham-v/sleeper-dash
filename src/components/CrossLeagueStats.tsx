@@ -7,6 +7,7 @@ interface CrossLeagueStatsProps {
   stats: CrossLeagueUserStats | null | undefined;
   isLoading: boolean;
   leagueCount: number;
+  displayName?: string;
 }
 
 function StatCard({
@@ -32,7 +33,7 @@ function StatCard({
   );
 }
 
-export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueStatsProps) {
+export function CrossLeagueStats({ stats, isLoading, leagueCount, displayName }: CrossLeagueStatsProps) {
   if (isLoading) {
     return (
       <Card className="border-card-border bg-card-bg">
@@ -57,7 +58,7 @@ export function CrossLeagueStats({ stats, isLoading, leagueCount }: CrossLeagueS
   return (
     <div className="space-y-2">
       <div className="flex items-baseline gap-2 px-1">
-        <h2 className="text-[13px] font-semibold text-gray-300">Career Stats</h2>
+        <h2 className="text-[13px] font-semibold text-gray-300">{displayName ? `${displayName} Career Stats` : 'Career Stats'}</h2>
         <span className="text-[11px] text-gray-600">{seasonLabel} across {leagueLabel}</span>
       </div>
 

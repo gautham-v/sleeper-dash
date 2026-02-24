@@ -13,6 +13,7 @@ export default function ManagerProfilePage() {
       userId={userId}
       onBack={() => router.push(`/league/${leagueId}/managers`)}
       onSelectManager={(uid) => router.push(`/league/${leagueId}/managers/${uid}`)}
+      onViewCareerStats={() => router.push(`/league/${leagueId}/managers/${userId}/career-stats`)}
     />
   );
 }
