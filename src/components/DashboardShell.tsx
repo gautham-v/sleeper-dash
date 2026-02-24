@@ -7,22 +7,18 @@ import {
   BookOpen,
   Trophy,
   ChevronLeft,
-  ChevronRight,
   UserCircle,
   Layers,
-  BarChart2,
   LogOut,
   Info,
   Mail,
-  MoreHorizontal,
   Scale,
   ArrowLeftRight,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { useDashboardData, useCrossLeagueStats } from '@/hooks/useLeagueData';
-import { CrossLeagueStats } from '@/components/CrossLeagueStats';
+import { useDashboardData } from '@/hooks/useLeagueData';
 import { SidebarNav, type SidebarNavProps } from '@/components/SidebarNav';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
@@ -46,10 +42,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // True when we're on a manager profile sub-route
   const showingManagerProfile = !!params.userId;
 
-  // User context from sessionStorage (set when user logs in via /user/[username])
+  // User context from sessionStorage
   const sessionUser = useSessionUser();
 
-  const [showCareerStats, setShowCareerStats] = useState(false);
   const [leagueSheetOpen, setLeagueSheetOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
@@ -57,10 +52,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { league, currentWeek, isOffseason } = useDashboardData(leagueId);
 
   const allLeagueGroups = sessionUser?.leagueGroups ?? [];
-  const rootLeagueIds = allLeagueGroups.map(
-    ([, group]) => [...group].sort((a, b) => Number(b.season) - Number(a.season))[0].league_id,
-  );
-  const crossStats = useCrossLeagueStats(sessionUser?.userId, rootLeagueIds);
 
   // Close avatar menu on outside click
   useEffect(() => {
@@ -75,7 +66,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [avatarMenuOpen]);
 
   const handleTabChange = (id: TabId) => {
-    setShowCareerStats(false);
     router.push(`/league/${leagueId}/${id}`);
   };
 
@@ -91,12 +81,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     router.push(`/league/${leagueId}/managers`);
   };
 
-  const handleBack = () => {
-    if (sessionUser?.username) {
-      router.push(`/user/${encodeURIComponent(sessionUser.username)}`);
-    } else {
-      router.push('/');
-    }
+  const handleCareerStats = () => {
+    router.push(`/league/${leagueId}/career`);
   };
 
   const handleChangeUser = () => {
@@ -104,6 +90,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     clearSessionUser();
     router.push('/');
   };
+
+  const isCareerRoute = pathname.endsWith('/career');
 
   const userId = sessionUser?.userId;
   const userDisplayName = sessionUser?.displayName ?? '';
@@ -118,9 +106,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     currentWeek,
     onChangeLeague: handleChangeLeague,
     onTabChange: handleTabChange,
-    onBack: handleBack,
-    showCareerStats,
-    onShowCareerStats: sessionUser ? () => setShowCareerStats(true) : undefined,
+    onCareerStats: sessionUser ? handleCareerStats : undefined,
+    careerStatsActive: isCareerRoute,
     onViewMyProfile: sessionUser && userId
       ? () => { handleSelectManager(userId); handleTabChange('managers'); }
       : undefined,
@@ -143,18 +130,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* Mobile Top Header */}
           <header className="xl:hidden h-14 border-b border-card-border px-4 flex items-center bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            {showCareerStats ? (
-              <>
-                <button
-                  onClick={() => setShowCareerStats(false)}
-                  className="text-gray-400 hover:text-white transition-colors p-2 -ml-2"
-                  aria-label="Back"
-                >
-                  <ChevronLeft size={22} />
-                </button>
-                <span className="text-sm font-bold text-white ml-1">Career Stats</span>
-              </>
-            ) : showingManagerProfile ? (
+            {showingManagerProfile ? (
               <>
                 <button
                   onClick={handleBackFromProfile}
@@ -170,7 +146,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
                   recordbook.fyi
                 </div>
-                <div className="text-sm font-bold text-white leading-tight">{activeLabel}</div>
+                <div className="text-sm font-bold text-white leading-tight">
+                  {isCareerRoute ? 'Career Stats' : activeLabel}
+                </div>
               </div>
             )}
           </header>
@@ -209,30 +187,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <div className="text-sm font-semibold text-white truncate">{userDisplayName}</div>
                     </div>
                     <button
-                      onClick={() => {
-                        setAvatarMenuOpen(false);
-                        setShowCareerStats(false);
-                        if (userId) handleSelectManager(userId);
-                        handleTabChange('managers');
-                      }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
-                    >
-                      <UserCircle size={15} className="text-gray-500 flex-shrink-0" /> My Profile
-                    </button>
-                    <button
-                      onClick={() => { setAvatarMenuOpen(false); setShowCareerStats(true); }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
-                    >
-                      <BarChart2 size={15} className="text-gray-500 flex-shrink-0" /> Career Stats
-                    </button>
-                    <div className="border-t border-card-border/60 my-1" />
-                    <button
-                      onClick={() => { setAvatarMenuOpen(false); handleBack(); }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
-                    >
-                      <Layers size={15} className="text-gray-500 flex-shrink-0" /> All Leagues
-                    </button>
-                    <button
                       onClick={() => { setAvatarMenuOpen(false); handleChangeUser(); }}
                       className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
                     >
@@ -247,30 +201,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Dynamic Content */}
           <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-24 xl:pb-8 flex-1 overflow-y-auto">
             <div className="max-w-[1200px] mx-auto">
-              {showCareerStats ? (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowCareerStats(false)}
-                      className="hidden xl:flex text-gray-400 hover:text-white transition-colors p-1 -ml-1"
-                      aria-label="Back"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Career Stats</h2>
-                      <p className="text-xs text-gray-500 mt-0.5">Your stats across all leagues</p>
-                    </div>
-                  </div>
-                  <CrossLeagueStats
-                    stats={crossStats.data}
-                    isLoading={crossStats.isLoading}
-                    leagueCount={allLeagueGroups.length}
-                  />
-                </div>
-              ) : (
-                children
-              )}
+              {children}
             </div>
           </div>
 
@@ -295,7 +226,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   ['h2h', 'trades'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
-                <MoreHorizontal size={20} />
+                <Layers size={20} />
                 <span>More</span>
               </button>
             </div>
@@ -366,25 +297,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <div className="text-sm font-semibold text-white">{userDisplayName}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setLeagueSheetOpen(false);
-                      setShowCareerStats(false);
-                      if (userId) handleSelectManager(userId);
-                      handleTabChange('managers');
-                    }}
-                    className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    onClick={() => { setLeagueSheetOpen(false); handleChangeUser(); }}
-                    className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    Change
-                  </button>
-                </div>
+                <button
+                  onClick={() => { setLeagueSheetOpen(false); handleChangeUser(); }}
+                  className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  Switch User
+                </button>
               </div>
             )}
 
@@ -450,28 +368,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
 
-            {/* Career Stats — only if logged in */}
+            {/* Career Stats */}
             {sessionUser && (
               <button
-                onClick={() => { setLeagueSheetOpen(false); setShowCareerStats(true); }}
+                onClick={() => { setLeagueSheetOpen(false); handleCareerStats(); }}
                 className="w-full flex items-center justify-between bg-card-bg rounded-xl p-4 border border-card-border hover:border-gray-500 transition-colors group"
               >
                 <div className="text-left">
                   <div className="font-medium text-white text-sm">Career Stats</div>
                   <div className="text-xs text-gray-500 mt-0.5">Your stats across all leagues</div>
                 </div>
-                <ChevronRight size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0" />
-              </button>
-            )}
-
-            {/* All Leagues */}
-            {sessionUser && (
-              <button
-                onClick={() => { setLeagueSheetOpen(false); handleBack(); }}
-                className="w-full flex items-center justify-between rounded-xl px-4 py-2 transition-colors group"
-              >
-                <span className="text-xs text-gray-500 group-hover:text-gray-300">All Leagues</span>
-                <ChevronRight size={14} className="text-gray-600 group-hover:text-gray-400 flex-shrink-0" />
+                <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
               </button>
             )}
 
