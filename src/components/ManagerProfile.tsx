@@ -3,12 +3,14 @@ import { useMemo, useState } from 'react';
 import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
+import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DraftingTab } from './DraftingTab';
+import { TradingTab } from './TradingTab';
 import {
   Table,
   TableHeader,
@@ -26,10 +28,12 @@ interface Props {
 }
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
+  const [tradingUnlocked, setTradingUnlocked] = useState(false);
   const { data: history, isLoading } = useLeagueHistory(leagueId);
   const draftAnalysis = useLeagueDraftHistory(draftingUnlocked ? leagueId : null);
+  const tradeAnalysis = useLeagueTradeHistory(tradingUnlocked ? leagueId : null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -205,6 +209,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
         onValueChange={(v) => {
           const section = v as typeof activeSection;
           if (section === 'drafting') setDraftingUnlocked(true);
+          if (section === 'trading') setTradingUnlocked(true);
           setActiveSection(section);
         }}
       >
@@ -213,6 +218,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
+          <TabsTrigger value="trading">Trades</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}
@@ -535,6 +541,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
               <div className="text-sm font-medium text-gray-300">Draft analysis unavailable</div>
               <div className="text-xs text-gray-500 mt-1">
                 No completed snake draft data found for this league.
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        {/* TRADING SECTION */}
+        <TabsContent value="trading" className="mt-4">
+          {tradeAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Analyzing trade history…
+            </div>
+          ) : tradeAnalysis.data ? (
+            <TradingTab userId={userId} analysis={tradeAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📋</div>
+              <div className="text-sm font-medium text-gray-300">Trade analysis unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No completed trade data found for this league.
               </div>
             </div>
           )}

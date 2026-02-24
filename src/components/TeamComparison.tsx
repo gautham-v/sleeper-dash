@@ -1,7 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { Loader2, Trophy, Swords, TrendingUp, Shield } from 'lucide-react';
+import { ArrowLeftRight, Loader2, Trophy, Swords, TrendingUp, Shield } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
+import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { calcAllTimeStats, calcH2H } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import type { TeamAllTimeStats, TeamTier } from '../types/sleeper';
@@ -129,6 +130,24 @@ export function TeamComparison({ leagueId }: Props) {
     if (!history || !teamAId || !teamBId || teamAId === teamBId) return null;
     return calcH2H(history, teamAId, teamBId);
   }, [history, teamAId, teamBId]);
+
+  // Fetch trade analysis (lazy — only when both teams selected)
+  const bothSelected = !!(teamAId && teamBId && teamAId !== teamBId);
+  const { data: tradeAnalysis } = useLeagueTradeHistory(bothSelected ? leagueId : null);
+
+  const h2hTrades = useMemo(() => {
+    if (!tradeAnalysis || !teamAId || !teamBId) return [];
+    return tradeAnalysis.allTrades.filter((t) =>
+      t.sides.some((s) => s.userId === teamAId) && t.sides.some((s) => s.userId === teamBId),
+    );
+  }, [tradeAnalysis, teamAId, teamBId]);
+
+  const h2hTradeNetValue = useMemo(() => {
+    return h2hTrades.reduce((sum, t) => {
+      const sideA = t.sides.find((s) => s.userId === teamAId);
+      return sum + (sideA?.netValue ?? 0);
+    }, 0);
+  }, [h2hTrades, teamAId]);
 
   const statsA = teamAId ? allTimeStats.get(teamAId) : null;
   const statsB = teamBId ? allTimeStats.get(teamBId) : null;
@@ -355,6 +374,75 @@ export function TeamComparison({ leagueId }: Props) {
               />
             </div>
           </div>
+
+          {/* Trade history between teams */}
+          {h2hTrades.length > 0 && (
+            <div className="bg-card-bg rounded-xl p-5 border border-card-border">
+              <div className="flex items-center gap-2 mb-4">
+                <ArrowLeftRight size={16} className="text-muted-foreground" />
+                <h3 className="font-semibold text-white">Trade History</h3>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {h2hTrades.length} trade{h2hTrades.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Net value summary */}
+              <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2 mb-3">
+                <span className="text-xs text-muted-foreground">Net trade value for {teamAInfo?.displayName}</span>
+                <span className={`text-sm font-bold tabular-nums ${h2hTradeNetValue > 0 ? 'text-green-400' : h2hTradeNetValue < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {(h2hTradeNetValue >= 0 ? '+' : '') + h2hTradeNetValue.toFixed(1)} pts
+                </span>
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {h2hTrades.map((trade) => {
+                  const sideA = trade.sides.find((s) => s.userId === teamAId);
+                  const sideB = trade.sides.find((s) => s.userId === teamBId);
+                  const POSITION_COLORS: Record<string, string> = {
+                    QB: 'text-red-400', RB: 'text-green-400', WR: 'text-blue-400',
+                    TE: 'text-yellow-400', K: 'text-gray-400', DEF: 'text-purple-400', DST: 'text-purple-400',
+                  };
+                  return (
+                    <div key={trade.transactionId} className="bg-muted/20 rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-muted-foreground">{trade.season} Wk{trade.week}</span>
+                        <span className={`text-xs font-bold tabular-nums ${(sideA?.netValue ?? 0) > 0 ? 'text-green-400' : (sideA?.netValue ?? 0) < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                          {((sideA?.netValue ?? 0) >= 0 ? '+' : '') + (sideA?.netValue ?? 0).toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-start text-xs">
+                        <div>
+                          <div className="text-muted-foreground mb-0.5">{teamAInfo?.displayName} gets</div>
+                          {sideA?.assetsReceived.map((a) => (
+                            <div key={a.playerId} className="flex items-center gap-1">
+                              <span className={`font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
+                              <span className="text-foreground truncate">{a.playerName}</span>
+                            </div>
+                          ))}
+                          {sideA?.picksReceived.map((p, i) => (
+                            <div key={i} className="text-yellow-400">{p.season} Rd{p.round}</div>
+                          ))}
+                        </div>
+                        <div className="self-center text-muted-foreground"><ArrowLeftRight size={12} /></div>
+                        <div className="text-right">
+                          <div className="text-muted-foreground mb-0.5">{teamBInfo?.displayName} gets</div>
+                          {sideB?.assetsReceived.map((a) => (
+                            <div key={a.playerId} className="flex items-center gap-1 justify-end">
+                              <span className="text-foreground truncate">{a.playerName}</span>
+                              <span className={`font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
+                            </div>
+                          ))}
+                          {sideB?.picksReceived.map((p, i) => (
+                            <div key={i} className="text-yellow-400">{p.season} Rd{p.round}</div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Season-by-season breakdown */}
           <div className="bg-card-bg rounded-xl overflow-hidden border border-card-border">
