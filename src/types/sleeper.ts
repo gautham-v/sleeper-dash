@@ -64,6 +64,7 @@ export interface SleeperMatchup {
   starters: string[] | null;
   points: number;
   custom_points: number | null;
+  players_points?: Record<string, number>;
 }
 
 export interface SleeperTransaction {
@@ -333,6 +334,57 @@ export interface AllTimeRecordEntry {
   season?: string;
   week?: number;
   coHolders?: Array<{ holderId: string | null; holder: string; avatar: string | null }>;
+}
+
+// ---- Draft Analysis Types ----
+
+export interface AnalyzedPick {
+  pickNo: number;
+  round: number;
+  playerName: string;
+  playerId: string;
+  position: string;
+  isKeeper: boolean;
+  season: string;
+  seasonPoints: number;
+  replacementLevel: number;
+  war: number;
+  expectedWar: number;
+  surplus: number;
+  hitBust: 'hit' | 'bust' | 'neutral';
+}
+
+export interface DraftClassSeason {
+  season: string;
+  picks: AnalyzedPick[];
+  avgSurplus: number;
+  hitRate: number;
+  bustRate: number;
+  totalWAR: number;
+}
+
+export interface ManagerDraftSummary {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
+  totalWAR: number;
+  totalSurplus: number;
+  avgSurplusPerPick: number;
+  hitRate: number;
+  bustRate: number;
+  bestPick: AnalyzedPick | null;
+  worstPick: AnalyzedPick | null;
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+  gradeColor: string;
+  surplusPercentile: number;
+  leagueRank: number;
+  draftClasses: DraftClassSeason[];
+}
+
+export interface LeagueDraftAnalysis {
+  managerSummaries: Map<string, ManagerDraftSummary>;
+  surplusByUserId: Map<string, number>;
+  hasData: boolean;
 }
 
 export interface BlowoutGame {
