@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, Crown, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -14,6 +14,15 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import type { AnalyzedTrade } from '../types/trade';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 
 const POSITION_COLORS: Record<string, string> = {
   QB: 'text-red-400',
@@ -98,9 +107,12 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
   );
 }
 
+const TRADES_PER_PAGE = 10;
+
 export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const { data: analysis, isLoading } = useLeagueTradeHistory(leagueId);
   const router = useRouter();
+  const [tradePage, setTradePage] = useState(1);
 
   const leaderboard = useMemo(() => {
     if (!analysis) return [];
@@ -254,21 +266,76 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
         </div>
       )}
 
-      {/* Recent Trades */}
-      {analysis.allTrades.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <ArrowLeftRight size={15} className="text-gray-400" />
-            <span className="font-semibold text-white text-sm">All Trades</span>
-            <span className="text-xs text-gray-500">({analysis.allTrades.length})</span>
+      {/* All Trades (paginated) */}
+      {analysis.allTrades.length > 0 && (() => {
+        const totalPages = Math.ceil(analysis.allTrades.length / TRADES_PER_PAGE);
+        const pagedTrades = analysis.allTrades.slice(
+          (tradePage - 1) * TRADES_PER_PAGE,
+          tradePage * TRADES_PER_PAGE,
+        );
+
+        // Build page numbers with ellipsis for large sets
+        const getPageNumbers = () => {
+          if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+          const pages: (number | 'ellipsis')[] = [1];
+          if (tradePage > 3) pages.push('ellipsis');
+          for (let p = Math.max(2, tradePage - 1); p <= Math.min(totalPages - 1, tradePage + 1); p++) {
+            pages.push(p);
+          }
+          if (tradePage < totalPages - 2) pages.push('ellipsis');
+          pages.push(totalPages);
+          return pages;
+        };
+
+        return (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <ArrowLeftRight size={15} className="text-gray-400" />
+              <span className="font-semibold text-white text-sm">All Trades</span>
+              <span className="text-xs text-gray-500">({analysis.allTrades.length})</span>
+            </div>
+            <div className="space-y-3">
+              {pagedTrades.map((trade) => (
+                <TradeCard key={trade.transactionId} trade={trade} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setTradePage((p) => Math.max(1, p - 1))}
+                      disabled={tradePage === 1}
+                    />
+                  </PaginationItem>
+                  {getPageNumbers().map((p, i) =>
+                    p === 'ellipsis' ? (
+                      <PaginationItem key={`ellipsis-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          isActive={p === tradePage}
+                          onClick={() => setTradePage(p)}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setTradePage((p) => Math.min(totalPages, p + 1))}
+                      disabled={tradePage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
-          <div className="space-y-3">
-            {analysis.allTrades.map((trade) => (
-              <TradeCard key={trade.transactionId} trade={trade} />
-            ))}
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

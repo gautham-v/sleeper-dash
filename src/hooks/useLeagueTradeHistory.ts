@@ -59,137 +59,141 @@ function saveToCache(leagueId: string, data: LeagueTradeAnalysis): void {
   }
 }
 
-// ---------- Hook ----------
+// ---------- Core fetch function (exported for use with useQueries) ----------
 
 const TOTAL_SEASON_WEEKS = 18;
 const REGULAR_SEASON_WEEKS = 14;
 
-export function useLeagueTradeHistory(leagueId: string | null) {
-  return useQuery({
-    queryKey: ['league-trade-history', leagueId],
-    queryFn: async (): Promise<LeagueTradeAnalysis> => {
-      // 1. Check localStorage
-      const cached = loadFromCache(leagueId!);
-      if (cached) return cached;
+export async function fetchLeagueTradeAnalysis(leagueId: string): Promise<LeagueTradeAnalysis> {
+  // 1. Check localStorage
+  const cached = loadFromCache(leagueId);
+  if (cached) return cached;
 
-      // 2. Walk the league chain (oldest → newest)
-      const leagueChain: { league_id: string; season: string }[] = [];
-      let currentId = leagueId!;
-      for (let i = 0; i < 8; i++) {
-        const league = await sleeperApi.getLeague(currentId);
-        leagueChain.push({ league_id: league.league_id, season: league.season });
-        if (!league.previous_league_id) break;
-        currentId = league.previous_league_id;
-      }
-      leagueChain.reverse(); // chronological order
+  // 2. Walk the league chain (oldest → newest)
+  const leagueChain: { league_id: string; season: string }[] = [];
+  let currentId = leagueId;
+  for (let i = 0; i < 8; i++) {
+    const league = await sleeperApi.getLeague(currentId);
+    leagueChain.push({ league_id: league.league_id, season: league.season });
+    if (!league.previous_league_id) break;
+    currentId = league.previous_league_id;
+  }
+  leagueChain.reverse(); // chronological order
 
-      // 3. For each season: fetch users, rosters, drafts, matchups, and transactions in parallel
-      const weekNums = Array.from({ length: TOTAL_SEASON_WEEKS }, (_, i) => i + 1);
-      const regularWeekNums = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
+  // 3. For each season: fetch users, rosters, drafts, matchups, and transactions in parallel
+  const weekNums = Array.from({ length: TOTAL_SEASON_WEEKS }, (_, i) => i + 1);
+  const regularWeekNums = Array.from({ length: REGULAR_SEASON_WEEKS }, (_, i) => i + 1);
 
-      const seasonRawData = await Promise.all(
-        leagueChain.map(async ({ league_id, season }) => {
-          const [users, rosters, drafts, ...weekResults] = await Promise.all([
-            sleeperApi.getLeagueUsers(league_id),
-            sleeperApi.getRosters(league_id),
-            sleeperApi.getDrafts(league_id),
-            // Fetch matchups for regular season (weeks 1-14 for player stats)
-            ...regularWeekNums.map((w) => sleeperApi.getMatchups(league_id, w)),
-            // Fetch transactions for all weeks (weeks 1-18)
-            ...weekNums.map((w) => sleeperApi.getTransactions(league_id, w)),
-          ]);
+  const seasonRawData = await Promise.all(
+    leagueChain.map(async ({ league_id, season }) => {
+      const [users, rosters, drafts, ...weekResults] = await Promise.all([
+        sleeperApi.getLeagueUsers(league_id),
+        sleeperApi.getRosters(league_id),
+        sleeperApi.getDrafts(league_id),
+        // Fetch matchups for regular season (weeks 1-14 for player stats)
+        ...regularWeekNums.map((w) => sleeperApi.getMatchups(league_id, w)),
+        // Fetch transactions for all weeks (weeks 1-18)
+        ...weekNums.map((w) => sleeperApi.getTransactions(league_id, w)),
+      ]);
 
-          const weekMatchupResults = weekResults.slice(0, REGULAR_SEASON_WEEKS) as SleeperMatchup[][];
-          const weekTransactionResults = weekResults.slice(REGULAR_SEASON_WEEKS) as SleeperTransaction[][];
+      const weekMatchupResults = weekResults.slice(0, REGULAR_SEASON_WEEKS) as SleeperMatchup[][];
+      const weekTransactionResults = weekResults.slice(REGULAR_SEASON_WEEKS) as SleeperTransaction[][];
 
-          return { league_id, season, users, rosters, drafts, weekMatchupResults, weekTransactionResults };
-        }),
-      );
+      return { league_id, season, users, rosters, drafts, weekMatchupResults, weekTransactionResults };
+    }),
+  );
 
-      // 4. Build player map from all players API (for name resolution)
-      const allPlayers = await sleeperApi.getAllPlayers();
-      const playerMap = new Map<string, { name: string; position: string }>();
-      for (const [id, p] of Object.entries(allPlayers)) {
-        if (p.first_name && p.last_name && p.position) {
-          playerMap.set(id, { name: `${p.first_name} ${p.last_name}`, position: p.position });
-        }
-      }
+  // 4. Build player map from all players API (for name resolution)
+  const allPlayers = await sleeperApi.getAllPlayers();
+  const playerMap = new Map<string, { name: string; position: string }>();
+  for (const [id, p] of Object.entries(allPlayers)) {
+    if (p.first_name && p.last_name && p.position) {
+      playerMap.set(id, { name: `${p.first_name} ${p.last_name}`, position: p.position });
+    }
+  }
 
-      // 5. Fetch draft picks for pick resolution + build resolution map
-      const draftInputs: Array<{ season: string; picks: import('../types/sleeper').SleeperDraftPick[]; playerSeasonPoints: Map<string, number> }> = [];
+  // 5. Fetch draft picks for pick resolution + build resolution map
+  const draftInputs: Array<{ season: string; picks: import('../types/sleeper').SleeperDraftPick[]; playerSeasonPoints: Map<string, number> }> = [];
 
-      await Promise.all(
-        seasonRawData.map(async ({ season, drafts, weekMatchupResults }) => {
-          const draft = drafts.find((d) => d.type === 'snake' && d.status !== 'pre_draft');
-          if (!draft) return;
+  await Promise.all(
+    seasonRawData.map(async ({ season, drafts, weekMatchupResults }) => {
+      const draft = drafts.find((d) => d.type === 'snake' && d.status !== 'pre_draft');
+      if (!draft) return;
 
-          const picks = await sleeperApi.getDraftPicks(draft.draft_id);
-          if (picks.length === 0) return;
+      const picks = await sleeperApi.getDraftPicks(draft.draft_id);
+      if (picks.length === 0) return;
 
-          // Also add pick metadata to playerMap
-          for (const p of picks) {
-            playerMap.set(p.player_id, {
-              name: `${p.metadata.first_name} ${p.metadata.last_name}`,
-              position: p.metadata.position,
-            });
-          }
-
-          const playerSeasonPoints = computePlayerSeasonPoints(weekMatchupResults);
-
-          draftInputs.push({ season, picks, playerSeasonPoints });
-        }),
-      );
-
-      const draftPickResolution = buildDraftPickResolution(draftInputs, playerMap);
-
-      // 6. Build season trade inputs
-      const seasonTradeInputs: SeasonTradeInput[] = [];
-
-      for (const { league_id, season, users, rosters, weekMatchupResults, weekTransactionResults } of seasonRawData) {
-        // Build roster → user map
-        const rosterToUser = new Map<number, string>();
-        for (const roster of rosters) {
-          if (roster.owner_id) rosterToUser.set(roster.roster_id, roster.owner_id);
-        }
-
-        // Build user info map
-        const userInfo = new Map<string, { displayName: string; avatar: string | null }>();
-        for (const u of users) {
-          userInfo.set(u.user_id, { displayName: u.display_name, avatar: u.avatar });
-        }
-
-        // Tag transactions with sourceWeek, filter to completed trades
-        const trades: TaggedTransaction[] = [];
-        for (let w = 0; w < weekNums.length; w++) {
-          const weekTxns = weekTransactionResults[w] ?? [];
-          for (const txn of weekTxns) {
-            if (txn.type === 'trade' && txn.status === 'complete') {
-              trades.push({ ...txn, sourceWeek: weekNums[w], season, leagueId: league_id });
-            }
-          }
-        }
-
-        if (trades.length === 0) continue;
-
-        seasonTradeInputs.push({
-          season,
-          leagueId: league_id,
-          trades,
-          weeklyMatchups: weekMatchupResults,
-          rosterToUser,
-          userInfo,
-          playerMap,
-          draftPickResolution,
+      // Also add pick metadata to playerMap
+      for (const p of picks) {
+        playerMap.set(p.player_id, {
+          name: `${p.metadata.first_name} ${p.metadata.last_name}`,
+          position: p.metadata.position,
         });
       }
 
-      // 7. Run computation
-      const result = computeLeagueTradeAnalysis(seasonTradeInputs);
+      const playerSeasonPoints = computePlayerSeasonPoints(weekMatchupResults);
 
-      // 8. Cache and return
-      saveToCache(leagueId!, result);
-      return result;
-    },
+      draftInputs.push({ season, picks, playerSeasonPoints });
+    }),
+  );
+
+  const draftPickResolution = buildDraftPickResolution(draftInputs, playerMap);
+
+  // 6. Build season trade inputs
+  const seasonTradeInputs: SeasonTradeInput[] = [];
+
+  for (const { league_id, season, users, rosters, weekMatchupResults, weekTransactionResults } of seasonRawData) {
+    // Build roster → user map
+    const rosterToUser = new Map<number, string>();
+    for (const roster of rosters) {
+      if (roster.owner_id) rosterToUser.set(roster.roster_id, roster.owner_id);
+    }
+
+    // Build user info map
+    const userInfo = new Map<string, { displayName: string; avatar: string | null }>();
+    for (const u of users) {
+      userInfo.set(u.user_id, { displayName: u.display_name, avatar: u.avatar });
+    }
+
+    // Tag transactions with sourceWeek, filter to completed trades
+    const trades: TaggedTransaction[] = [];
+    for (let w = 0; w < weekNums.length; w++) {
+      const weekTxns = weekTransactionResults[w] ?? [];
+      for (const txn of weekTxns) {
+        if (txn.type === 'trade' && txn.status === 'complete') {
+          trades.push({ ...txn, sourceWeek: weekNums[w], season, leagueId: league_id });
+        }
+      }
+    }
+
+    if (trades.length === 0) continue;
+
+    seasonTradeInputs.push({
+      season,
+      leagueId: league_id,
+      trades,
+      weeklyMatchups: weekMatchupResults,
+      rosterToUser,
+      userInfo,
+      playerMap,
+      draftPickResolution,
+    });
+  }
+
+  // 7. Run computation
+  const result = computeLeagueTradeAnalysis(seasonTradeInputs);
+
+  // 8. Cache and return
+  saveToCache(leagueId, result);
+  return result;
+}
+
+// ---------- Hook ----------
+
+export function useLeagueTradeHistory(leagueId: string | null) {
+  return useQuery({
+    queryKey: ['league-trade-history', leagueId],
+    queryFn: () => fetchLeagueTradeAnalysis(leagueId!),
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,
   });

@@ -6,6 +6,15 @@ import type { ManagerDraftSummary, AnalyzedPick } from '../types/sleeper';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -135,9 +144,51 @@ interface DraftClassRow {
   bustRate: number;
 }
 
+const DRAFT_PAGE_SIZE = 10;
+
+function buildPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | 'ellipsis')[] = [1];
+  if (current > 3) pages.push('ellipsis');
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
+  if (current < total - 2) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
+
+function DraftPagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  return (
+    <Pagination className="mt-4 pb-2">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} />
+        </PaginationItem>
+        {buildPageNumbers(page, totalPages).map((p, i) =>
+          p === 'ellipsis' ? (
+            <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+          ) : (
+            <PaginationItem key={p}>
+              <PaginationLink isActive={p === page} onClick={() => onPageChange(p)}>{p}</PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 function BestDraftClasses({
   rows, onSelectManager,
 }: { rows: DraftClassRow[]; onSelectManager: (id: string) => void }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(rows.length / DRAFT_PAGE_SIZE);
+  const pagedRows = rows.slice((page - 1) * DRAFT_PAGE_SIZE, page * DRAFT_PAGE_SIZE);
+  const offset = (page - 1) * DRAFT_PAGE_SIZE;
+
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
@@ -157,13 +208,13 @@ function BestDraftClasses({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row, i) => (
+          {pagedRows.map((row, i) => (
             <TableRow
               key={`${row.managerId}-${row.season}`}
               className="border-card-border hover:bg-muted/30 cursor-pointer"
               onClick={() => onSelectManager(row.managerId)}
             >
-              <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
+              <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{offset + i + 1}</TableCell>
               <TableCell className="py-3 px-2">
                 <div className="flex items-center gap-2">
                   <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
@@ -185,6 +236,7 @@ function BestDraftClasses({
           ))}
         </TableBody>
       </Table>
+      <DraftPagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }
@@ -206,6 +258,11 @@ function PickTable({
   rows: PickRow[];
   emptyText: string;
 }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(rows.length / DRAFT_PAGE_SIZE);
+  const pagedRows = rows.slice((page - 1) * DRAFT_PAGE_SIZE, page * DRAFT_PAGE_SIZE);
+  const offset = (page - 1) * DRAFT_PAGE_SIZE;
+
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
@@ -215,56 +272,59 @@ function PickTable({
       {rows.length === 0 ? (
         <p className="px-5 pb-5 text-sm text-gray-500">{emptyText}</p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-card-border hover:bg-transparent">
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Player</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto hidden sm:table-cell">Manager</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Season</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Rd/Pick</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">WAR</TableHead>
-              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto">Surplus</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((pick, i) => {
-              const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
-              return (
-                <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
-                  <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
-                  <TableCell className="py-3 px-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
-                        {pick.position}
-                      </span>
-                      <span className="text-sm font-medium text-white">{pick.playerName}</span>
-                      {pick.isKeeper && (
-                        <span className="text-[10px] text-yellow-500 font-medium">K</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3 px-2 hidden sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <Avatar avatar={pick.managerAvatar} name={pick.managerName} size="sm" />
-                      <span className="text-sm text-gray-300 truncate max-w-[100px]">{pick.managerName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-3 px-2 text-right text-sm text-gray-400 hidden sm:table-cell">{pick.season}</TableCell>
-                  <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400">
-                    R{pick.round} #{pick.pickNo}
-                  </TableCell>
-                  <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
-                    {pick.war.toFixed(1)}
-                  </TableCell>
-                  <TableCell className={`py-3 px-2 pr-4 text-right tabular-nums text-sm font-medium ${surplusColor(pick.surplus)}`}>
-                    {surplusLabel(pick.surplus)}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-card-border hover:bg-transparent">
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Player</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto hidden sm:table-cell">Manager</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Season</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Rd/Pick</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">WAR</TableHead>
+                <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto">Surplus</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagedRows.map((pick, i) => {
+                const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                return (
+                  <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
+                    <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{offset + i + 1}</TableCell>
+                    <TableCell className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
+                          {pick.position}
+                        </span>
+                        <span className="text-sm font-medium text-white">{pick.playerName}</span>
+                        {pick.isKeeper && (
+                          <span className="text-[10px] text-yellow-500 font-medium">K</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-2 hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <Avatar avatar={pick.managerAvatar} name={pick.managerName} size="sm" />
+                        <span className="text-sm text-gray-300 truncate max-w-[100px]">{pick.managerName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-2 text-right text-sm text-gray-400 hidden sm:table-cell">{pick.season}</TableCell>
+                    <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400">
+                      R{pick.round} #{pick.pickNo}
+                    </TableCell>
+                    <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
+                      {pick.war.toFixed(1)}
+                    </TableCell>
+                    <TableCell className={`py-3 px-2 pr-4 text-right tabular-nums text-sm font-medium ${surplusColor(pick.surplus)}`}>
+                      {surplusLabel(pick.surplus)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <DraftPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
     </div>
   );
@@ -305,7 +365,7 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
         });
       }
     }
-    return rows.sort((a, b) => b.avgSurplus - a.avgSurplus).slice(0, 20);
+    return rows.sort((a, b) => b.avgSurplus - a.avgSurplus);
   }, [data]);
 
   // Sections C & D — all picks with manager metadata attached
@@ -323,11 +383,11 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
   }, [data]);
 
   const steals = useMemo(
-    () => [...allPickRows].sort((a, b) => b.surplus - a.surplus).slice(0, 25),
+    () => [...allPickRows].sort((a, b) => b.surplus - a.surplus),
     [allPickRows],
   );
   const busts = useMemo(
-    () => [...allPickRows].sort((a, b) => a.surplus - b.surplus).slice(0, 25),
+    () => [...allPickRows].sort((a, b) => a.surplus - b.surplus),
     [allPickRows],
   );
 
