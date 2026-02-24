@@ -246,6 +246,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               if (section === 'drafting') setDraftingUnlocked(true);
               if (section === 'trading') setTradingUnlocked(true);
               if (section === 'franchise') setFranchiseUnlocked(true);
+              if (section === 'trajectory') setTrajectoryUnlocked(true);
               setActiveSection(section);
             }}
           >
