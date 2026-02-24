@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
 import {
@@ -15,15 +16,71 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
+import { sleeperApi } from '@/api/sleeper';
+import { saveSessionUser } from '@/hooks/useSessionUser';
 
 export default function HomePage() {
   const [value, setValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
-    if (trimmed) router.push(`/user/${encodeURIComponent(trimmed)}`);
+    if (!trimmed || loading) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const user = await sleeperApi.getUser(trimmed);
+      if (!user?.user_id) throw new Error('User not found');
+
+      // Fetch leagues for both active seasons in parallel
+      const [l2024, l2025] = await Promise.all([
+        sleeperApi.getUserLeagues(user.user_id, '2024').catch(() => []),
+        sleeperApi.getUserLeagues(user.user_id, '2025').catch(() => []),
+      ]);
+
+      const allLeagues = [...(l2024 ?? []), ...(l2025 ?? [])];
+      if (allLeagues.length === 0) throw new Error('No leagues found for this user');
+
+      // Group by name
+      const grouped = allLeagues.reduce<Record<string, typeof allLeagues>>((acc, l) => {
+        (acc[l.name] ??= []).push(l);
+        return acc;
+      }, {});
+
+      // Sort groups: longest tenure first (for auto-selection)
+      const byTenure = Object.entries(grouped).sort(([, a], [, b]) => b.length - a.length);
+      // Also sort by most recently active (for session storage)
+      const byRecent = Object.entries(grouped).sort(([, a], [, b]) => {
+        const maxA = Math.max(...a.map((l) => Number(l.season)));
+        const maxB = Math.max(...b.map((l) => Number(l.season)));
+        return maxB - maxA;
+      });
+
+      // Save session
+      saveSessionUser({
+        username: trimmed,
+        userId: user.user_id,
+        displayName: user.display_name,
+        avatar: user.avatar ?? null,
+        leagueGroups: byRecent,
+      });
+
+      // Navigate to the most recent season of the longest-tenured league
+      const [, longestGroup] = byTenure[0];
+      const latestLeague = [...longestGroup].sort(
+        (a, b) => Number(b.season) - Number(a.season),
+      )[0];
+
+      router.push(`/league/${latestLeague.league_id}/overview`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,15 +106,19 @@ export default function HomePage() {
                 id="username"
                 type="text"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => { setValue(e.target.value); setError(null); }}
                 placeholder="e.g. sleeperuser123"
                 autoFocus
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
+                disabled={loading}
                 className="focus-visible:ring-brand-cyan/30 focus-visible:border-brand-cyan/50 h-10"
               />
             </Field>
+            {error && (
+              <p className="mt-2 text-xs text-red-400">{error}</p>
+            )}
           </form>
         </CardContent>
 
@@ -65,11 +126,18 @@ export default function HomePage() {
           <Button
             type="submit"
             form="username-form"
-            disabled={!value.trim()}
+            disabled={!value.trim() || loading}
             size="lg"
             className="w-full font-bold"
           >
-            View Dashboard
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Loading…
+              </>
+            ) : (
+              'View Dashboard'
+            )}
           </Button>
           <p className="text-xs text-muted-foreground text-center">
             Reads public league data from the Sleeper API

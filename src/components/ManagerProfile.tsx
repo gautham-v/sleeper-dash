@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2 } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
   const [tradingUnlocked, setTradingUnlocked] = useState(false);
@@ -158,10 +160,19 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
-        <ChevronLeft size={16} /> Back to Managers
-      </Button>
+      {/* Back button + Career Stats link */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
+          <ChevronLeft size={16} /> Back to Managers
+        </Button>
+        <button
+          onClick={() => router.push(`/user/${userId}`)}
+          className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
+        >
+          <BarChart2 size={13} />
+          View Career Stats
+        </button>
+      </div>
 
       {/* Profile header */}
       <Card className="bg-card-bg border-card-border rounded-2xl">

@@ -1,11 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Loader2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
+import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { Avatar } from './Avatar';
 import type { ManagerDraftSummary, AnalyzedPick } from '../types/sleeper';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -135,14 +144,50 @@ interface DraftClassRow {
   bustRate: number;
 }
 
-const DRAFT_CLASS_PREVIEW = 5;
+const DRAFT_PAGE_SIZE = 10;
+
+function buildPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | 'ellipsis')[] = [1];
+  if (current > 3) pages.push('ellipsis');
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
+  if (current < total - 2) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
+
+function DraftPagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  return (
+    <Pagination className="mt-4 pb-2">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1} />
+        </PaginationItem>
+        {buildPageNumbers(page, totalPages).map((p, i) =>
+          p === 'ellipsis' ? (
+            <PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>
+          ) : (
+            <PaginationItem key={p}>
+              <PaginationLink isActive={p === page} onClick={() => onPageChange(p)}>{p}</PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext onClick={() => onPageChange(Math.min(totalPages, page + 1))} disabled={page === totalPages} />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
 
 function BestDraftClasses({
   rows, onSelectManager,
 }: { rows: DraftClassRow[]; onSelectManager: (id: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? rows : rows.slice(0, DRAFT_CLASS_PREVIEW);
-  const canExpand = rows.length > DRAFT_CLASS_PREVIEW;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(rows.length / DRAFT_PAGE_SIZE);
+  const pagedRows = rows.slice((page - 1) * DRAFT_PAGE_SIZE, page * DRAFT_PAGE_SIZE);
+  const offset = (page - 1) * DRAFT_PAGE_SIZE;
 
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
@@ -163,13 +208,13 @@ function BestDraftClasses({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {visible.map((row, i) => (
+          {pagedRows.map((row, i) => (
             <TableRow
               key={`${row.managerId}-${row.season}`}
               className="border-card-border hover:bg-muted/30 cursor-pointer"
               onClick={() => onSelectManager(row.managerId)}
             >
-              <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
+              <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{offset + i + 1}</TableCell>
               <TableCell className="py-3 px-2">
                 <div className="flex items-center gap-2">
                   <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
@@ -191,14 +236,7 @@ function BestDraftClasses({
           ))}
         </TableBody>
       </Table>
-      {canExpand && (
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 hover:text-gray-300 border-t border-card-border transition-colors"
-        >
-          {expanded ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show all {rows.length}</>}
-        </button>
-      )}
+      <DraftPagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }
@@ -211,8 +249,6 @@ interface PickRow extends AnalyzedPick {
   managerAvatar: string | null;
 }
 
-const PICK_TABLE_PREVIEW = 10;
-
 function PickTable({
   title, icon: Icon, iconClass, rows, emptyText,
 }: {
@@ -222,9 +258,10 @@ function PickTable({
   rows: PickRow[];
   emptyText: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? rows : rows.slice(0, PICK_TABLE_PREVIEW);
-  const canExpand = rows.length > PICK_TABLE_PREVIEW;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(rows.length / DRAFT_PAGE_SIZE);
+  const pagedRows = rows.slice((page - 1) * DRAFT_PAGE_SIZE, page * DRAFT_PAGE_SIZE);
+  const offset = (page - 1) * DRAFT_PAGE_SIZE;
 
   return (
     <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
@@ -249,11 +286,11 @@ function PickTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((pick, i) => {
+              {pagedRows.map((pick, i) => {
                 const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                 return (
                   <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
-                    <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
+                    <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{offset + i + 1}</TableCell>
                     <TableCell className="py-3 px-2">
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
@@ -286,14 +323,7 @@ function PickTable({
               })}
             </TableBody>
           </Table>
-          {canExpand && (
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 hover:text-gray-300 border-t border-card-border transition-colors"
-            >
-              {expanded ? <><ChevronUp size={13} /> Show less</> : <><ChevronDown size={13} /> Show all {rows.length}</>}
-            </button>
-          )}
+          <DraftPagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
     </div>
@@ -335,7 +365,7 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
         });
       }
     }
-    return rows.sort((a, b) => b.avgSurplus - a.avgSurplus).slice(0, 20);
+    return rows.sort((a, b) => b.avgSurplus - a.avgSurplus);
   }, [data]);
 
   // Sections C & D — all picks with manager metadata attached
@@ -353,11 +383,11 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
   }, [data]);
 
   const steals = useMemo(
-    () => [...allPickRows].sort((a, b) => b.surplus - a.surplus).slice(0, 25),
+    () => [...allPickRows].sort((a, b) => b.surplus - a.surplus),
     [allPickRows],
   );
   const busts = useMemo(
-    () => [...allPickRows].sort((a, b) => a.surplus - b.surplus).slice(0, 25),
+    () => [...allPickRows].sort((a, b) => a.surplus - b.surplus),
     [allPickRows],
   );
 

@@ -16,10 +16,8 @@ export type SidebarNavProps = {
   currentWeek: number;
   onChangeLeague: (id: string) => void;
   onTabChange: (tab: TabId) => void;
-  onBack: () => void;
   onClose?: () => void;
-  showCareerStats?: boolean;
-  onShowCareerStats?: () => void;
+  onCareerStats?: () => void;
   onViewMyProfile?: () => void;
   userId?: string;
 };
@@ -27,7 +25,7 @@ export type SidebarNavProps = {
 export function SidebarNav({
   league, leagueId, activeTab, allLeagueGroups, isOffseason, currentWeek,
   onChangeLeague, onTabChange, onClose,
-  showCareerStats, onShowCareerStats,
+  onCareerStats,
 }: SidebarNavProps) {
   const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null!);
@@ -124,7 +122,7 @@ export function SidebarNav({
 
       <nav className="flex-1 overflow-y-auto no-scrollbar px-3 sm:px-4 pb-6 flex flex-col gap-1">
         {TABS.map(({ id, label, icon: Icon }) => {
-          const isActive = activeTab === id && !showCareerStats;
+          const isActive = activeTab === id;
           return (
             <button
               key={id}
@@ -141,18 +139,14 @@ export function SidebarNav({
           );
         })}
 
-        {onShowCareerStats && (
+        {onCareerStats && (
           <>
             <div className="border-t border-card-border/40 my-2" />
             <button
-              onClick={() => { onShowCareerStats(); onClose?.(); }}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative ${
-                showCareerStats
-                  ? 'bg-brand-cyan/10 text-brand-cyan before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-              }`}
+              onClick={() => { onCareerStats(); onClose?.(); }}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start text-gray-400 hover:text-gray-200 hover:bg-white/5"
             >
-              <BarChart2 size={18} className={showCareerStats ? 'text-brand-cyan' : 'text-gray-500'} />
+              <BarChart2 size={18} className="text-gray-500" />
               <span>Career Stats</span>
             </button>
           </>
