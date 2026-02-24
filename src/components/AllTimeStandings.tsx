@@ -19,36 +19,36 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
 
   return (
     <>
-      <Table className="w-full">
+      <Table className="w-full table-fixed">
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">
               #
             </TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">
               Team
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto w-14">
               W–L
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto w-14">
               Win%
             </TableHead>
             {hasPlayoffData && (
               <TableHead
-                className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto hidden sm:table-cell"
+                className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-center h-auto hidden sm:table-cell w-16"
                 title="All-time playoff record"
               >
                 Playoff
               </TableHead>
             )}
             <TableHead
-              className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto hidden sm:table-cell"
+              className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 text-right h-auto hidden sm:table-cell w-16"
               title="Average points per season"
             >
               Avg PF
             </TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 pr-5 text-right h-auto">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-4 px-3 pr-5 text-right h-auto w-14">
               Titles
             </TableHead>
           </TableRow>
@@ -61,7 +61,7 @@ export function AllTimeStandings({ stats, onSelectManager }: AllTimeStandingsPro
               </TableCell>
               <TableCell className="py-3 px-2">
                 <button
-                  className="flex items-center gap-2 text-left group w-full"
+                  className="flex items-center gap-2 text-left group w-full min-w-0"
                   onClick={() => team.userId && onSelectManager?.(team.userId)}
                   disabled={!team.userId || !onSelectManager}
                 >
