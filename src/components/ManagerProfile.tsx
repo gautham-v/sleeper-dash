@@ -166,7 +166,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           <ChevronLeft size={16} /> Back to Managers
         </Button>
         <button
-          onClick={() => router.push(`/user/${userId}`)}
+          onClick={() => router.push(`/league/${leagueId}/career`)}
           className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
         >
           <BarChart2 size={13} />

@@ -82,9 +82,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   const handleCareerStats = () => {
-    if (sessionUser?.username) {
-      router.push(`/user/${encodeURIComponent(sessionUser.username)}`);
-    }
+    router.push(`/league/${leagueId}/career`);
   };
 
   const handleChangeUser = () => {
@@ -92,6 +90,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     clearSessionUser();
     router.push('/');
   };
+
+  const isCareerRoute = pathname.endsWith('/career');
 
   const userId = sessionUser?.userId;
   const userDisplayName = sessionUser?.displayName ?? '';
@@ -107,6 +107,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     onChangeLeague: handleChangeLeague,
     onTabChange: handleTabChange,
     onCareerStats: sessionUser ? handleCareerStats : undefined,
+    careerStatsActive: isCareerRoute,
     onViewMyProfile: sessionUser && userId
       ? () => { handleSelectManager(userId); handleTabChange('managers'); }
       : undefined,
@@ -145,7 +146,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
                   recordbook.fyi
                 </div>
-                <div className="text-sm font-bold text-white leading-tight">{activeLabel}</div>
+                <div className="text-sm font-bold text-white leading-tight">
+                  {isCareerRoute ? 'Career Stats' : activeLabel}
+                </div>
               </div>
             )}
           </header>
