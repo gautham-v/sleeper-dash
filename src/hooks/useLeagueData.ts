@@ -618,6 +618,8 @@ export function useLeagueHistory(leagueId: string | null) {
             wins: r.settings.wins,
             losses: r.settings.losses,
             pointsFor: r.settings.fpts + (r.settings.fpts_decimal ?? 0) / 100,
+            pointsAgainst: r.settings.fpts_against + (r.settings.fpts_against_decimal ?? 0) / 100,
+            streak: r.metadata?.streak,
             rank: idx + 1,
           });
         });

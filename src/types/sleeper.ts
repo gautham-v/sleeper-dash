@@ -156,6 +156,8 @@ export interface HistoricalSeason {
     wins: number;
     losses: number;
     pointsFor: number;
+    pointsAgainst: number;
+    streak?: string;
     rank: number;
   }>;
   matchups: WeeklyMatchup[];

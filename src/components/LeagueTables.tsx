@@ -26,6 +26,20 @@ interface LeagueTablesProps {
 }
 
 function buildStandingsFromHistory(season: NonNullable<ReturnType<typeof useLeagueHistory>['data']>[number]): TeamStanding[] {
+  // Compute playoff W/L records from matchup data
+  const playoffMatchups = season.matchups.filter((m) => m.isPlayoff);
+  const playoffRecordsMap = new Map<number, { wins: number; losses: number }>();
+  for (const m of playoffMatchups) {
+    if (m.team1.points === 0 && m.team2.points === 0) continue;
+    const [winner, loser] = m.team1.points >= m.team2.points ? [m.team1, m.team2] : [m.team2, m.team1];
+    const wRec = playoffRecordsMap.get(winner.rosterId) ?? { wins: 0, losses: 0 };
+    wRec.wins++;
+    playoffRecordsMap.set(winner.rosterId, wRec);
+    const lRec = playoffRecordsMap.get(loser.rosterId) ?? { wins: 0, losses: 0 };
+    lRec.losses++;
+    playoffRecordsMap.set(loser.rosterId, lRec);
+  }
+
   return Array.from(season.teams.values())
     .map((team) => ({
       rosterId: team.rosterId,
@@ -37,8 +51,11 @@ function buildStandingsFromHistory(season: NonNullable<ReturnType<typeof useLeag
       losses: team.losses,
       ties: 0,
       pointsFor: team.pointsFor,
-      pointsAgainst: 0,
+      pointsAgainst: team.pointsAgainst,
       pointsForDecimal: 0,
+      streak: team.streak,
+      playoffWins: playoffRecordsMap.get(team.rosterId)?.wins,
+      playoffLosses: playoffRecordsMap.get(team.rosterId)?.losses,
     }))
     .sort((a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor);
 }
