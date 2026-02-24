@@ -730,6 +730,20 @@ export function useYearOverYear(leagueId: string | null) {
   });
 }
 
+export interface LeagueCareerBreakdown {
+  rootLeagueId: string;
+  leagueName: string;
+  leagueAvatar: string | null;
+  seasons: string[];
+  wins: number;
+  losses: number;
+  playoffWins: number;
+  playoffLosses: number;
+  titles: number;
+  bestSeasonRecord: { season: string; wins: number; losses: number } | null;
+  worstSeasonRecord: { season: string; wins: number; losses: number } | null;
+}
+
 export interface CrossLeagueUserStats {
   totalWins: number;
   totalLosses: number;
@@ -738,12 +752,16 @@ export interface CrossLeagueUserStats {
   titles: number;
   totalSeasons: number;
   avgPointsFor: number;
+  leagueBreakdown: LeagueCareerBreakdown[];
+  bestSingleSeasonRecord: { leagueName: string; wins: number; losses: number; season: string } | null;
+  worstSingleSeasonRecord: { leagueName: string; wins: number; losses: number; season: string } | null;
 }
 
 /**
  * Aggregates a user's stats across all their leagues by walking each root
  * league's previous_league_id chain and summing wins, losses, championships,
- * playoff records, and points.
+ * playoff records, and points. Also computes per-league breakdowns and
+ * best/worst single-season records.
  */
 export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: string[]) {
   const stableKey = [...rootLeagueIds].sort().join(',');
@@ -752,25 +770,50 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
     queryFn: async (): Promise<CrossLeagueUserStats | null> => {
       if (!userId || rootLeagueIds.length === 0) return null;
 
-      // Walk each root league's chain to collect all seasons
-      const allSeasons: { league_id: string; playoff_week_start: number }[] = [];
+      // Walk each root league's chain, grouping seasons by root league
+      const rootLeagueData: {
+        rootLeagueId: string;
+        leagueName: string;
+        leagueAvatar: string | null;
+        seasons: { league_id: string; season: string; playoff_week_start: number }[];
+      }[] = [];
+
       const visitedIds = new Set<string>();
 
       for (const rootId of rootLeagueIds) {
+        const seasons: { league_id: string; season: string; playoff_week_start: number }[] = [];
+        let leagueName = '';
+        let leagueAvatar: string | null = null;
         let currentId = rootId;
+
         for (let i = 0; i < 10; i++) {
           if (visitedIds.has(currentId)) break;
           visitedIds.add(currentId);
           const lg = await sleeperApi.getLeague(currentId);
-          allSeasons.push({ league_id: lg.league_id, playoff_week_start: lg.settings.playoff_week_start || 15 });
+          if (i === 0) {
+            leagueName = lg.name;
+            leagueAvatar = lg.avatar;
+          }
+          seasons.push({
+            league_id: lg.league_id,
+            season: lg.season,
+            playoff_week_start: lg.settings.playoff_week_start || 15,
+          });
           if (!lg.previous_league_id) break;
           currentId = lg.previous_league_id;
         }
+
+        rootLeagueData.push({ rootLeagueId: rootId, leagueName, leagueAvatar, seasons });
       }
+
+      // Flatten all seasons tagged with their root league
+      const allSeasonTasks = rootLeagueData.flatMap(({ rootLeagueId, leagueName, seasons }) =>
+        seasons.map((s) => ({ ...s, rootLeagueId, leagueName })),
+      );
 
       // Fetch per-season data in parallel
       const seasonResults = await Promise.all(
-        allSeasons.map(async ({ league_id, playoff_week_start }) => {
+        allSeasonTasks.map(async ({ league_id, season, playoff_week_start, rootLeagueId, leagueName }) => {
           const [rosters, , bracket] = await Promise.all([
             sleeperApi.getRosters(league_id),
             sleeperApi.getLeagueUsers(league_id),
@@ -824,6 +867,9 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
           }
 
           return {
+            rootLeagueId,
+            leagueName,
+            season,
             wins: userRoster.settings.wins,
             losses: userRoster.settings.losses,
             pointsFor: userRoster.settings.fpts + (userRoster.settings.fpts_decimal ?? 0) / 100,
@@ -836,6 +882,26 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
 
       let totalWins = 0, totalLosses = 0, playoffWins = 0, playoffLosses = 0;
       let titles = 0, totalSeasons = 0, totalPointsFor = 0;
+      let bestSingleSeasonRecord: CrossLeagueUserStats['bestSingleSeasonRecord'] = null;
+      let worstSingleSeasonRecord: CrossLeagueUserStats['worstSingleSeasonRecord'] = null;
+
+      // Build per-league breakdown map
+      const leagueBreakdownMap = new Map<string, LeagueCareerBreakdown>();
+      for (const { rootLeagueId, leagueName, leagueAvatar } of rootLeagueData) {
+        leagueBreakdownMap.set(rootLeagueId, {
+          rootLeagueId,
+          leagueName,
+          leagueAvatar,
+          seasons: [],
+          wins: 0,
+          losses: 0,
+          playoffWins: 0,
+          playoffLosses: 0,
+          titles: 0,
+          bestSeasonRecord: null,
+          worstSeasonRecord: null,
+        });
+      }
 
       for (const r of seasonResults) {
         if (!r) continue;
@@ -846,11 +912,75 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
         playoffWins += r.playoffWins;
         playoffLosses += r.playoffLosses;
         totalSeasons++;
+
+        const totalGames = r.wins + r.losses;
+        const winPct = totalGames > 0 ? r.wins / totalGames : 0;
+
+        // Update best/worst single season (require at least 8 games to be meaningful)
+        if (totalGames >= 8) {
+          if (!bestSingleSeasonRecord) {
+            bestSingleSeasonRecord = { leagueName: r.leagueName, wins: r.wins, losses: r.losses, season: r.season };
+          } else {
+            const bestPct = bestSingleSeasonRecord.wins / (bestSingleSeasonRecord.wins + bestSingleSeasonRecord.losses);
+            if (winPct > bestPct) {
+              bestSingleSeasonRecord = { leagueName: r.leagueName, wins: r.wins, losses: r.losses, season: r.season };
+            }
+          }
+          if (!worstSingleSeasonRecord) {
+            worstSingleSeasonRecord = { leagueName: r.leagueName, wins: r.wins, losses: r.losses, season: r.season };
+          } else {
+            const worstPct = worstSingleSeasonRecord.wins / (worstSingleSeasonRecord.wins + worstSingleSeasonRecord.losses);
+            if (winPct < worstPct) {
+              worstSingleSeasonRecord = { leagueName: r.leagueName, wins: r.wins, losses: r.losses, season: r.season };
+            }
+          }
+        }
+
+        // Update per-league breakdown
+        const entry = leagueBreakdownMap.get(r.rootLeagueId);
+        if (entry) {
+          entry.seasons.push(r.season);
+          entry.wins += r.wins;
+          entry.losses += r.losses;
+          entry.playoffWins += r.playoffWins;
+          entry.playoffLosses += r.playoffLosses;
+          if (r.isChampion) entry.titles++;
+
+          if (!entry.bestSeasonRecord) {
+            entry.bestSeasonRecord = { season: r.season, wins: r.wins, losses: r.losses };
+          } else {
+            const bestPct = entry.bestSeasonRecord.wins / (entry.bestSeasonRecord.wins + entry.bestSeasonRecord.losses);
+            if (totalGames > 0 && winPct > bestPct) {
+              entry.bestSeasonRecord = { season: r.season, wins: r.wins, losses: r.losses };
+            }
+          }
+          if (!entry.worstSeasonRecord) {
+            entry.worstSeasonRecord = { season: r.season, wins: r.wins, losses: r.losses };
+          } else {
+            const worstPct = entry.worstSeasonRecord.wins / (entry.worstSeasonRecord.wins + entry.worstSeasonRecord.losses);
+            if (totalGames > 0 && winPct < worstPct) {
+              entry.worstSeasonRecord = { season: r.season, wins: r.wins, losses: r.losses };
+            }
+          }
+        }
       }
 
       if (totalSeasons === 0) return null;
 
-      return { totalWins, totalLosses, playoffWins, playoffLosses, titles, totalSeasons, avgPointsFor: totalPointsFor / totalSeasons };
+      const leagueBreakdown = [...leagueBreakdownMap.values()].filter((b) => b.seasons.length > 0);
+
+      return {
+        totalWins,
+        totalLosses,
+        playoffWins,
+        playoffLosses,
+        titles,
+        totalSeasons,
+        avgPointsFor: totalPointsFor / totalSeasons,
+        leagueBreakdown,
+        bestSingleSeasonRecord,
+        worstSingleSeasonRecord,
+      };
     },
     enabled: !!userId && rootLeagueIds.length > 0,
     staleTime: 1000 * 60 * 30,

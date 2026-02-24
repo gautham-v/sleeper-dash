@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Trophy,
-  Users,
   Loader2,
-  ChevronRight,
   UserCircle,
+  ChevronRight,
+  Trophy,
+  ArrowLeftRight,
+  Target,
+  Users,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Item,
   ItemMedia,
@@ -27,7 +27,16 @@ import {
   ItemSeparator,
 } from '@/components/ui/item';
 import { useUser, useUserLeaguesAllSeasons, useCrossLeagueStats } from '@/hooks/useLeagueData';
-import { CrossLeagueStats } from '@/components/CrossLeagueStats';
+import {
+  useCrossLeagueTradeStats,
+  useCrossLeagueDraftStats,
+  useCrossLeagueRosters,
+  type LeagueRef,
+} from '@/hooks/useCrossLeagueAnalytics';
+import { CareerOverview } from '@/components/CareerOverview';
+import { CareerTrades } from '@/components/CareerTrades';
+import { CareerDrafts } from '@/components/CareerDrafts';
+import { CareerHoldings } from '@/components/CareerHoldings';
 import { avatarUrl } from '@/utils/calculations';
 import { saveSessionUser } from '@/hooks/useSessionUser';
 import type { SleeperLeague } from '@/types/sleeper';
@@ -36,6 +45,9 @@ export default function UserPage() {
   const { username } = useParams<{ username: string }>();
   const router = useRouter();
   const decodedUsername = decodeURIComponent(username);
+
+  // Track which tabs have been activated for lazy loading
+  const [activatedTabs, setActivatedTabs] = useState<Set<string>>(new Set(['overview']));
 
   const user = useUser(decodedUsername);
   const leagues = useUserLeaguesAllSeasons(user.data?.user_id ?? '');
@@ -51,14 +63,38 @@ export default function UserPage() {
     return maxB - maxA;
   });
 
-  const rootLeagueIds = sortedGroups.map(([, group]) => {
+  // Root league IDs (most recent season per league group)
+  const rootLeagues: LeagueRef[] = sortedGroups.map(([name, group]) => {
     const sorted = [...group].sort((a, b) => Number(b.season) - Number(a.season));
-    return sorted[0].league_id;
+    return { leagueId: sorted[0].league_id, leagueName: name };
   });
 
+  const rootLeagueIds = rootLeagues.map((l) => l.leagueId);
+
+  // Core cross-league stats (loaded eagerly)
   const crossStats = useCrossLeagueStats(
     leagues.isLoading ? undefined : user.data?.user_id,
     rootLeagueIds,
+  );
+
+  // Analytics hooks (lazy — only active once respective tab is first opened)
+  const tradesEnabled = activatedTabs.has('trades') && !!user.data?.user_id && rootLeagues.length > 0;
+  const draftsEnabled = activatedTabs.has('drafts') && !!user.data?.user_id && rootLeagues.length > 0;
+  const holdingsEnabled = activatedTabs.has('holdings') && !!user.data?.user_id && rootLeagues.length > 0;
+
+  const tradeStats = useCrossLeagueTradeStats(
+    tradesEnabled ? user.data?.user_id : undefined,
+    tradesEnabled ? rootLeagues : [],
+  );
+
+  const draftStats = useCrossLeagueDraftStats(
+    draftsEnabled ? user.data?.user_id : undefined,
+    draftsEnabled ? rootLeagues : [],
+  );
+
+  const rosterData = useCrossLeagueRosters(
+    holdingsEnabled ? user.data?.user_id : undefined,
+    holdingsEnabled ? rootLeagues : [],
   );
 
   // Save session when user + league data is ready
@@ -83,7 +119,12 @@ export default function UserPage() {
     router.push('/');
   };
 
-  // Loading state
+  const handleTabChange = (tab: string) => {
+    setActivatedTabs((prev) => new Set([...prev, tab]));
+  };
+
+  // ── Loading states ──────────────────────────────────────────
+
   if (user.isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-base-bg">
@@ -92,7 +133,6 @@ export default function UserPage() {
     );
   }
 
-  // Error state
   if (user.isError || !user.data) {
     return (
       <div className="min-h-screen bg-base-bg flex items-center justify-center px-4">
@@ -128,10 +168,13 @@ export default function UserPage() {
 
   const totalLeagues = sortedGroups.length;
 
+  // ── Main render ─────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-base-bg text-white flex flex-col items-center">
-      <div className="relative z-10 w-full max-w-lg px-4 py-10 sm:py-14 space-y-5 pb-16">
+      <div className="relative z-10 w-full max-w-2xl px-4 py-8 sm:py-12 space-y-5 pb-20">
 
+        {/* User header */}
         <Card className="border-card-border bg-card-bg">
           <CardContent className="flex items-center justify-between py-4 px-5">
             <div className="flex items-center gap-3">
@@ -167,91 +210,130 @@ export default function UserPage() {
           </CardContent>
         </Card>
 
-        <div className="flex items-baseline gap-3 px-1">
-          <h1 className="text-xl font-bold text-white">Your Leagues</h1>
-          <span className="text-xs text-gray-500 font-medium">
-            {totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}
-          </span>
-        </div>
-
-        {totalLeagues > 0 && (
-          <CrossLeagueStats
-            stats={crossStats.data}
-            isLoading={crossStats.isLoading}
-            leagueCount={totalLeagues}
-          />
-        )}
-
-        {sortedGroups.length > 0 ? (
-          <Card className="border-card-border bg-card-bg overflow-hidden">
-            <ItemGroup>
-              {sortedGroups.map(([name, group], idx) => {
-                const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
-                const latest = seasons[0];
-
-                return (
-                  <React.Fragment key={name}>
-                    {idx > 0 && <ItemSeparator className="bg-card-border/60" />}
-                    <Item
-                      asChild
-                      className="rounded-none hover:bg-white/5 transition-colors cursor-pointer text-white"
-                    >
-                      <button onClick={() => handleSelectLeague(latest.league_id)}>
-                        <ItemMedia className="size-11 rounded-lg overflow-hidden shrink-0 self-center">
-                          {latest.avatar ? (
-                            <img
-                              src={avatarUrl(latest.avatar) ?? ''}
-                              alt={name}
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            <div className="size-full bg-brand-purple/15 flex items-center justify-center text-brand-purple font-bold text-base border border-brand-purple/20 rounded-lg">
-                              {name.slice(0, 2)}
-                            </div>
-                          )}
-                        </ItemMedia>
-
-                        <ItemContent>
-                          <ItemTitle className="text-white font-semibold group-hover/item:text-brand-cyan transition-colors">
-                            {name}
-                          </ItemTitle>
-                          <ItemDescription className="flex items-center gap-2 text-gray-500 not-italic">
-                            <span className="flex items-center gap-1">
-                              <Users size={11} />
-                              {latest.settings.num_teams} teams
-                            </span>
-                            <span className="text-gray-700">·</span>
-                            <span className="flex items-center gap-1">
-                              {seasons.map((l) => (
-                                <span
-                                  key={l.league_id}
-                                  className="text-[11px] bg-white/4 px-1.5 py-0.5 rounded border border-card-border/80 font-medium"
-                                >
-                                  {l.season}
-                                </span>
-                              ))}
-                            </span>
-                          </ItemDescription>
-                        </ItemContent>
-
-                        <ItemActions>
-                          <ChevronRight
-                            size={16}
-                            className="text-gray-600 group-hover/item:text-brand-cyan transition-colors"
-                          />
-                        </ItemActions>
-                      </button>
-                    </Item>
-                  </React.Fragment>
-                );
-              })}
-            </ItemGroup>
-          </Card>
-        ) : (
+        {totalLeagues === 0 ? (
           <div className="text-center py-16 text-gray-600">
             <Trophy size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No leagues found for this user.</p>
           </div>
+        ) : (
+          <Tabs defaultValue="overview" onValueChange={handleTabChange}>
+            <TabsList className="w-full bg-card-bg border border-card-border h-10 p-1">
+              <TabsTrigger value="overview" className="flex-1 text-xs gap-1.5 data-[state=active]:bg-white/8 data-[state=active]:text-white">
+                <Trophy size={12} />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="trades" className="flex-1 text-xs gap-1.5 data-[state=active]:bg-white/8 data-[state=active]:text-white">
+                <ArrowLeftRight size={12} />
+                Trades
+              </TabsTrigger>
+              <TabsTrigger value="drafts" className="flex-1 text-xs gap-1.5 data-[state=active]:bg-white/8 data-[state=active]:text-white">
+                <Target size={12} />
+                Drafts
+              </TabsTrigger>
+              <TabsTrigger value="holdings" className="flex-1 text-xs gap-1.5 data-[state=active]:bg-white/8 data-[state=active]:text-white">
+                <Users size={12} />
+                Holdings
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ── Overview tab ── */}
+            <TabsContent value="overview" className="mt-4 space-y-5">
+              <CareerOverview
+                stats={crossStats.data}
+                isLoading={crossStats.isLoading}
+                leagueCount={totalLeagues}
+              />
+
+              {/* League list */}
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-3 px-1">
+                  <h2 className="text-[13px] font-semibold text-gray-300">Your Leagues</h2>
+                  <span className="text-[11px] text-gray-600">
+                    {totalLeagues} {totalLeagues === 1 ? 'league' : 'leagues'}
+                  </span>
+                </div>
+                <Card className="border-card-border bg-card-bg overflow-hidden">
+                  <ItemGroup>
+                    {sortedGroups.map(([name, group], idx) => {
+                      const seasons = [...group].sort((a, b) => Number(b.season) - Number(a.season));
+                      const latest = seasons[0];
+
+                      return (
+                        <React.Fragment key={name}>
+                          {idx > 0 && <ItemSeparator className="bg-card-border/60" />}
+                          <Item
+                            asChild
+                            className="rounded-none hover:bg-white/5 transition-colors cursor-pointer text-white"
+                          >
+                            <button onClick={() => handleSelectLeague(latest.league_id)}>
+                              <ItemMedia className="size-11 rounded-lg overflow-hidden shrink-0 self-center">
+                                {latest.avatar ? (
+                                  <img
+                                    src={avatarUrl(latest.avatar) ?? ''}
+                                    alt={name}
+                                    className="size-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="size-full bg-brand-purple/15 flex items-center justify-center text-brand-purple font-bold text-base border border-brand-purple/20 rounded-lg">
+                                    {name.slice(0, 2)}
+                                  </div>
+                                )}
+                              </ItemMedia>
+
+                              <ItemContent>
+                                <ItemTitle className="text-white font-semibold group-hover/item:text-brand-cyan transition-colors">
+                                  {name}
+                                </ItemTitle>
+                                <ItemDescription className="flex items-center gap-2 text-gray-500 not-italic">
+                                  <span className="flex items-center gap-1">
+                                    <Users size={11} />
+                                    {latest.settings.num_teams} teams
+                                  </span>
+                                  <span className="text-gray-700">·</span>
+                                  <span className="flex items-center gap-1">
+                                    {seasons.map((l) => (
+                                      <span
+                                        key={l.league_id}
+                                        className="text-[11px] bg-white/4 px-1.5 py-0.5 rounded border border-card-border/80 font-medium"
+                                      >
+                                        {l.season}
+                                      </span>
+                                    ))}
+                                  </span>
+                                </ItemDescription>
+                              </ItemContent>
+
+                              <ItemActions>
+                                <ChevronRight
+                                  size={16}
+                                  className="text-gray-600 group-hover/item:text-brand-cyan transition-colors"
+                                />
+                              </ItemActions>
+                            </button>
+                          </Item>
+                        </React.Fragment>
+                      );
+                    })}
+                  </ItemGroup>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* ── Trades tab ── */}
+            <TabsContent value="trades" className="mt-4">
+              <CareerTrades stats={tradeStats} userId={user.data.user_id} />
+            </TabsContent>
+
+            {/* ── Drafts tab ── */}
+            <TabsContent value="drafts" className="mt-4">
+              <CareerDrafts stats={draftStats} />
+            </TabsContent>
+
+            {/* ── Holdings tab ── */}
+            <TabsContent value="holdings" className="mt-4">
+              <CareerHoldings data={rosterData} />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
 
