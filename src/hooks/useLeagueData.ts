@@ -94,6 +94,16 @@ export function useUser(username: string) {
   });
 }
 
+export function useUserById(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => sleeperApi.getUser(userId!),
+    enabled: !!userId,
+    retry: false,
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
 export function useUserLeagues(userId: string | undefined, season: string) {
   return useQuery({
     queryKey: ['leagues', userId, season],
@@ -799,7 +809,7 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
             season: lg.season,
             playoff_week_start: lg.settings.playoff_week_start || 15,
           });
-          if (!lg.previous_league_id) break;
+          if (!lg.previous_league_id || lg.previous_league_id === '0') break;
           currentId = lg.previous_league_id;
         }
 

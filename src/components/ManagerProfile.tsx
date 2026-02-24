@@ -27,9 +27,10 @@ interface Props {
   userId: string;
   onBack: () => void;
   onSelectManager?: (userId: string) => void;
+  onViewCareerStats?: () => void;
 }
 
-export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
+export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onViewCareerStats }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
@@ -210,6 +211,17 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
                   <div className="text-xs text-gray-500">All-Time Points</div>
                 </div>
               </div>
+
+              {/* View Career Stats across all leagues */}
+              {onViewCareerStats && (
+                <button
+                  onClick={() => onViewCareerStats()}
+                  className="mt-3 flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
+                >
+                  <BarChart2 size={13} />
+                  View career stats across all leagues
+                </button>
+              )}
             </div>
           </div>
         </CardContent>
