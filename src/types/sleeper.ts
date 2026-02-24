@@ -422,3 +422,26 @@ export interface FranchiseOutlookResult {
   tier: FranchiseTier;
   warByAgeBucket: { bucket: string; war: number }[];
 }
+
+// ---- All-Time Asset Lifecycle Types ----
+
+export interface AllTimeWARPoint {
+  season: string;
+  week: number;
+  allTimeIndex: number;    // 0-based global week index across all seasons
+  cumulativeWAR: number;   // View 1: continuous cumulative WAR
+  rollingWAR: number;      // View 2: rolling 17-week WAR
+}
+
+export interface ManagerAllTimeWAR {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
+  points: AllTimeWARPoint[];
+}
+
+export interface AllTimeWARAnalysis {
+  managerData: Map<string, ManagerAllTimeWAR>;
+  seasonBoundaries: { season: string; startIndex: number }[];
+  hasData: boolean;
+}

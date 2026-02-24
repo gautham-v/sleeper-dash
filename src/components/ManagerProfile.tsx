@@ -6,6 +6,7 @@ import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { useFranchiseOutlook } from '../hooks/useFranchiseOutlook';
+import { useAllTimeWAR } from '../hooks/useAllTimeWAR';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DraftingTab } from './DraftingTab';
 import { TradingTab } from './TradingTab';
 import { FranchiseOutlookTab } from './FranchiseOutlookTab';
+import { FranchiseTrajectoryTab } from './FranchiseTrajectoryTab';
 import {
   Table,
   TableHeader,
@@ -34,14 +36,16 @@ interface Props {
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onViewCareerStats }: Props) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'franchise'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'franchise' | 'trajectory'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
   const [tradingUnlocked, setTradingUnlocked] = useState(false);
   const [franchiseUnlocked, setFranchiseUnlocked] = useState(false);
+  const [trajectoryUnlocked, setTrajectoryUnlocked] = useState(false);
   const { data: history, isLoading } = useLeagueHistory(leagueId);
   const draftAnalysis = useLeagueDraftHistory(draftingUnlocked ? leagueId : null);
   const tradeAnalysis = useLeagueTradeHistory(tradingUnlocked ? leagueId : null);
   const franchiseOutlook = useFranchiseOutlook(franchiseUnlocked ? leagueId : null);
+  const trajectoryAnalysis = useAllTimeWAR(trajectoryUnlocked ? leagueId : null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -239,6 +243,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           if (section === 'drafting') setDraftingUnlocked(true);
           if (section === 'trading') setTradingUnlocked(true);
           if (section === 'franchise') setFranchiseUnlocked(true);
+          if (section === 'trajectory') setTrajectoryUnlocked(true);
           setActiveSection(section);
         }}
       >
@@ -264,6 +269,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               <SelectItem value="drafting">Drafting</SelectItem>
               <SelectItem value="trading">Trades</SelectItem>
               <SelectItem value="franchise">Franchise</SelectItem>
+              <SelectItem value="trajectory">Trajectory</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -275,6 +281,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
           <TabsTrigger value="trading">Trades</TabsTrigger>
           <TabsTrigger value="franchise">Franchise</TabsTrigger>
+          <TabsTrigger value="trajectory">Trajectory</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}
@@ -635,6 +642,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               <div className="text-sm font-medium text-gray-300">Franchise outlook unavailable</div>
               <div className="text-xs text-gray-500 mt-1">
                 Roster and player age data could not be loaded.
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        {/* TRAJECTORY SECTION */}
+        <TabsContent value="trajectory" className="mt-4">
+          {trajectoryAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Building franchise trajectory…
+            </div>
+          ) : trajectoryAnalysis.data ? (
+            <FranchiseTrajectoryTab userId={userId} analysis={trajectoryAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📈</div>
+              <div className="text-sm font-medium text-gray-300">Trajectory data unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No historical matchup data found for this league.
               </div>
             </div>
           )}
