@@ -46,7 +46,7 @@ interface ChartDatum {
   [userId: string]: number | string;
 }
 
-function CustomTooltip({ active, payload, label, mode }: TooltipProps<number, string> & { mode: ViewMode }) {
+function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> & { mode: ViewMode }) {
   if (!active || !payload || payload.length === 0) return null;
 
   // Get season/week from the first payload entry's data
