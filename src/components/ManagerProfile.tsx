@@ -171,7 +171,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           <ChevronLeft size={16} /> Back to Managers
         </Button>
         <button
-          onClick={() => router.push(`/league/${leagueId}/career`)}
+          onClick={() => onViewCareerStats ? onViewCareerStats() : router.push(`/league/${leagueId}/career`)}
           className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
         >
           <BarChart2 size={13} />
@@ -216,16 +216,6 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                 </div>
               </div>
 
-              {/* View Career Stats across all leagues */}
-              {onViewCareerStats && (
-                <button
-                  onClick={() => onViewCareerStats()}
-                  className="mt-3 flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
-                >
-                  <BarChart2 size={13} />
-                  View career stats across all leagues
-                </button>
-              )}
             </div>
           </div>
         </CardContent>
