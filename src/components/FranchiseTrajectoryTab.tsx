@@ -79,43 +79,17 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
 export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
   const [mode, setMode] = useState<ViewMode>('cumulative');
 
-  const { chartData, colorMap, userIds, seasonBoundaries } = useMemo(() => {
+  const { colorMap, userIds, seasonBoundaries } = useMemo(() => {
     const managers = [...analysis.managerData.values()];
     const ids = managers.map((m) => m.userId);
     const colors = buildColorMap(ids, userId);
-
-    // Find the maximum global index
-    let maxIndex = 0;
-    for (const m of managers) {
-      if (m.points.length > 0) {
-        maxIndex = Math.max(maxIndex, m.points[m.points.length - 1].allTimeIndex);
-      }
-    }
-
-    // Build flat array of chart data points (one entry per global index)
-    const dataMap = new Map<number, ChartDatum>();
-    for (const m of managers) {
-      for (const pt of m.points) {
-        let datum = dataMap.get(pt.allTimeIndex);
-        if (!datum) {
-          datum = { allTimeIndex: pt.allTimeIndex, season: pt.season, week: pt.week };
-          dataMap.set(pt.allTimeIndex, datum);
-        }
-        datum[m.userId] = mode === 'cumulative' ? pt.cumulativeWAR : pt.rollingWAR;
-      }
-    }
-
-    const data = Array.from(dataMap.values()).sort((a, b) => a.allTimeIndex - b.allTimeIndex);
-
     return {
-      chartData: data,
       colorMap: colors,
       userIds: ids,
       seasonBoundaries: analysis.seasonBoundaries,
     };
-  }, [analysis, userId, mode]);
+  }, [analysis, userId]);
 
-  // Rebuild chart data when mode changes (values already in dataMap per userId)
   const modeChartData = useMemo(() => {
     const managers = [...analysis.managerData.values()];
     const dataMap = new Map<number, ChartDatum>();

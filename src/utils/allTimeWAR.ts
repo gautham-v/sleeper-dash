@@ -128,7 +128,6 @@ export function computeAllTimeWAR(
 
     // Build AllTimeWARPoint array with season/week metadata
     const points: AllTimeWARPoint[] = [];
-    let idx = 0;
     for (const { season, startIndex } of seasonBoundaries) {
       // Find how many weeks this manager has for this season
       const nextBoundary = seasonBoundaries.find((b) => b.startIndex > startIndex)?.startIndex ?? globalIndex;
@@ -145,7 +144,6 @@ export function computeAllTimeWAR(
           cumulativeWAR: cumArr[globalIdx],
           rollingWAR: rollingArr[globalIdx] ?? 0,
         });
-        idx++;
       }
     }
 
