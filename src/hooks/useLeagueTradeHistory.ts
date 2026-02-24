@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
+import type { SleeperMatchup, SleeperTransaction } from '../types/sleeper';
 import type { LeagueTradeAnalysis, ManagerTradeSummary, AnalyzedTrade, TaggedTransaction, SeasonTradeInput } from '../types/trade';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { buildDraftPickResolution, computeLeagueTradeAnalysis } from '../utils/tradeCalculations';
@@ -98,8 +99,8 @@ export function useLeagueTradeHistory(leagueId: string | null) {
             ...weekNums.map((w) => sleeperApi.getTransactions(league_id, w)),
           ]);
 
-          const weekMatchupResults = weekResults.slice(0, REGULAR_SEASON_WEEKS);
-          const weekTransactionResults = weekResults.slice(REGULAR_SEASON_WEEKS);
+          const weekMatchupResults = weekResults.slice(0, REGULAR_SEASON_WEEKS) as SleeperMatchup[][];
+          const weekTransactionResults = weekResults.slice(REGULAR_SEASON_WEEKS) as SleeperTransaction[][];
 
           return { league_id, season, users, rosters, drafts, weekMatchupResults, weekTransactionResults };
         }),

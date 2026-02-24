@@ -13,7 +13,7 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
-import type { AnalyzedTrade, ManagerTradeSummary } from '../types/trade';
+import type { AnalyzedTrade } from '../types/trade';
 
 const POSITION_COLORS: Record<string, string> = {
   QB: 'text-red-400',
