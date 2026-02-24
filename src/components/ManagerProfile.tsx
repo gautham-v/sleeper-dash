@@ -4,6 +4,7 @@ import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, 
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
+import { useFranchiseOutlook } from '../hooks/useFranchiseOutlook';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DraftingTab } from './DraftingTab';
 import { TradingTab } from './TradingTab';
+import { FranchiseOutlookTab } from './FranchiseOutlookTab';
 import {
   Table,
   TableHeader,
@@ -28,12 +30,14 @@ interface Props {
 }
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'franchise'>('overview');
   const [draftingUnlocked, setDraftingUnlocked] = useState(false);
   const [tradingUnlocked, setTradingUnlocked] = useState(false);
+  const [franchiseUnlocked, setFranchiseUnlocked] = useState(false);
   const { data: history, isLoading } = useLeagueHistory(leagueId);
   const draftAnalysis = useLeagueDraftHistory(draftingUnlocked ? leagueId : null);
   const tradeAnalysis = useLeagueTradeHistory(tradingUnlocked ? leagueId : null);
+  const franchiseOutlook = useFranchiseOutlook(franchiseUnlocked ? leagueId : null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -210,6 +214,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           const section = v as typeof activeSection;
           if (section === 'drafting') setDraftingUnlocked(true);
           if (section === 'trading') setTradingUnlocked(true);
+          if (section === 'franchise') setFranchiseUnlocked(true);
           setActiveSection(section);
         }}
       >
@@ -219,6 +224,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
           <TabsTrigger value="seasons">Season Log</TabsTrigger>
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
           <TabsTrigger value="trading">Trades</TabsTrigger>
+          <TabsTrigger value="franchise">Franchise</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}
@@ -560,6 +566,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
               <div className="text-sm font-medium text-gray-300">Trade analysis unavailable</div>
               <div className="text-xs text-gray-500 mt-1">
                 No completed trade data found for this league.
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        {/* FRANCHISE OUTLOOK SECTION */}
+        <TabsContent value="franchise" className="mt-4">
+          {franchiseOutlook.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Computing franchise outlook…
+            </div>
+          ) : franchiseOutlook.data ? (
+            <FranchiseOutlookTab userId={userId} data={franchiseOutlook.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">🔭</div>
+              <div className="text-sm font-medium text-gray-300">Franchise outlook unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                Roster and player age data could not be loaded.
               </div>
             </div>
           )}

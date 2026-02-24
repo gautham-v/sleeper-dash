@@ -139,6 +139,7 @@ export interface SleeperPlayer {
   last_name: string;
   position: string | null;
   team: string | null;
+  age?: number;
 }
 
 // Historical / comparison types
@@ -394,4 +395,28 @@ export interface BlowoutGame {
   loser: { rosterId: number; userId?: string; teamName: string; points: number };
   margin: number;
   isPlayoff: boolean;
+}
+
+// ---- Franchise Outlook Types ----
+
+export type FranchiseTier = 'Contender' | 'Fringe' | 'Rebuilding';
+export type AgeCategory = 'Young' | 'Prime' | 'Aging';
+export type RiskCategory = 'Low' | 'Moderate' | 'High' | 'Extreme';
+
+export interface FranchiseOutlookResult {
+  weightedAge: number;
+  ageCategory: AgeCategory;
+  leagueAgePercentile: number;
+  riskScore: number;
+  riskCategory: RiskCategory;
+  currentWAR: number;
+  projectedWAR: { yearOffset: number; totalWAR: number }[];
+  contenderThreshold: number;
+  leagueMedianWAR: number;
+  windowLength: number;
+  currentlyContender: boolean;
+  peakYearOffset: number;
+  peakWAR: number;
+  tier: FranchiseTier;
+  warByAgeBucket: { bucket: string; war: number }[];
 }
