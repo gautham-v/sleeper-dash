@@ -179,6 +179,7 @@ export default function UserPage() {
             stats={crossStats.data}
             isLoading={crossStats.isLoading}
             leagueCount={totalLeagues}
+            displayName={user.data.display_name}
           />
         )}
 

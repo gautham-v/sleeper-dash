@@ -94,6 +94,16 @@ export function useUser(username: string) {
   });
 }
 
+export function useUserById(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => sleeperApi.getUser(userId!),
+    enabled: !!userId,
+    retry: false,
+    staleTime: 1000 * 60 * 60,
+  });
+}
+
 export function useUserLeagues(userId: string | undefined, season: string) {
   return useQuery({
     queryKey: ['leagues', userId, season],

@@ -149,7 +149,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 >
                   <ChevronLeft size={22} />
                 </button>
-                <span className="text-sm font-bold text-white ml-1">Career Stats</span>
+                <span className="text-sm font-bold text-white ml-1">{userDisplayName ? `${userDisplayName} Career Stats` : 'Career Stats'}</span>
               </>
             ) : showingManagerProfile ? (
               <>
@@ -255,14 +255,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       <ChevronLeft size={20} />
                     </button>
                     <div>
-                      <h2 className="text-xl font-bold text-white">Career Stats</h2>
-                      <p className="text-xs text-gray-500 mt-0.5">Your stats across all leagues</p>
+                      <h2 className="text-xl font-bold text-white">{userDisplayName ? `${userDisplayName} Career Stats` : 'Career Stats'}</h2>
+                      <p className="text-xs text-gray-500 mt-0.5">Stats across all leagues</p>
                     </div>
                   </div>
                   <CrossLeagueStats
                     stats={crossStats.data}
                     isLoading={crossStats.isLoading}
                     leagueCount={allLeagueGroups.length}
+                    displayName={userDisplayName || undefined}
                   />
                 </div>
               ) : (
