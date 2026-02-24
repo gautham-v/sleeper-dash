@@ -1,6 +1,7 @@
 'use client';
 
-import { Users, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import type { CrossLeagueRosterData } from '@/hooks/useCrossLeagueAnalytics';
 
 const POSITION_COLORS: Record<string, string> = {
@@ -25,11 +25,15 @@ const POSITION_COLORS: Record<string, string> = {
   DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
 };
 
+const PAGE_SIZE = 10;
+
 interface CareerHoldingsProps {
   data: CrossLeagueRosterData;
 }
 
 export function CareerHoldings({ data }: CareerHoldingsProps) {
+  const [page, setPage] = useState(0);
+
   if (data.isLoading) {
     return (
       <div className="space-y-4 pt-2">
@@ -54,6 +58,9 @@ export function CareerHoldings({ data }: CareerHoldingsProps) {
 
   const uniquePlayers = data.players.length;
   const stackedPlayers = data.players.filter((p) => p.shares > 1).length;
+  const totalPages = Math.ceil(uniquePlayers / PAGE_SIZE);
+  const pageStart = page * PAGE_SIZE;
+  const pagePlayers = data.players.slice(pageStart, pageStart + PAGE_SIZE);
 
   return (
     <div className="space-y-4 pt-2">
@@ -78,73 +85,101 @@ export function CareerHoldings({ data }: CareerHoldingsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="max-h-[520px]">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-card-border/50 hover:bg-transparent sticky top-0 bg-card-bg z-10">
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pl-4">Player</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Pos</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Team</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Shares</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pr-4">Leagues</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.players.map((player) => {
-                    const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
-                    const isStacked = player.shares > 1;
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-card-border/50 hover:bg-transparent">
+                  <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pl-4">Player</TableHead>
+                  <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Pos</TableHead>
+                  <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Team</TableHead>
+                  <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Shares</TableHead>
+                  <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pr-4">Leagues</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagePlayers.map((player) => {
+                  const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                  const isStacked = player.shares > 1;
 
-                    return (
-                      <TableRow
-                        key={player.playerId}
-                        className={`border-card-border/50 hover:bg-white/3 ${isStacked ? 'bg-brand-cyan/3' : ''}`}
-                      >
-                        <TableCell className="pl-4 py-2.5">
-                          <div className="flex items-center gap-2">
-                            {isStacked && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan flex-shrink-0" />
-                            )}
-                            <span className="text-sm font-medium text-white truncate max-w-[140px]">
-                              {player.playerName}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center py-2.5">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posClass}`}>
-                            {player.position}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center py-2.5">
-                          <span className="text-xs text-gray-400">{player.team ?? '—'}</span>
-                        </TableCell>
-                        <TableCell className="text-center py-2.5">
-                          {isStacked ? (
-                            <span className="text-sm font-bold text-brand-cyan">{player.shares}</span>
-                          ) : (
-                            <span className="text-sm text-gray-500">1</span>
+                  return (
+                    <TableRow
+                      key={player.playerId}
+                      className={`border-card-border/50 hover:bg-white/3 ${isStacked ? 'bg-brand-cyan/3' : ''}`}
+                    >
+                      <TableCell className="pl-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          {isStacked && (
+                            <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan flex-shrink-0" />
                           )}
-                        </TableCell>
-                        <TableCell className="py-2.5 pr-4">
-                          <div className="flex flex-wrap gap-1">
-                            {player.leagueNames.map((name, i) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="border-card-border/60 text-gray-500 text-[10px] h-4 px-1.5 truncate max-w-[100px]"
-                              >
-                                {name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          <span className="text-sm font-medium text-white truncate max-w-[140px]">
+                            {player.playerName}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center py-2.5">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posClass}`}>
+                          {player.position}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center py-2.5">
+                        <span className="text-xs text-gray-400">{player.team ?? '—'}</span>
+                      </TableCell>
+                      <TableCell className="text-center py-2.5">
+                        {isStacked ? (
+                          <span className="text-sm font-bold text-brand-cyan">{player.shares}</span>
+                        ) : (
+                          <span className="text-sm text-gray-500">1</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-2.5 pr-4">
+                        <div className="flex flex-wrap gap-1">
+                          {player.leagueNames.map((name, i) => (
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="border-card-border/60 text-gray-500 text-[10px] h-4 px-1.5 truncate max-w-[100px]"
+                            >
+                              {name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-card-border/50">
+              <span className="text-xs text-gray-500">
+                {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, uniquePlayers)} of {uniquePlayers}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 0}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs text-gray-500 tabular-nums px-1">
+                  {page + 1} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-          </ScrollArea>
+          )}
         </CardContent>
       </Card>
 
