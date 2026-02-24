@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, Trophy, TrendingUp } from 'lucide-react';
+import { ChevronDown, Trophy, TrendingUp, Shuffle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -11,6 +11,7 @@ import { LuckIndex } from './LuckIndex';
 import { PowerRankings } from './PowerRankings';
 import { Avatar } from './Avatar';
 import { useLeagueHistory } from '../hooks/useLeagueData';
+import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import {
   calcAllTimeStats, calcAllTimeLuckIndex, calcLuckIndex, calcPowerRankings,
 } from '../utils/calculations';
@@ -42,7 +43,12 @@ function buildStandingsFromHistory(season: NonNullable<ReturnType<typeof useLeag
 
 export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTablesProps) {
   const [selectedSeason, setSelectedSeason] = useState<string>('alltime');
+  const [activeLeagueTab, setActiveLeagueTab] = useState<string>('standings');
+  const [showDraftDelta, setShowDraftDelta] = useState(false);
+  const [draftDeltaSort, setDraftDeltaSort] = useState(false);
+  const [draftUnlocked, setDraftUnlocked] = useState(false);
   const { data: history } = useLeagueHistory(leagueId);
+  const draftHistory = useLeagueDraftHistory(draftUnlocked ? leagueId : null);
 
   const availableSeasons = useMemo(() => {
     if (!history) return [];
@@ -99,6 +105,26 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     ? null
     : (isCurrentSeason ? computed.standings : seasonStandings) ?? [];
 
+  const sortedDisplayStandings = useMemo((): TeamStanding[] | null => {
+    if (!displayStandings) return null;
+    if (!draftDeltaSort || !draftHistory.data) return displayStandings;
+    return [...displayStandings].sort((a, b) => {
+      const sa = draftHistory.data!.surplusByUserId.get(a.userId) ?? -Infinity;
+      const sb = draftHistory.data!.surplusByUserId.get(b.userId) ?? -Infinity;
+      return sb - sa;
+    });
+  }, [displayStandings, draftDeltaSort, draftHistory.data]);
+
+  function handleToggleDraftDelta() {
+    if (!showDraftDelta) {
+      setDraftUnlocked(true);
+      setShowDraftDelta(true);
+    } else {
+      setShowDraftDelta(false);
+      setDraftDeltaSort(false);
+    }
+  }
+
   const displayLuck: LuckEntry[] = selectedSeason === 'alltime'
     ? allTimeLuck
     : (isCurrentSeason ? computed.luckIndex : seasonLuck) ?? [];
@@ -110,7 +136,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
   const selectedLabel = selectedSeason === 'alltime' ? 'All-Time' : selectedSeason;
 
   return (
-    <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden">
+    <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden" onValueChange={setActiveLeagueTab}>
       <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 sm:pt-5 flex-wrap">
         <TabsList className="bg-muted rounded-lg p-1 h-auto gap-0">
           <TabsTrigger
@@ -139,6 +165,24 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
             <span className="hidden sm:inline">Luck Index</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Draft Delta toggle — only visible on standings tab, non-alltime view */}
+        {activeLeagueTab === 'standings' && selectedSeason !== 'alltime' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggleDraftDelta}
+            className={`gap-1.5 text-xs h-7 border-card-border hover:text-foreground hidden sm:flex ${
+              showDraftDelta
+                ? 'border-brand-cyan/50 text-brand-cyan bg-brand-cyan/5'
+                : 'text-muted-foreground'
+            }`}
+            title="Toggle draft surplus column"
+          >
+            <Shuffle size={11} />
+            Draft Δ
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -234,8 +278,15 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
           ) : (
             <div className="p-8 text-center text-muted-foreground text-sm">Loading…</div>
           )
-        ) : displayStandings && displayStandings.length > 0 ? (
-          <Standings standings={displayStandings} onSelectManager={onSelectManager} />
+        ) : sortedDisplayStandings && sortedDisplayStandings.length > 0 ? (
+          <Standings
+            standings={sortedDisplayStandings}
+            onSelectManager={onSelectManager}
+            draftSurplusByUserId={draftHistory.data?.surplusByUserId}
+            showDraftDelta={showDraftDelta}
+            draftDeltaSorted={draftDeltaSort}
+            onDraftDeltaSort={() => setDraftDeltaSort((s) => !s)}
+          />
         ) : (
           <div className="p-8 text-center text-muted-foreground text-sm">Loading…</div>
         )}

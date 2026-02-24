@@ -1,5 +1,6 @@
 import type { TeamStanding } from '../types/sleeper';
 import { Avatar } from './Avatar';
+import { ChevronDown } from 'lucide-react';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -7,9 +8,13 @@ import {
 interface StandingsProps {
   standings: TeamStanding[];
   onSelectManager?: (userId: string) => void;
+  draftSurplusByUserId?: Map<string, number>;
+  showDraftDelta?: boolean;
+  draftDeltaSorted?: boolean;
+  onDraftDeltaSort?: () => void;
 }
 
-export function Standings({ standings, onSelectManager }: StandingsProps) {
+export function Standings({ standings, onSelectManager, draftSurplusByUserId, showDraftDelta, draftDeltaSorted, onDraftDeltaSort }: StandingsProps) {
   const hasPlayoffData = standings.some(
     (s) => (s.playoffWins ?? 0) > 0 || (s.playoffLosses ?? 0) > 0
   );
@@ -48,6 +53,20 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell">
               Streak
             </TableHead>
+            {showDraftDelta && (
+              <TableHead
+                className={`text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell select-none ${
+                  onDraftDeltaSort ? 'cursor-pointer hover:text-foreground' : ''
+                } ${draftDeltaSorted ? 'text-brand-cyan' : 'text-muted-foreground'}`}
+                title="All-time draft surplus — click to sort"
+                onClick={onDraftDeltaSort}
+              >
+                <span className="inline-flex items-center gap-1 justify-end">
+                  Draft Δ
+                  {draftDeltaSorted && <ChevronDown size={11} />}
+                </span>
+              </TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -112,6 +131,19 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
                     <span className="text-muted-foreground/40">—</span>
                   )}
                 </TableCell>
+                {showDraftDelta && (
+                  <TableCell className="py-3 px-2 pr-4 text-right tabular-nums text-sm hidden sm:table-cell">
+                    {(() => {
+                      const s = draftSurplusByUserId?.get(team.userId);
+                      if (s === undefined) return <span className="text-muted-foreground/40">—</span>;
+                      return (
+                        <span className={s >= 0 ? 'text-green-400 font-medium' : 'text-red-400 font-medium'}>
+                          {s >= 0 ? '+' : ''}{s.toFixed(1)}
+                        </span>
+                      );
+                    })()}
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
@@ -124,6 +156,9 @@ export function Standings({ standings, onSelectManager }: StandingsProps) {
         </span>
         {hasPlayoffData && (
           <span className="text-yellow-500/70 hidden sm:inline">Playoff column shows postseason W–L</span>
+        )}
+        {showDraftDelta && (
+          <span className="text-brand-cyan/70 hidden sm:inline">Draft Δ = all-time draft surplus vs. expected value</span>
         )}
       </div>
     </>

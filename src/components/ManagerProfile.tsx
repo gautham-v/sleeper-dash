@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
+import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { DraftingTab } from './DraftingTab';
 import {
   Table,
   TableHeader,
@@ -23,8 +25,10 @@ interface Props {
 }
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Props) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting'>('overview');
+  const [draftingUnlocked, setDraftingUnlocked] = useState(false);
   const { data: history, isLoading } = useLeagueHistory(leagueId);
+  const draftAnalysis = useLeagueDraftHistory(draftingUnlocked ? leagueId : null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -195,11 +199,19 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
       </Card>
 
       {/* Section tabs */}
-      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as 'overview' | 'h2h' | 'seasons')}>
+      <Tabs
+        value={activeSection}
+        onValueChange={(v) => {
+          const section = v as typeof activeSection;
+          if (section === 'drafting') setDraftingUnlocked(true);
+          setActiveSection(section);
+        }}
+      >
         <TabsList className="bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>
+          <TabsTrigger value="drafting">Drafting</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}
@@ -506,6 +518,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager }: Pr
               );
             })()}
           </div>
+        </TabsContent>
+        {/* DRAFTING SECTION */}
+        <TabsContent value="drafting" className="mt-4">
+          {draftAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Analyzing draft history…
+            </div>
+          ) : draftAnalysis.data ? (
+            <DraftingTab userId={userId} analysis={draftAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📋</div>
+              <div className="text-sm font-medium text-gray-300">Draft analysis unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No completed snake draft data found for this league.
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
