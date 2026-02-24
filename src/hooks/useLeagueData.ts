@@ -601,7 +601,8 @@ export function useLeagueHistory(leagueId: string | null) {
 
         const teamsMap = new Map<string, {
           userId: string; rosterId: number; teamName: string; displayName: string;
-          avatar: string | null; wins: number; losses: number; pointsFor: number; rank: number;
+          avatar: string | null; wins: number; losses: number; pointsFor: number;
+          pointsAgainst: number; streak?: string; rank: number;
         }>();
         const rosterToUser = new Map<number, string>();
 
