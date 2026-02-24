@@ -375,6 +375,30 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               </div>
             )}
           </div>
+
+          {/* CTAs for deeper analytics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => { setTrajectoryUnlocked(true); setActiveSection('trajectory'); }}
+              className="flex items-start gap-3 bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-brand-cyan/40 transition-colors group"
+            >
+              <TrendingUp size={18} className="text-brand-cyan mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Trajectory</div>
+                <div className="text-xs text-gray-500 mt-0.5">See this team's all-time WAR chart</div>
+              </div>
+            </button>
+            <button
+              onClick={() => { setFranchiseUnlocked(true); setActiveSection('franchise'); }}
+              className="flex items-start gap-3 bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-brand-cyan/40 transition-colors group"
+            >
+              <TrendingUp size={18} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Outlook</div>
+                <div className="text-xs text-gray-500 mt-0.5">Contender or rebuilding? See the 3-year projection</div>
+              </div>
+            </button>
+          </div>
         </TabsContent>
 
         {/* H2H SECTION */}

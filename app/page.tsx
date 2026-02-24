@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trophy, TrendingUp, Target, ArrowLeftRight, ClipboardList } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
 import {
@@ -18,6 +18,39 @@ import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { sleeperApi } from '@/api/sleeper';
 import { saveSessionUser } from '@/hooks/useSessionUser';
+
+const FEATURE_CARDS = [
+  {
+    icon: Trophy,
+    title: 'All-Time Records',
+    description: 'Championships, win streaks, blowouts, droughts.',
+    color: 'text-yellow-400',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Franchise Trajectory',
+    description: 'Cumulative WAR across your entire league history.',
+    color: 'text-brand-cyan',
+  },
+  {
+    icon: Target,
+    title: 'Franchise Outlook',
+    description: '3-year projections and contender window analysis.',
+    color: 'text-emerald-400',
+  },
+  {
+    icon: ArrowLeftRight,
+    title: 'Trade Intelligence',
+    description: "Who's been winning the deal room?",
+    color: 'text-purple-400',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Draft Leaderboard',
+    description: 'Steals, busts, and grades across all your drafts.',
+    color: 'text-orange-400',
+  },
+] as const;
 
 export default function HomePage() {
   const [value, setValue] = useState('');
@@ -84,7 +117,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-bg flex flex-col items-center justify-center px-4 font-sans gap-5">
+    <div className="min-h-screen bg-base-bg flex flex-col items-center justify-center px-4 font-sans gap-8 py-12">
       <Card className="relative z-10 w-full max-w-sm border-card-border gap-0 py-0">
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
           <span className="text-5xl leading-none">📖</span>
@@ -144,6 +177,23 @@ export default function HomePage() {
           </p>
         </CardFooter>
       </Card>
+
+      {/* Feature preview */}
+      <div className="w-full max-w-xl">
+        <p className="text-center text-xs text-gray-500 uppercase tracking-widest mb-4">What you&apos;ll discover</p>
+        <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible no-scrollbar">
+          {FEATURE_CARDS.map(({ icon: Icon, title, description, color }) => (
+            <div
+              key={title}
+              className="flex-shrink-0 w-44 sm:w-auto bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2"
+            >
+              <Icon size={18} className={color} />
+              <div className="text-sm font-semibold text-white leading-tight">{title}</div>
+              <div className="text-xs text-gray-500 leading-relaxed">{description}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Footer */}
       <div className="flex items-center gap-1.5 text-xs text-gray-600">

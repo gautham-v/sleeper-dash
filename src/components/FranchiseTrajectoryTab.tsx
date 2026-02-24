@@ -18,6 +18,7 @@ import type { AllTimeWARAnalysis } from '../types/sleeper';
 interface Props {
   userId: string;
   analysis: AllTimeWARAnalysis;
+  previewMode?: boolean;
 }
 
 type ViewMode = 'cumulative' | 'rolling';
@@ -76,7 +77,7 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
   );
 }
 
-export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
+export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }: Props) {
   const [mode, setMode] = useState<ViewMode>('cumulative');
 
   const { colorMap, userIds, seasonBoundaries } = useMemo(() => {
@@ -119,7 +120,12 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
   }
 
   return (
-    <div className="bg-card-bg border border-card-border rounded-2xl p-5 space-y-4">
+    <div className={`relative bg-card-bg border border-card-border rounded-2xl p-5 space-y-4 ${previewMode ? 'pointer-events-none select-none' : ''}`}>
+      {/* Gradient fade-out overlay in preview mode */}
+      {previewMode && (
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-card-bg to-transparent rounded-b-2xl z-10 pointer-events-none" />
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-2">
         <TrendingUp size={16} className="text-brand-cyan" />
