@@ -809,7 +809,7 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
             season: lg.season,
             playoff_week_start: lg.settings.playoff_week_start || 15,
           });
-          if (!lg.previous_league_id) break;
+          if (!lg.previous_league_id || lg.previous_league_id === '0') break;
           currentId = lg.previous_league_id;
         }
 
