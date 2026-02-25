@@ -133,8 +133,10 @@ export function TeamComparison({ leagueId }: Props) {
     const signedInInLeague = signedInId ? allUsers.some((u) => u.userId === signedInId) : false;
 
     if (signedInInLeague && signedInId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeamAId(signedInId);
       const firstOther = allUsers.find((u) => u.userId !== signedInId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (firstOther) setTeamBId(firstOther.userId);
     }
     // If signed-in user is not in the league, leave both empty (existing behavior)
