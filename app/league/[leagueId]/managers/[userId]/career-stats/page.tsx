@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Loader2, Trophy, ArrowLeftRight, Target, Users } from 'lucide-react';
+import { ShareButton } from '@/components/ShareButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUserById, useUserLeaguesAllSeasons, useCrossLeagueStats } from '@/hooks/useLeagueData';
 import {
@@ -99,15 +100,18 @@ export default function ManagerCareerStatsPage() {
         Back to {displayName || 'Manager'}
       </button>
 
-      <div>
-        <h1 className="text-xl font-bold text-white">
-          {displayName ? `${displayName} Career Stats` : 'Career Stats'}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {totalLeagues > 0
-            ? `${totalLeagues} ${totalLeagues === 1 ? 'league' : 'leagues'} · all time`
-            : 'Stats across all leagues'}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white">
+            {displayName ? `${displayName} Career Stats` : 'Career Stats'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {totalLeagues > 0
+              ? `${totalLeagues} ${totalLeagues === 1 ? 'league' : 'leagues'} · all time`
+              : 'Stats across all leagues'}
+          </p>
+        </div>
+        <ShareButton className="mt-1" />
       </div>
 
       <Tabs defaultValue="overview" onValueChange={handleTabChange}>

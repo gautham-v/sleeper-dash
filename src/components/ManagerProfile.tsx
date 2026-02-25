@@ -10,6 +10,7 @@ import { useAllTimeWAR } from '../hooks/useAllTimeWAR';
 import { useManagerRosterStats } from '../hooks/useManagerRosterStats';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
+import { ShareButton } from './ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -211,13 +212,16 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
         <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
           <ChevronLeft size={16} /> Back to Managers
         </Button>
-        <button
-          onClick={() => onViewCareerStats ? onViewCareerStats() : router.push(`/league/${leagueId}/career`)}
-          className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
-        >
-          <BarChart2 size={13} />
-          View Career Stats
-        </button>
+        <div className="flex items-center gap-4">
+          <ShareButton />
+          <button
+            onClick={() => onViewCareerStats ? onViewCareerStats() : router.push(`/league/${leagueId}/career`)}
+            className="flex items-center gap-1.5 text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
+          >
+            <BarChart2 size={13} />
+            View Career Stats
+          </button>
+        </div>
       </div>
 
       {/* Profile header */}

@@ -1,11 +1,13 @@
 'use client';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeftRight, Loader2, Trophy, Swords, TrendingUp, Shield } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { calcAllTimeStats, calcH2H } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { useSessionUser } from '../hooks/useSessionUser';
+import { ShareButton } from './ShareButton';
 import type { TeamAllTimeStats, TeamTier } from '../types/sleeper';
 import {
   Select,
@@ -102,11 +104,29 @@ function StatRow({ label, valueA, valueB, higherIsBetter = true }: {
 }
 
 export function TeamComparison({ leagueId }: Props) {
-  const [teamAId, setTeamAId] = useState<string>('');
-  const [teamBId, setTeamBId] = useState<string>('');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [teamAId, setTeamAId] = useState<string>(searchParams.get('a') ?? '');
+  const [teamBId, setTeamBId] = useState<string>(searchParams.get('b') ?? '');
   const defaultsApplied = useRef(false);
 
   const sessionUser = useSessionUser();
+
+  function handleTeamAChange(id: string) {
+    setTeamAId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('a', id);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
+  function handleTeamBChange(id: string) {
+    setTeamBId(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('b', id);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
   const { data: history, isLoading } = useLeagueHistory(leagueId);
 
   const allUsers = useMemo(() => {
@@ -124,24 +144,27 @@ export function TeamComparison({ leagueId }: Props) {
     return Array.from(seen.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [history]);
 
-  // Set defaults once allUsers is ready
+  // Set defaults once allUsers is ready — skip if URL params already specify teams
   useEffect(() => {
     if (defaultsApplied.current || allUsers.length === 0) return;
     defaultsApplied.current = true;
+
+    // If URL already has selections, honour them and don't override
+    if (searchParams.get('a') || searchParams.get('b')) return;
 
     const signedInId = sessionUser?.userId ?? null;
     const signedInInLeague = signedInId ? allUsers.some((u) => u.userId === signedInId) : false;
 
     if (signedInInLeague && signedInId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTeamAId(signedInId);
       const alphabeticalUsers = [...allUsers].sort((a, b) =>
         a.displayName.localeCompare(b.displayName)
       );
       const firstOther = alphabeticalUsers.find((u) => u.userId !== signedInId);
-      if (firstOther) setTeamBId(firstOther.userId);
+      handleTeamAChange(signedInId);
+      if (firstOther) handleTeamBChange(firstOther.userId);
     }
     // If signed-in user is not in the league, leave both empty (existing behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allUsers, sessionUser]);
 
   const allTimeStats = useMemo((): Map<string, TeamAllTimeStats> => {
@@ -201,11 +224,14 @@ export function TeamComparison({ leagueId }: Props) {
     <div className="space-y-6">
       {/* Team selectors */}
       <div className="bg-card-bg rounded-xl p-5 border border-card-border">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Select Teams to Compare</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Select Teams to Compare</h3>
+          {bothSelected && <ShareButton />}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5">Team A</label>
-            <Select value={teamAId} onValueChange={setTeamAId}>
+            <Select value={teamAId} onValueChange={handleTeamAChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Select team —" />
               </SelectTrigger>
@@ -220,7 +246,7 @@ export function TeamComparison({ leagueId }: Props) {
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5">Team B</label>
-            <Select value={teamBId} onValueChange={setTeamBId}>
+            <Select value={teamBId} onValueChange={handleTeamBChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="— Select team —" />
               </SelectTrigger>
