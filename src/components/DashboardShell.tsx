@@ -46,6 +46,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const sessionUser = useSessionUser();
 
   const [leagueSheetOpen, setLeagueSheetOpen] = useState(false);
+  const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
 
@@ -134,28 +136,53 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 flex flex-col min-w-0">
 
           {/* Mobile Top Header */}
-          <header className="xl:hidden h-14 border-b border-card-border px-4 flex items-center bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            {showingManagerProfile ? (
-              <>
+          <header className="xl:hidden h-14 border-b border-card-border px-3 flex items-center justify-between gap-2 bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
+            {/* Left: back button or league avatar */}
+            <div className="w-10 flex items-center">
+              {showingManagerProfile ? (
                 <button
                   onClick={handleBackFromProfile}
-                  className="text-gray-400 hover:text-white transition-colors p-2 -ml-2"
+                  className="text-gray-400 hover:text-white transition-colors p-1 -ml-1"
                   aria-label="Back to managers"
                 >
                   <ChevronLeft size={22} />
                 </button>
-                <span className="text-sm font-bold text-white ml-1">Manager Profile</span>
-              </>
-            ) : (
-              <div className="flex-1 text-center">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
-                  leaguemate.fyi
-                </div>
-                <div className="text-sm font-bold text-white leading-tight">
-                  {isCareerRoute ? 'Career Stats' : activeLabel}
-                </div>
+              ) : (
+                <button
+                  onClick={() => setLeaguePickerOpen(true)}
+                  className="w-8 h-8 rounded-lg border border-card-border hover:border-gray-500 transition-colors overflow-hidden flex-shrink-0 flex items-center justify-center bg-card-bg"
+                  aria-label="League picker"
+                >
+                  {league?.avatar ? (
+                    <img src={avatarUrl(league.avatar) ?? ''} alt={league.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[10px] font-bold text-brand-purple">{league?.name?.slice(0, 2) ?? '??'}</span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Center: title */}
+            <div className="flex-1 text-center">
+              <div className="text-sm font-bold text-white leading-tight">
+                {showingManagerProfile ? 'Manager Profile' : isCareerRoute ? 'Career Stats' : activeLabel}
               </div>
-            )}
+            </div>
+
+            {/* Right: user avatar */}
+            <div className="w-10 flex items-center justify-end">
+              <button
+                onClick={() => setUserMenuOpen(true)}
+                className="w-8 h-8 rounded-full border border-card-border hover:border-gray-500 transition-colors overflow-hidden flex-shrink-0 flex items-center justify-center bg-card-bg"
+                aria-label="User menu"
+              >
+                {userAvatar ? (
+                  <img src={avatarUrl(userAvatar) ?? ''} alt={userDisplayName} className="w-full h-full object-cover" />
+                ) : (
+                  <UserCircle size={18} className="text-muted-foreground" />
+                )}
+              </button>
+            </div>
           </header>
 
           {/* Desktop Top Header */}
@@ -303,45 +330,36 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* User section */}
-            {sessionUser ? (
-              <div className="flex items-center justify-between py-2 border-b border-gray-800">
-                <div className="flex items-center gap-3">
-                  {userAvatar ? (
-                    <img
-                      src={avatarUrl(userAvatar) ?? ''}
-                      alt={userDisplayName}
-                      className="w-9 h-9 rounded-full border border-card-border"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center">
-                      <UserCircle size={18} className="text-brand-cyan/70" />
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
-                    <div className="text-sm font-semibold text-white">{userDisplayName}</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => { setLeagueSheetOpen(false); handleChangeUser(); }}
-                  className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
-                >
-                  Switch User
+            {/* About / Contact */}
+            <div className="border-t border-gray-800 pt-2 flex items-center gap-1">
+              <AboutModal>
+                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
+                  <Info size={12} />
+                  About
                 </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between py-2 border-b border-gray-800">
-                <div className="text-sm text-gray-400">Not signed in</div>
-                <button
-                  onClick={() => { setLeagueSheetOpen(false); router.push('/'); }}
-                  className="text-xs text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-3 py-1.5 transition-colors"
-                >
-                  Sign in
+              </AboutModal>
+              <span className="text-gray-700 text-xs">·</span>
+              <ContactModal>
+                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
+                  <Mail size={12} />
+                  Contact
                 </button>
-              </div>
-            )}
+              </ContactModal>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
+      {/* Mobile League Picker Sheet */}
+      <Sheet open={leaguePickerOpen} onOpenChange={setLeaguePickerOpen}>
+        <SheetContent
+          side="bottom"
+          className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
+        >
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-gray-700" />
+          </div>
+          <div className="px-4 pb-4 space-y-3">
             {/* Current league */}
             <div>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
@@ -382,7 +400,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       return (
                         <button
                           key={latest.league_id}
-                          onClick={() => { handleChangeLeague(latest.league_id); setLeagueSheetOpen(false); }}
+                          onClick={() => { handleChangeLeague(latest.league_id); setLeaguePickerOpen(false); }}
                           className="flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-left transition-colors bg-card-bg border border-card-border text-gray-300 hover:border-gray-500 hover:text-white min-w-0"
                           style={{ maxWidth: '180px' }}
                         >
@@ -404,51 +422,87 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
-            {/* My Profile */}
-            {sessionUser && userId && (
-              <button
-                onClick={() => { setLeagueSheetOpen(false); router.push(`/league/${leagueId}/managers/${userId}`); }}
-                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
-              >
-                <div className="text-left">
-                  <div className="font-medium text-white text-sm">My Profile</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Your manager stats and history</div>
+      {/* Mobile User Menu Sheet */}
+      <Sheet open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+        <SheetContent
+          side="bottom"
+          className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
+        >
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-gray-700" />
+          </div>
+          <div className="px-4 pb-4 space-y-3">
+            {sessionUser ? (
+              <>
+                {/* User info */}
+                <div className="flex items-center gap-3 py-1">
+                  {userAvatar ? (
+                    <img
+                      src={avatarUrl(userAvatar) ?? ''}
+                      alt={userDisplayName}
+                      className="w-10 h-10 rounded-full border border-card-border flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center flex-shrink-0">
+                      <UserCircle size={20} className="text-brand-cyan/70" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
+                    <div className="text-sm font-semibold text-white">{userDisplayName}</div>
+                  </div>
                 </div>
-                <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
-              </button>
-            )}
 
-            {/* Career Stats */}
-            {sessionUser && (
-              <button
-                onClick={() => { setLeagueSheetOpen(false); handleCareerStats(); }}
-                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
-              >
-                <div className="text-left">
-                  <div className="font-medium text-white text-sm">Career Stats</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Your stats across all leagues</div>
-                </div>
-                <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
-              </button>
-            )}
+                {/* My Profile */}
+                {userId && (
+                  <button
+                    onClick={() => { setUserMenuOpen(false); router.push(`/league/${leagueId}/managers/${userId}`); }}
+                    className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
+                  >
+                    <div className="text-left">
+                      <div className="font-medium text-white text-sm">My Profile</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Your manager stats and history</div>
+                    </div>
+                    <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
+                  </button>
+                )}
 
-            {/* About / Contact */}
-            <div className="border-t border-gray-800 pt-2 flex items-center gap-1">
-              <AboutModal>
-                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
-                  <Info size={12} />
-                  About
+                {/* Career Stats */}
+                <button
+                  onClick={() => { setUserMenuOpen(false); handleCareerStats(); }}
+                  className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
+                >
+                  <div className="text-left">
+                    <div className="font-medium text-white text-sm">Career Stats</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Your stats across all leagues</div>
+                  </div>
+                  <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
                 </button>
-              </AboutModal>
-              <span className="text-gray-700 text-xs">·</span>
-              <ContactModal>
-                <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
-                  <Mail size={12} />
-                  Contact
+
+                {/* Switch User */}
+                <button
+                  onClick={() => { setUserMenuOpen(false); handleChangeUser(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+                >
+                  <LogOut size={15} className="text-gray-500 flex-shrink-0" />
+                  Switch User
                 </button>
-              </ContactModal>
-            </div>
+              </>
+            ) : (
+              <div className="py-2 space-y-3">
+                <div className="text-sm text-gray-400 text-center">Not signed in</div>
+                <button
+                  onClick={() => { setUserMenuOpen(false); router.push('/'); }}
+                  className="w-full text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl px-4 py-3 transition-colors"
+                >
+                  Sign in
+                </button>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>
