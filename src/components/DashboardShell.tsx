@@ -168,7 +168,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
               </div>
             </div>
-            {sessionUser && (
+            {sessionUser ? (
               <div className="relative" ref={avatarMenuRef}>
                 <button
                   onClick={() => setAvatarMenuOpen((o) => !o)}
@@ -200,6 +200,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
               </div>
+            ) : (
+              <button
+                onClick={() => router.push('/')}
+                className="text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2 transition-colors"
+              >
+                Sign in
+              </button>
             )}
           </header>
 
@@ -296,8 +303,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* User section — only if logged in */}
-            {sessionUser && (
+            {/* User section */}
+            {sessionUser ? (
               <div className="flex items-center justify-between py-2 border-b border-gray-800">
                 <div className="flex items-center gap-3">
                   {userAvatar ? (
@@ -321,6 +328,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors"
                 >
                   Switch User
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between py-2 border-b border-gray-800">
+                <div className="text-sm text-gray-400">Not signed in</div>
+                <button
+                  onClick={() => { setLeagueSheetOpen(false); router.push('/'); }}
+                  className="text-xs text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  Sign in
                 </button>
               </div>
             )}
