@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, Crown, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowLeftRight, Crown, Trophy } from 'lucide-react';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { Avatar } from './Avatar';
 import {
@@ -119,6 +119,26 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
     return [...analysis.managerSummaries.values()].sort((a, b) => b.totalNetValue - a.totalNetValue);
   }, [analysis]);
 
+  const top3ActiveTraders = useMemo(() => {
+    if (!analysis) return [];
+    return [...analysis.managerSummaries.values()]
+      .sort((a, b) => b.totalTrades - a.totalTrades)
+      .slice(0, 3);
+  }, [analysis]);
+
+  const top3ImpactfulTrades = useMemo(() => {
+    if (!analysis) return [];
+    return [...analysis.allTrades]
+      .map(trade => {
+        const maxVal = Math.max(...trade.sides.map(s => Math.abs(s.netValue)));
+        const winnerSide = trade.sides.find(s => s.netValue >= 0) ?? trade.sides[0];
+        const loserSide = trade.sides.find(s => s !== winnerSide) ?? trade.sides[1];
+        return { trade, winnerSide, loserSide, maxVal };
+      })
+      .sort((a, b) => b.maxVal - a.maxVal)
+      .slice(0, 3);
+  }, [analysis]);
+
   const handleSelectManager = (userId: string) => {
     router.push(`/league/${leagueId}/managers/${userId}`);
   };
@@ -148,104 +168,56 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   return (
     <div className="space-y-6">
       {/* ── Top highlights ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Most Active Trader */}
-        {analysis.mostActiveTrader && (() => {
-          const summary = analysis.managerSummaries.get(analysis.mostActiveTrader!.userId);
-          return (
-            <div className="bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-1.5">
-                <Crown size={13} className="text-gray-400" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Most Active Trader</span>
-              </div>
-              <div className="flex items-center gap-3 mt-1">
-                <Avatar avatar={summary?.avatar ?? null} name={analysis.mostActiveTrader!.displayName} size="md" />
-                <div>
-                  <div className="font-semibold text-white text-sm">{analysis.mostActiveTrader!.displayName}</div>
-                  <div className="text-sm text-gray-400">{analysis.mostActiveTrader!.count} trades</div>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Top 3 Most Active Traders */}
+        {top3ActiveTraders.length > 0 && (
+          <div className="bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Crown size={13} className="text-gray-400" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Most Active Traders</span>
             </div>
-          );
-        })()}
-
-        {/* Biggest Win All-Time */}
-        {analysis.biggestWinAllTime && (() => {
-          const winSide = analysis.biggestWinAllTime.trade.sides.find(
-            (s) => s.userId === analysis.biggestWinAllTime!.userId,
-          );
-          return (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp size={13} className="text-emerald-400" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-emerald-400">Biggest Win All-Time</span>
-              </div>
-              <div className="font-semibold text-white text-sm">{analysis.biggestWinAllTime.displayName}</div>
-              <div className="text-lg font-bold tabular-nums text-emerald-400">
-                {valueLabel(analysis.biggestWinAllTime.netValue)} pts
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {analysis.biggestWinAllTime.trade.season} Week {analysis.biggestWinAllTime.trade.week}
-              </div>
-              {winSide && (winSide.assetsReceived.length > 0 || winSide.picksReceived.length > 0) && (
-                <div className="mt-2 pt-2 border-t border-emerald-500/20 space-y-0.5">
-                  <div className="text-xs text-gray-500 mb-1">Received</div>
-                  {winSide.assetsReceived.slice(0, 3).map((a) => (
-                    <div key={a.playerId} className="flex items-center gap-1 text-xs">
-                      <span className={`font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
-                      <span className="text-gray-300 truncate">{a.playerName}</span>
+            <div className="space-y-2">
+              {top3ActiveTraders.map((manager, idx) => {
+                const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+                return (
+                  <div key={manager.userId} className="flex items-center gap-2">
+                    <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
+                    <Avatar avatar={manager.avatar} name={manager.displayName} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white truncate">{manager.displayName}</div>
                     </div>
-                  ))}
-                  {winSide.picksReceived.slice(0, 2).map((p, i) => (
-                    <div key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</div>
-                  ))}
-                  {(winSide.assetsReceived.length + winSide.picksReceived.length) > 3 && (
-                    <div className="text-xs text-gray-600">+{winSide.assetsReceived.length + winSide.picksReceived.length - 3} more</div>
-                  )}
-                </div>
-              )}
+                    <div className="text-sm text-gray-400 shrink-0 tabular-nums">{manager.totalTrades} trades</div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })()}
+          </div>
+        )}
 
-        {/* Biggest Loss All-Time */}
-        {analysis.biggestLossAllTime && (() => {
-          const lossSide = analysis.biggestLossAllTime.trade.sides.find(
-            (s) => s.userId === analysis.biggestLossAllTime!.userId,
-          );
-          return (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingDown size={13} className="text-red-400" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-red-400">Biggest Loss All-Time</span>
-              </div>
-              <div className="font-semibold text-white text-sm">{analysis.biggestLossAllTime.displayName}</div>
-              <div className="text-lg font-bold tabular-nums text-red-400">
-                {valueLabel(analysis.biggestLossAllTime.netValue)} pts
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {analysis.biggestLossAllTime.trade.season} Week {analysis.biggestLossAllTime.trade.week}
-              </div>
-              {lossSide && (lossSide.assetsSent.length > 0 || lossSide.picksSent.length > 0) && (
-                <div className="mt-2 pt-2 border-t border-red-500/20 space-y-0.5">
-                  <div className="text-xs text-gray-500 mb-1">Gave away</div>
-                  {lossSide.assetsSent.slice(0, 3).map((a) => (
-                    <div key={a.playerId} className="flex items-center gap-1 text-xs">
-                      <span className={`font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
-                      <span className="text-gray-300 truncate">{a.playerName}</span>
-                    </div>
-                  ))}
-                  {lossSide.picksSent.slice(0, 2).map((p, i) => (
-                    <div key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</div>
-                  ))}
-                  {(lossSide.assetsSent.length + lossSide.picksSent.length) > 3 && (
-                    <div className="text-xs text-gray-600">+{lossSide.assetsSent.length + lossSide.picksSent.length - 3} more</div>
-                  )}
-                </div>
-              )}
+        {/* Top 3 Most Impactful Trades */}
+        {top3ImpactfulTrades.length > 0 && (
+          <div className="bg-card-bg border border-card-border rounded-2xl p-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <ArrowLeftRight size={13} className="text-gray-400" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
             </div>
-          );
-        })()}
+            <div className="space-y-3">
+              {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide }, idx) => (
+                <div key={trade.transactionId} className="space-y-1">
+                  <div className="text-[10px] text-gray-600">{idx + 1}. {trade.season} Week {trade.week}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300 truncate max-w-[45%]">{winnerSide?.displayName}</span>
+                    <span className="text-xs font-bold text-emerald-400 tabular-nums">{valueLabel(winnerSide?.netValue ?? 0)} pts</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-300 truncate max-w-[45%]">{loserSide?.displayName}</span>
+                    <span className="text-xs font-bold text-red-400 tabular-nums">{valueLabel(loserSide?.netValue ?? 0)} pts</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Jump to All Trades anchor */}

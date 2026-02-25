@@ -46,6 +46,14 @@ export interface SleeperRoster {
   };
 }
 
+export interface FutureDraftPick {
+  season: string;
+  round: number;
+  roster_id: number;
+  previous_owner_id: number | null;
+  owner_id: number | null;
+}
+
 export interface SleeperLeagueUser {
   user_id: string;
   display_name: string;
@@ -421,6 +429,7 @@ export interface FranchiseOutlookResult {
   peakWAR: number;
   tier: FranchiseTier;
   warByAgeBucket: { bucket: string; war: number }[];
+  futurePicks: FutureDraftPick[];
 }
 
 // ---- All-Time Asset Lifecycle Types ----

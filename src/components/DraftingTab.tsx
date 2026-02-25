@@ -1,4 +1,5 @@
-import { TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { useMemo } from 'react';
+import { TrendingUp, TrendingDown, Target, Users } from 'lucide-react';
 import type { LeagueDraftAnalysis, AnalyzedPick } from '../types/sleeper';
 import {
   Table,
@@ -32,6 +33,22 @@ function surplusColor(surplus: number): string {
 
 function surplusLabel(surplus: number): string {
   return (surplus >= 0 ? '+' : '') + surplus.toFixed(1);
+}
+
+function draftClassGrade(avgSurplus: number): { grade: string; color: string } {
+  if (avgSurplus >= 3)    return { grade: 'A+', color: 'text-emerald-400' };
+  if (avgSurplus >= 1.5)  return { grade: 'A',  color: 'text-emerald-400' };
+  if (avgSurplus >= 0.5)  return { grade: 'B+', color: 'text-green-400' };
+  if (avgSurplus >= 0)    return { grade: 'B',  color: 'text-green-400' };
+  if (avgSurplus >= -0.5) return { grade: 'C',  color: 'text-yellow-400' };
+  if (avgSurplus >= -1.5) return { grade: 'D',  color: 'text-orange-400' };
+  return { grade: 'F', color: 'text-red-400' };
+}
+
+function hitOrBustLabel(surplus: number): { label: string; className: string } {
+  if (surplus > 1)  return { label: 'Hit',     className: 'text-emerald-400' };
+  if (surplus < -1) return { label: 'Bust',    className: 'text-red-400' };
+  return { label: 'Average', className: 'text-gray-400' };
 }
 
 function PickCard({ pick, label, icon: Icon, borderClass }: {
@@ -83,6 +100,13 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
 
   const totalManagers = analysis.managerSummaries.size;
 
+  const allPicks = useMemo(() => {
+    if (!summary) return [];
+    return summary.draftClasses
+      .flatMap(cls => cls.picks)
+      .sort((a, b) => Number(b.season) - Number(a.season) || a.pickNo - b.pickNo);
+  }, [summary]);
+
   return (
     <div className="space-y-4">
       {/* Summary card */}
@@ -132,7 +156,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
         </div>
 
         <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-600">
-          Surplus = pick WAR minus average WAR for that round across all league seasons. Hit = top 30% in round; Bust = bottom 30%.
+          Value Score = how much better/worse a pick performed vs. the average for that draft round. Positive = outperformed expectations. Hit = top 30% in round; Bust = bottom 30%.
         </div>
       </div>
 
@@ -169,8 +193,9 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
             <TableHeader>
               <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
                 <TableHead className="text-left py-2.5 px-5">Season</TableHead>
+                <TableHead className="text-center py-2.5 px-3">Grade</TableHead>
                 <TableHead className="text-center py-2.5 px-3">Picks</TableHead>
-                <TableHead className="text-center py-2.5 px-3">Avg Surplus</TableHead>
+                <TableHead className="text-center py-2.5 px-3">Avg Value</TableHead>
                 <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Hit%</TableHead>
                 <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Bust%</TableHead>
               </TableRow>
@@ -179,6 +204,12 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
               {summary.draftClasses.map((cls) => (
                 <TableRow key={cls.season} className="border-b border-gray-800/60 hover:bg-gray-800/20">
                   <TableCell className="py-3 px-5 font-medium text-white">{cls.season}</TableCell>
+                  <TableCell className="py-3 px-3 text-center">
+                    {(() => {
+                      const { grade, color } = draftClassGrade(cls.avgSurplus);
+                      return <span className={`text-sm font-bold ${color}`}>{grade}</span>;
+                    })()}
+                  </TableCell>
                   <TableCell className="py-3 px-3 text-center text-gray-400 tabular-nums">{cls.picks.length}</TableCell>
                   <TableCell className="py-3 px-3 text-center tabular-nums">
                     <span className={surplusColor(cls.avgSurplus)}>{surplusLabel(cls.avgSurplus)}</span>
@@ -191,6 +222,57 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
                   </TableCell>
                 </TableRow>
               ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* All Drafted Players */}
+      {allPicks.length > 0 && (
+        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+          <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+            <Users size={15} className="text-gray-400" />
+            <span className="font-semibold text-white text-sm">All Drafted Players</span>
+            <span className="text-xs text-gray-600">({allPicks.length})</span>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                <TableHead className="text-left py-2.5 px-5">Player</TableHead>
+                <TableHead className="text-center py-2.5 px-3">Year</TableHead>
+                <TableHead className="text-center py-2.5 px-3">Rd/Pick</TableHead>
+                <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Result</TableHead>
+                <TableHead className="text-right py-2.5 px-5">Value Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allPicks.map((pick, idx) => {
+                const { label, className } = hitOrBustLabel(pick.surplus);
+                const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                return (
+                  <TableRow key={`${pick.season}-${pick.pickNo}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                    <TableCell className="py-3 px-5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
+                          {pick.position}
+                        </span>
+                        <span className="text-sm text-white font-medium truncate">{pick.playerName}</span>
+                        {pick.isKeeper && <span className="text-[10px] text-brand-cyan font-medium ml-1">(K)</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3 px-3 text-center text-sm text-gray-400">{pick.season}</TableCell>
+                    <TableCell className="py-3 px-3 text-center text-sm text-gray-400 tabular-nums">
+                      R{pick.round} #{pick.pickNo}
+                    </TableCell>
+                    <TableCell className="py-3 px-3 text-center hidden sm:table-cell">
+                      <span className={`text-xs font-semibold ${className}`}>{label}</span>
+                    </TableCell>
+                    <TableCell className={`py-3 px-5 text-right tabular-nums text-sm font-bold ${surplusColor(pick.surplus)}`}>
+                      {surplusLabel(pick.surplus)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

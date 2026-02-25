@@ -146,7 +146,12 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
     peakYearOffset,
     peakWAR,
     warByAgeBucket,
+    futurePicks,
   } = result;
+
+  // Summarize future picks by round for display
+  const picks1st = futurePicks.filter((p) => p.round === 1).length;
+  const picks2nd = futurePicks.filter((p) => p.round === 2).length;
 
   // Compute rank among all managers by currentWAR (Franchise Score)
   const allEntries = [...data.values()];
@@ -205,7 +210,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
       </div>
 
       {/* ── Summary cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <SummaryCard label="Roster Age">
           <div className="text-xl font-bold text-white tabular-nums">{weightedAge}</div>
           <div className={`text-xs font-medium mt-0.5 ${
@@ -247,6 +252,24 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
             riskCategory === 'High' ? 'text-orange-400' : 'text-red-400'
           }`}>
             {riskCategory}
+          </div>
+        </SummaryCard>
+
+        <SummaryCard label="Future Picks">
+          <div className="text-xl font-bold text-white tabular-nums">
+            {futurePicks.length > 0 ? futurePicks.length : '—'}
+          </div>
+          <div className="text-xs text-brand-cyan mt-0.5">
+            {futurePicks.length === 0 ? (
+              <span className="text-gray-600">None traded</span>
+            ) : (
+              [
+                picks1st > 0 ? `${picks1st} 1st${picks1st > 1 ? 's' : ''}` : '',
+                picks2nd > 0 ? `${picks2nd} 2nd${picks2nd > 1 ? 's' : ''}` : '',
+              ]
+                .filter(Boolean)
+                .join(', ') || 'Late rounds'
+            )}
           </div>
         </SummaryCard>
       </div>
@@ -421,9 +444,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         <div className="text-xs text-gray-700">
           Projections use static age-curve multipliers derived from historical fantasy production (PPR era).
           Franchise Score = current season points minus positional replacement level. Results are deterministic — no ML.
-        </div>
-        <div className="text-xs text-gray-600 italic">
-          Note: draft capital and future picks are not yet factored into projections.
+          Future pick value is discounted by year (85% per year out) and added to projected WAR for the pick&apos;s draft season.
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type {
   SleeperRoster,
   SleeperPlayer,
+  FutureDraftPick,
   FranchiseOutlookResult,
   FranchiseTier,
   AgeCategory,
@@ -34,6 +35,19 @@ const AGE_CURVES: Record<string, Record<number, number>> = {
 
 const CURVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const MULTIPLIER_FLOOR = 0.4;
+
+// ---- Draft Pick WAR Values ----
+// Expected WAR contribution of an incoming draft pick by round
+const PICK_WAR_BY_ROUND: Record<number, number> = {
+  1: 4.0,
+  2: 2.0,
+  3: 0.8,
+  4: 0.3,
+};
+
+function pickWARValue(round: number): number {
+  return PICK_WAR_BY_ROUND[round] ?? 0.1;
+}
 
 /** Get the age-curve multiplier for a position and age. */
 function getMultiplier(position: string, age: number): number {
@@ -105,6 +119,7 @@ const AGE_BUCKETS = ['22–24', '25–27', '28–30', '31+'];
  * @param playerWARMap - Current-season WAR per player id
  * @param allTeamWARs - Array of all teams' current-season total WAR (for league percentiles)
  * @param allTeamWeightedAges - Array of all teams' weighted ages (for age percentile)
+ * @param futurePicks - Future draft picks owned by this team (from traded_picks API)
  */
 export function computeFranchiseOutlook(
   roster: SleeperRoster,
@@ -112,6 +127,7 @@ export function computeFranchiseOutlook(
   playerWARMap: Map<string, number>,
   allTeamWARs: number[],
   allTeamWeightedAges: number[],
+  futurePicks: FutureDraftPick[] = [],
 ): FranchiseOutlookResult {
   const playerIds = roster.players ?? [];
 
@@ -150,6 +166,7 @@ export function computeFranchiseOutlook(
   const currentWAR = players.reduce((sum, p) => sum + p.currentWAR, 0);
 
   // ── 2. & 3. 3-Year WAR Projection ───────────────────────────────────────
+  const currentYear = new Date().getFullYear();
   const projectedWAR = [1, 2, 3].map((yearOffset) => {
     const totalProjected = players.reduce((sum, p) => {
       const curMult = getMultiplier(p.position, p.age);
@@ -158,7 +175,16 @@ export function computeFranchiseOutlook(
       const ratio = curMult > 0 ? futureMult / curMult : 0;
       return sum + p.currentWAR * ratio;
     }, 0);
-    return { yearOffset, totalWAR: totalProjected };
+
+    // Add discounted expected WAR from future picks arriving this year
+    const targetYear = currentYear + yearOffset;
+    const picksThisYear = futurePicks.filter((p) => Number(p.season) === targetYear);
+    const pickBonus = picksThisYear.reduce(
+      (sum, p) => sum + pickWARValue(p.round) * (0.85 ** yearOffset),
+      0,
+    );
+
+    return { yearOffset, totalWAR: totalProjected + pickBonus };
   });
 
   // ── 4. Age Curve Risk Score ───────────────────────────────────────────────
@@ -230,6 +256,7 @@ export function computeFranchiseOutlook(
     peakWAR: Math.round(peakWAR * 10) / 10,
     tier,
     warByAgeBucket,
+    futurePicks,
   };
 }
 

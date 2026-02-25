@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { computeFranchiseOutlook, computeAllTeamWeightedAges } from '../utils/franchiseOutlook';
-import type { FranchiseOutlookResult, SleeperPlayer } from '../types/sleeper';
+import type { FranchiseOutlookResult, FutureDraftPick, SleeperPlayer } from '../types/sleeper';
 
 const CURVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 
@@ -41,12 +41,13 @@ export function useFranchiseOutlook(leagueId: string | null) {
   return useQuery({
     queryKey: ['franchise-outlook', leagueId],
     queryFn: async (): Promise<Map<string, FranchiseOutlookResult>> => {
-      // 1. Fetch league metadata, rosters, users, and all players in parallel
-      const [league, rosters, , allPlayers] = await Promise.all([
+      // 1. Fetch league metadata, rosters, users, all players, and traded picks in parallel
+      const [league, rosters, , allPlayers, tradedPicks] = await Promise.all([
         sleeperApi.getLeague(leagueId!),
         sleeperApi.getRosters(leagueId!),
         sleeperApi.getLeagueUsers(leagueId!),
         sleeperApi.getAllPlayers(),
+        sleeperApi.getTradedPicks(leagueId!),
       ]);
 
       const playoffStart = league.settings.playoff_week_start || 15;
@@ -91,15 +92,27 @@ export function useFranchiseOutlook(leagueId: string | null) {
         playerWARMap,
       );
 
-      // 8. Compute franchise outlook for each manager
+      // 8. Build a per-roster map of future draft picks owned by each team.
+      //    The traded_picks endpoint returns all picks with their current owner_id (roster_id).
+      const picksByRosterId = new Map<number, FutureDraftPick[]>();
+      for (const pick of tradedPicks) {
+        if (pick.owner_id == null) continue;
+        const arr = picksByRosterId.get(pick.owner_id) ?? [];
+        arr.push(pick);
+        picksByRosterId.set(pick.owner_id, arr);
+      }
+
+      // 9. Compute franchise outlook for each manager
       const results = new Map<string, FranchiseOutlookResult>();
       for (const roster of validRosters) {
+        const rosterPicks = picksByRosterId.get(roster.roster_id) ?? [];
         const result = computeFranchiseOutlook(
           roster,
           allPlayers,
           playerWARMap,
           allTeamWARs,
           allTeamWeightedAges,
+          rosterPicks,
         );
         results.set(roster.owner_id!, result);
       }
