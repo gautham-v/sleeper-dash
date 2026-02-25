@@ -69,13 +69,13 @@ export default function OverviewPage() {
         />
       )}
 
-      {/* Franchise Trajectory Preview */}
+      {/* Franchise Value Preview */}
       {!trajectoryAnalysis.isLoading && trajectoryAnalysis.data?.hasData && trajectoryUserId && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📈</span>
-              <h2 className="text-base font-semibold text-white">Franchise Trajectory</h2>
+              <h2 className="text-base font-semibold text-white">Franchise Value</h2>
             </div>
             <Link
               href={`/league/${leagueId}/franchise`}
@@ -87,16 +87,22 @@ export default function OverviewPage() {
           <FranchiseTrajectoryTab
             userId={trajectoryUserId}
             analysis={trajectoryAnalysis.data}
-            previewMode
           />
         </div>
       )}
 
-      <LeagueTables
-        computed={computed}
-        leagueId={leagueId}
-        onSelectManager={handleSelectManager}
-      />
+      {/* Standings & Stats */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-base">📊</span>
+          <h2 className="text-base font-semibold text-white">Standings &amp; Stats</h2>
+        </div>
+        <LeagueTables
+          computed={computed}
+          leagueId={leagueId}
+          onSelectManager={handleSelectManager}
+        />
+      </div>
     </div>
   );
 }

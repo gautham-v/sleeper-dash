@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
+import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers, Star } from 'lucide-react';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { Avatar } from './Avatar';
 import type { ManagerDraftSummary, AnalyzedPick } from '../types/sleeper';
@@ -250,11 +250,12 @@ interface PickRow extends AnalyzedPick {
 }
 
 function PickTable({
-  title, icon: Icon, iconClass, rows, emptyText,
+  title, icon: Icon, iconClass, containerClass, rows, emptyText,
 }: {
   title: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   iconClass: string;
+  containerClass?: string;
   rows: PickRow[];
   emptyText: string;
 }) {
@@ -264,7 +265,7 @@ function PickTable({
   const offset = (page - 1) * DRAFT_PAGE_SIZE;
 
   return (
-    <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+    <div className={`${containerClass ?? 'bg-card-bg border border-card-border'} rounded-2xl overflow-hidden`}>
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <Icon size={16} className={iconClass} />
         <h2 className="text-base font-semibold text-white">{title}</h2>
@@ -327,6 +328,46 @@ function PickTable({
         </>
       )}
     </div>
+  );
+}
+
+// ── Top-3 highlight cards ──────────────────────────────────────────────────────
+
+interface Top3CardProps {
+  rank: number;
+  label: string;
+  name: string;
+  avatar: string | null;
+  season?: string;
+  stat: string;
+  statColor: string;
+  cardClass: string;
+  iconClass: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  onClick: () => void;
+}
+
+function Top3Card({ rank, label, name, avatar, season, stat, statColor, cardClass, iconClass, Icon, onClick }: Top3CardProps) {
+  const rankLabel = rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd';
+  return (
+    <button
+      className={`${cardClass} rounded-xl p-3 text-left w-full transition-opacity hover:opacity-90`}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-1 mb-1.5">
+        <Icon size={11} className={iconClass} />
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${iconClass}`}>{rankLabel}</span>
+      </div>
+      <div className="flex items-center gap-2 mb-1">
+        <Avatar avatar={avatar} name={name} size="sm" />
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-white truncate">{name}</div>
+          {season && <div className="text-[10px] text-gray-500">{season}</div>}
+        </div>
+      </div>
+      <div className={`text-sm font-bold tabular-nums ${statColor}`}>{stat}</div>
+      <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
+    </button>
   );
 }
 
@@ -414,38 +455,139 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
     );
   }
 
+  // Top-3 data
+  const top3Classes = draftClassRows.slice(0, 3);
+  const top3Steals = steals.slice(0, 3);
+  const top3Busts = busts.slice(0, 3);
+
   return (
     <div className="space-y-6">
-      {/* Section A */}
-      <AllTimeDraftRankings managers={managers} onSelectManager={onSelectManager} />
+      {/* ── Top-3 Highlights ── */}
+      <div className="space-y-4">
+        {/* Best Draft Classes */}
+        {top3Classes.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Layers size={13} className="text-brand-cyan" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Best Draft Classes</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {top3Classes.map((row, i) => (
+                <Top3Card
+                  key={`${row.managerId}-${row.season}`}
+                  rank={i + 1}
+                  label="Avg Surplus"
+                  name={row.displayName}
+                  avatar={row.avatar}
+                  season={row.season}
+                  stat={surplusLabel(row.avgSurplus)}
+                  statColor="text-emerald-400"
+                  cardClass="bg-emerald-500/10 border border-emerald-500/30"
+                  iconClass="text-emerald-400"
+                  Icon={Layers}
+                  onClick={() => onSelectManager(row.managerId)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* Section B */}
-      {draftClassRows.length > 0 && (
-        <BestDraftClasses rows={draftClassRows} onSelectManager={onSelectManager} />
-      )}
+        {/* Biggest Steals + Busts */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Top 3 Steals */}
+          {top3Steals.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp size={13} className="text-emerald-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Biggest Steals</span>
+              </div>
+              <div className="space-y-1.5">
+                {top3Steals.map((pick, i) => (
+                  <div key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-emerald-400 w-5 shrink-0">{i + 1}.</span>
+                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                      {pick.position}
+                    </span>
+                    <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
+                    <span className="text-xs font-bold text-emerald-400 tabular-nums shrink-0">{surplusLabel(pick.surplus)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Sections C & D side-by-side on large screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PickTable
-          title="Biggest Steals in League History"
-          icon={TrendingUp}
-          iconClass="text-green-400"
-          rows={steals}
-          emptyText="No pick data found."
-        />
-        <PickTable
-          title="Biggest Busts in League History"
-          icon={TrendingDown}
-          iconClass="text-red-400"
-          rows={busts}
-          emptyText="No pick data found."
-        />
+          {/* Top 3 Busts */}
+          {top3Busts.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown size={13} className="text-red-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Biggest Busts</span>
+              </div>
+              <div className="space-y-1.5">
+                {top3Busts.map((pick, i) => (
+                  <div key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-red-400 w-5 shrink-0">{i + 1}.</span>
+                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                      {pick.position}
+                    </span>
+                    <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
+                    <span className="text-xs font-bold text-red-400 tabular-nums shrink-0">{surplusLabel(pick.surplus)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Jump to full analysis */}
+        <div className="flex justify-end">
+          <a
+            href="#full-draft-analysis"
+            className="text-xs text-brand-cyan hover:underline flex items-center gap-1"
+          >
+            <Star size={11} />
+            Jump to Full Draft Analysis
+          </a>
+        </div>
       </div>
 
-      {/* Footer note */}
-      <p className="text-xs text-gray-600 px-1">
-        Surplus = pick WAR minus expected WAR for that round. Hit = top 30% WAR in round; Bust = bottom 30%.
-      </p>
+      {/* ── Full Analysis ── */}
+      <div id="full-draft-analysis" className="space-y-6">
+        {/* Section A */}
+        <AllTimeDraftRankings managers={managers} onSelectManager={onSelectManager} />
+
+        {/* Section B */}
+        {draftClassRows.length > 0 && (
+          <BestDraftClasses rows={draftClassRows} onSelectManager={onSelectManager} />
+        )}
+
+        {/* Sections C & D side-by-side on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PickTable
+            title="Biggest Steals in League History"
+            icon={TrendingUp}
+            iconClass="text-emerald-400"
+            containerClass="bg-emerald-500/10 border border-emerald-500/30"
+            rows={steals}
+            emptyText="No pick data found."
+          />
+          <PickTable
+            title="Biggest Busts in League History"
+            icon={TrendingDown}
+            iconClass="text-red-400"
+            containerClass="bg-red-500/10 border border-red-500/30"
+            rows={busts}
+            emptyText="No pick data found."
+          />
+        </div>
+
+        {/* Footer note */}
+        <p className="text-xs text-gray-600 px-1">
+          Surplus = pick WAR minus expected WAR for that round. Hit = top 30% WAR in round; Bust = bottom 30%.
+        </p>
+      </div>
     </div>
   );
 }

@@ -167,8 +167,16 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const totalGames = stats.totalWins + stats.totalLosses;
   const allTimePts = stats.seasons.reduce((sum: number, s: { pointsFor: number }) => sum + s.pointsFor, 0);
 
+  // Derived stats for header pills
+  const biggestRival = h2hRecords.length > 0 ? h2hRecords[0] : null;
+  const draftGrade = draftAnalysis.data?.managerSummaries.get(userId)?.grade ?? null;
+  const draftGradeColor = draftAnalysis.data?.managerSummaries.get(userId)?.gradeColor ?? null;
+  const tradeGrade = tradeAnalysis.data?.managerSummaries.get(userId)?.grade ?? null;
+  const tradeGradeColor = tradeAnalysis.data?.managerSummaries.get(userId)?.gradeColor ?? null;
+  const rosterAge = franchiseOutlook.data?.get(userId)?.weightedAge ?? null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Back button + Career Stats link */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={onBack} className="flex items-center gap-1.5 text-gray-400 hover:text-white px-0">
@@ -219,6 +227,38 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                   <div className="text-xs text-gray-500">All-Time Points</div>
                 </div>
               </div>
+
+              {/* Extra stat pills row */}
+              {(biggestRival || draftGrade || tradeGrade || rosterAge !== null) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {biggestRival && (
+                    <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700/50 rounded-lg px-2.5 py-1">
+                      <Swords size={11} className="text-gray-400 flex-shrink-0" />
+                      <span className="text-xs text-gray-400">Rival</span>
+                      <span className="text-xs font-semibold text-white">{biggestRival.opponent.displayName}</span>
+                      <span className="text-xs text-gray-500 tabular-nums">{biggestRival.wins}–{biggestRival.losses}</span>
+                    </div>
+                  )}
+                  {draftGrade && (
+                    <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700/50 rounded-lg px-2.5 py-1">
+                      <span className="text-xs text-gray-400">Draft</span>
+                      <span className="text-xs font-bold tabular-nums" style={draftGradeColor ? { color: draftGradeColor } : undefined}>{draftGrade}</span>
+                    </div>
+                  )}
+                  {tradeGrade && (
+                    <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700/50 rounded-lg px-2.5 py-1">
+                      <span className="text-xs text-gray-400">Trades</span>
+                      <span className="text-xs font-bold tabular-nums" style={tradeGradeColor ? { color: tradeGradeColor } : undefined}>{tradeGrade}</span>
+                    </div>
+                  )}
+                  {rosterAge !== null && (
+                    <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700/50 rounded-lg px-2.5 py-1">
+                      <span className="text-xs text-gray-400">Avg Age</span>
+                      <span className="text-xs font-semibold text-white tabular-nums">{rosterAge.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
             </div>
           </div>
@@ -314,15 +354,15 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           {/* Best / Worst season */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {bestSeason && (
-              <div className="bg-green-900/20 border border-green-700/40 rounded-2xl p-5">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp size={14} className="text-green-400" />
-                  <span className="text-xs font-semibold text-green-400 uppercase tracking-wide">Best Season</span>
+                  <TrendingUp size={14} className="text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Best Season</span>
                 </div>
-                <div className="text-2xl font-bold text-white">{bestSeason.season}</div>
+                <div className="text-2xl font-bold text-emerald-400">{bestSeason.season}</div>
                 <div className="text-sm text-gray-300 mt-1">{bestSeason.wins}–{bestSeason.losses} · #{bestSeason.rank} in regular season</div>
                 {playoffFinishBySeason.get(bestSeason.season) && (
-                  <div className="text-xs text-green-300 mt-1 font-medium">
+                  <div className="text-xs text-emerald-400 mt-1 font-medium">
                     {playoffFinishBySeason.get(bestSeason.season)}
                   </div>
                 )}
@@ -330,15 +370,15 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               </div>
             )}
             {worstSeason && bestSeason?.season !== worstSeason.season && (
-              <div className="bg-red-900/10 border border-red-700/30 rounded-2xl p-5">
+              <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingDown size={14} className="text-red-400" />
                   <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Worst Season</span>
                 </div>
-                <div className="text-2xl font-bold text-white">{worstSeason.season}</div>
+                <div className="text-2xl font-bold text-red-400">{worstSeason.season}</div>
                 <div className="text-sm text-gray-300 mt-1">{worstSeason.wins}–{worstSeason.losses} · #{worstSeason.rank} in regular season</div>
                 {playoffFinishBySeason.get(worstSeason.season) && (
-                  <div className="text-xs text-red-300 mt-1 font-medium">
+                  <div className="text-xs text-red-400 mt-1 font-medium">
                     {playoffFinishBySeason.get(worstSeason.season)}
                   </div>
                 )}
@@ -384,7 +424,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             >
               <TrendingUp size={18} className="text-brand-cyan mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Trajectory</div>
+                <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Value</div>
                 <div className="text-xs text-gray-500 mt-0.5">See this team's all-time WAR chart</div>
               </div>
             </button>

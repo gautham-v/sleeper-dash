@@ -1,10 +1,11 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeftRight, Loader2, Trophy, Swords, TrendingUp, Shield } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { calcAllTimeStats, calcH2H } from '../utils/calculations';
 import { Avatar } from './Avatar';
+import { useSessionUser } from '../hooks/useSessionUser';
 import type { TeamAllTimeStats, TeamTier } from '../types/sleeper';
 import {
   Select,
@@ -103,7 +104,9 @@ function StatRow({ label, valueA, valueB, higherIsBetter = true }: {
 export function TeamComparison({ leagueId }: Props) {
   const [teamAId, setTeamAId] = useState<string>('');
   const [teamBId, setTeamBId] = useState<string>('');
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
 
+  const sessionUser = useSessionUser();
   const { data: history, isLoading } = useLeagueHistory(leagueId);
 
   const allUsers = useMemo(() => {
@@ -120,6 +123,24 @@ export function TeamComparison({ leagueId }: Props) {
     }
     return Array.from(seen.values()).sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [history]);
+
+  // Set defaults once allUsers is ready
+  useEffect(() => {
+    if (defaultsApplied || allUsers.length === 0) return;
+    setDefaultsApplied(true);
+
+    const signedInId = sessionUser?.userId ?? null;
+    const signedInInLeague = signedInId ? allUsers.some((u) => u.userId === signedInId) : false;
+
+    if (signedInInLeague && signedInId) {
+      // Team A = signed-in user
+      setTeamAId(signedInId);
+      // Team B = first manager alphabetically that isn't the signed-in user
+      const firstOther = allUsers.find((u) => u.userId !== signedInId);
+      if (firstOther) setTeamBId(firstOther.userId);
+    }
+    // If signed-in user is not in the league, leave both empty (existing behavior)
+  }, [allUsers, defaultsApplied, sessionUser]);
 
   const allTimeStats = useMemo((): Map<string, TeamAllTimeStats> => {
     if (!history) return new Map();

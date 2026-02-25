@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -88,6 +89,32 @@ function SummaryCard({
   );
 }
 
+function InfoTooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="relative inline-flex items-center ml-1">
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        className="text-gray-500 hover:text-gray-300 transition-colors focus:outline-none"
+        aria-label="More information"
+      >
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a.75.75 0 1 0 0 1.5A.75.75 0 0 0 8 4.5zm-.75 2.5h1.5v4.5h-1.5V7z" />
+        </svg>
+      </button>
+      {visible && (
+        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 shadow-xl pointer-events-none">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) {
@@ -120,6 +147,12 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
     peakWAR,
     warByAgeBucket,
   } = result;
+
+  // Compute rank among all managers by currentWAR (Franchise Score)
+  const allEntries = [...data.values()];
+  const sortedByWAR = [...allEntries].sort((a, b) => b.currentWAR - a.currentWAR);
+  const myRank = sortedByWAR.findIndex((r) => r === result) + 1;
+  const totalManagers = allEntries.length;
 
   const tc = tierColors(tier);
 
@@ -155,10 +188,18 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-gray-500">Current Team WAR</div>
+            <div className="flex items-center justify-end gap-1 text-xs text-gray-500">
+              Franchise Score
+              <InfoTooltip text="Franchise Score measures how many more wins your team generates compared to an average team over the same period." />
+            </div>
             <div className="text-2xl font-bold text-brand-cyan tabular-nums">
               {currentWAR > 0 ? currentWAR.toFixed(1) : '—'}
             </div>
+            {totalManagers > 0 && (
+              <div className="text-xs text-gray-500 mt-0.5">
+                Ranked #{myRank} of {totalManagers}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -194,11 +235,11 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         <SummaryCard label="Peak Year">
           <div className="text-xl font-bold text-white">{peakYearLabel(peakYearOffset)}</div>
           <div className="text-xs text-brand-cyan tabular-nums mt-0.5">
-            {peakWAR.toFixed(1)} projected WAR
+            {peakWAR.toFixed(1)} projected score
           </div>
         </SummaryCard>
 
-        <SummaryCard label="Age Curve Risk">
+        <SummaryCard label="Roster Age Risk">
           <div className="text-xl font-bold text-white tabular-nums">{riskScore}</div>
           <div className={`text-xs font-medium mt-0.5 ${
             riskCategory === 'Low' ? 'text-emerald-400' :
@@ -210,14 +251,17 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         </SummaryCard>
       </div>
 
-      {/* ── WAR Projection Chart ── */}
+      {/* ── Performance Trend (WAR Projection Chart) ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
         <div className="mb-1">
-          <span className="text-sm font-semibold text-white">WAR Trajectory</span>
+          <span className="text-sm font-semibold text-white">Performance Trend</span>
           <span className="ml-2 text-xs text-gray-500">3-year age-curve projection</span>
         </div>
+        <div className="text-xs text-gray-500 mb-1">
+          Your performance trend shows whether your team is improving or declining based on player age curves.
+        </div>
         <div className="text-xs text-gray-600 mb-4">
-          Dashed line = contender threshold ({contenderThreshold.toFixed(1)} WAR)
+          Dashed line = contender threshold ({contenderThreshold.toFixed(1)})
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -243,7 +287,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                 color: '#f9fafb',
                 fontSize: 12,
               }}
-              formatter={(value: number) => [`${value.toFixed(1)} WAR`, 'Team WAR']}
+              formatter={(value: number) => [`${value.toFixed(1)}`, 'Franchise Score']}
             />
             <ReferenceLine
               y={contenderThreshold}
@@ -269,13 +313,13 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         </ResponsiveContainer>
       </div>
 
-      {/* ── Age Curve Risk Score ── */}
+      {/* ── Roster Age Risk Score ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <span className="text-sm font-semibold text-white">Age Curve Risk</span>
+            <span className="text-sm font-semibold text-white">Roster Age Risk</span>
             <div className="text-xs text-gray-500 mt-0.5">
-              Estimated WAR decay over 2 years relative to current output
+              Roster Age Risk indicates how much your team relies on older players who may be declining.
             </div>
           </div>
           <div className={`text-right`}>
@@ -314,10 +358,10 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         </div>
       </div>
 
-      {/* ── WAR by Age Bucket ── */}
+      {/* ── Franchise Score by Age Bucket ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
         <div className="mb-1">
-          <span className="text-sm font-semibold text-white">WAR by Age Group</span>
+          <span className="text-sm font-semibold text-white">Score by Age Group</span>
           <span className="ml-2 text-xs text-gray-500">Current season production by age range</span>
         </div>
         <div className="text-xs text-gray-600 mb-4">
@@ -346,7 +390,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                 color: '#f9fafb',
                 fontSize: 12,
               }}
-              formatter={(value: number) => [`${value.toFixed(1)} WAR`, 'Team WAR']}
+              formatter={(value: number) => [`${value.toFixed(1)}`, 'Franchise Score']}
             />
             <Bar dataKey="war" radius={[4, 4, 0, 0]}>
               {warByAgeBucket.map((entry) => (
@@ -373,9 +417,14 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
       </div>
 
       {/* ── Methodology note ── */}
-      <div className="text-xs text-gray-700 px-1">
-        Projections use static age-curve multipliers derived from historical fantasy production (PPR era).
-        WAR = current season points minus positional replacement level. Results are deterministic — no ML.
+      <div className="space-y-1.5 px-1">
+        <div className="text-xs text-gray-700">
+          Projections use static age-curve multipliers derived from historical fantasy production (PPR era).
+          Franchise Score = current season points minus positional replacement level. Results are deterministic — no ML.
+        </div>
+        <div className="text-xs text-gray-600 italic">
+          Note: draft capital and future picks are not yet factored into projections.
+        </div>
       </div>
     </div>
   );
