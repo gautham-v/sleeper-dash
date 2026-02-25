@@ -125,11 +125,8 @@ function ImpactfulTradeCard({
     <div className="bg-card-bg border border-card-border rounded-2xl p-4">
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-sm">{rankEmoji}</span>
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 flex-1 truncate">
-          Most Impactful Trade
-        </span>
-        <span className="text-[10px] text-gray-600 shrink-0">
-          Season Wk{trade.week} · {formatTimestamp(trade.timestamp)}
+        <span className="text-[10px] text-gray-600 shrink-0 ml-auto">
+          {trade.season} Wk{trade.week} · {formatTimestamp(trade.timestamp)}
         </span>
       </div>
       <div className="border-t border-card-border/50 my-2" />

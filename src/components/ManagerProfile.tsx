@@ -26,6 +26,14 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 const POSITION_COLORS: Record<string, string> = {
   QB:  'bg-red-900/50 text-red-300 border-red-800/50',
@@ -58,6 +66,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const franchiseOutlook = useFranchiseOutlook(leagueId);
   const trajectoryAnalysis = useAllTimeWAR(trajectoryUnlocked ? leagueId : null);
   const rosterStats = useManagerRosterStats(leagueId, userId);
+  const PLAYERS_PER_PAGE = 10;
+  const [playersPage, setPlayersPage] = useState(1);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -784,45 +794,79 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                 <span className="font-semibold text-white text-sm">All Players</span>
                 <span className="text-xs text-gray-600">({rosterStats.data.players.length})</span>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                    <TableHead className="text-left py-2.5 px-5">Player</TableHead>
-                    <TableHead className="text-right py-2.5 px-3">Total Pts</TableHead>
-                    <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Starts</TableHead>
-                    <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Tenure</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rosterStats.data.players.map((player, idx) => {
-                    const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
-                    const tenure = player.firstSeason === player.lastSeason
-                      ? player.firstSeason
-                      : `${player.firstSeason}–${player.lastSeason}`;
-                    return (
-                      <TableRow key={`${player.playerId}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
-                        <TableCell className="py-3 px-5">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                              {player.position}
-                            </span>
-                            <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
-                          {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
-                        </TableCell>
-                        <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
-                          {player.totalStarts}
-                        </TableCell>
-                        <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
-                          {tenure}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {(() => {
+                const pagedPlayers = rosterStats.data.players.slice(
+                  (playersPage - 1) * PLAYERS_PER_PAGE,
+                  playersPage * PLAYERS_PER_PAGE
+                );
+                const totalPlayerPages = Math.ceil(rosterStats.data.players.length / PLAYERS_PER_PAGE);
+                return (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                          <TableHead className="text-left py-2.5 px-5">Player</TableHead>
+                          <TableHead className="text-right py-2.5 px-3">Total Pts</TableHead>
+                          <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">TDs</TableHead>
+                          <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Starts</TableHead>
+                          <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Tenure</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pagedPlayers.map((player, idx) => {
+                          const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                          const tenure = player.firstSeason === player.lastSeason
+                            ? player.firstSeason
+                            : `${player.firstSeason}–${player.lastSeason}`;
+                          return (
+                            <TableRow key={`${player.playerId}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                              <TableCell className="py-3 px-5">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
+                                    {player.position}
+                                  </span>
+                                  <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
+                                {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
+                              </TableCell>
+                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                {player.totalTDs > 0 ? player.totalTDs : '—'}
+                              </TableCell>
+                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                {player.totalStarts}
+                              </TableCell>
+                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
+                                {tenure}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                    {totalPlayerPages > 1 && (
+                      <div className="px-5 py-3 border-t border-gray-800">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious onClick={() => setPlayersPage(p => Math.max(1, p - 1))} disabled={playersPage === 1} />
+                            </PaginationItem>
+                            {Array.from({ length: totalPlayerPages }, (_, i) => i + 1).map(p => (
+                              <PaginationItem key={p}>
+                                <PaginationLink isActive={p === playersPage} onClick={() => setPlayersPage(p)}>{p}</PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                              <PaginationNext onClick={() => setPlayersPage(p => Math.min(totalPlayerPages, p + 1))} disabled={playersPage === totalPlayerPages} />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">

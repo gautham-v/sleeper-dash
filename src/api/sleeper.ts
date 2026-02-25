@@ -59,4 +59,9 @@ export const sleeperApi = {
 
   getTradedPicks: (leagueId: string) =>
     fetchJSON<FutureDraftPick[]>(`${BASE_URL}/league/${leagueId}/traded_picks`),
+
+  getPlayerWeeklyStats: (season: string, week: number) =>
+    fetchJSON<Record<string, Record<string, number>>>(
+      `${BASE_URL}/stats/nfl/regular/${season}/${week}`
+    ),
 };

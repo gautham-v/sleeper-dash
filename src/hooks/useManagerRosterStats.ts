@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import type { ManagerRosterStatsResult, PlayerRosterStat, SleeperPlayer } from '../types/sleeper';
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYERS_CACHE_KEY = 'sleeper-all-players-v1';
 const PLAYERS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for player DB
@@ -76,6 +76,7 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
       const statsMap = new Map<string, {
         totalPoints: number;
         totalStarts: number;
+        totalTDs: number;
         weeksOnRoster: number;
         seasonSet: Set<string>;
       }>();
@@ -84,9 +85,12 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
         const regularSeasonWeeks = Math.max(1, playoff_week_start - 1);
         const weekNums = Array.from({ length: regularSeasonWeeks }, (_, i) => i + 1);
 
-        const [rosters, ...weekMatchupResults] = await Promise.all([
+        const [rosters, ...weekResults] = await Promise.all([
           sleeperApi.getRosters(league_id),
-          ...weekNums.map((w) => sleeperApi.getMatchups(league_id, w)),
+          ...weekNums.map((w) => Promise.all([
+            sleeperApi.getMatchups(league_id, w),
+            sleeperApi.getPlayerWeeklyStats(season, w),
+          ])),
         ]);
 
         // Find this user's roster_id for this season
@@ -94,7 +98,7 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
         if (!userRoster) continue;
         const userRosterId = userRoster.roster_id;
 
-        for (const weekMatchups of weekMatchupResults) {
+        for (const [weekMatchups, weekStats] of weekResults) {
           const userMatchup = weekMatchups.find(m => m.roster_id === userRosterId);
           if (!userMatchup || !userMatchup.players) continue;
 
@@ -103,11 +107,22 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
 
           for (const playerId of userMatchup.players) {
             if (!statsMap.has(playerId)) {
-              statsMap.set(playerId, { totalPoints: 0, totalStarts: 0, weeksOnRoster: 0, seasonSet: new Set() });
+              statsMap.set(playerId, { totalPoints: 0, totalStarts: 0, totalTDs: 0, weeksOnRoster: 0, seasonSet: new Set() });
             }
             const stat = statsMap.get(playerId)!;
             stat.weeksOnRoster += 1;
             stat.seasonSet.add(season);
+            // Accumulate TDs (count for all rostered weeks, not just starts)
+            const playerStats = weekStats[playerId];
+            if (playerStats) {
+              stat.totalTDs += Math.round(
+                (playerStats.rush_td ?? 0) +
+                (playerStats.rec_td ?? 0) +
+                (playerStats.pass_td ?? 0) +
+                (playerStats.def_td ?? 0) +
+                (playerStats.ret_td ?? 0)
+              );
+            }
             if (starters.has(playerId)) {
               stat.totalStarts += 1;
               stat.totalPoints += playerPts[playerId] ?? 0;
@@ -131,6 +146,7 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
           position,
           totalPoints: Math.round(stat.totalPoints * 10) / 10,
           totalStarts: stat.totalStarts,
+          totalTDs: stat.totalTDs,
           weeksOnRoster: stat.weeksOnRoster,
           seasons: stat.seasonSet.size,
           firstSeason: sortedSeasons[0] ?? '',

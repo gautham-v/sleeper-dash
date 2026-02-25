@@ -462,6 +462,7 @@ export interface PlayerRosterStat {
   position: string;
   totalPoints: number;      // fantasy pts scored as a starter for this team
   totalStarts: number;      // number of weeks started
+  totalTDs: number;         // total touchdowns scored while on roster
   weeksOnRoster: number;    // total weeks on roster (starter + bench)
   seasons: number;          // distinct season count
   firstSeason: string;      // earliest season

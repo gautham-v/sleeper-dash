@@ -8,7 +8,6 @@ import { useSessionUser } from '@/hooks/useSessionUser';
 import { Overview } from '@/components/Overview';
 import { LeagueTables } from '@/components/LeagueTables';
 import { RecordsSpotlight } from '@/components/RecordsSpotlight';
-import { LuckTeaser } from '@/components/LuckTeaser';
 import { FranchiseTrajectoryTab } from '@/components/FranchiseTrajectoryTab';
 import { Loader2 } from 'lucide-react';
 import type { TabId } from '@/lib/tabs';
@@ -60,14 +59,6 @@ export default function OverviewPage() {
         leagueId={leagueId}
         onSelectManager={handleSelectManager}
       />
-
-      {/* Luck Index Teaser */}
-      {computed.luckIndex.length >= 4 && (
-        <LuckTeaser
-          luckIndex={computed.luckIndex}
-          onSelectManager={handleSelectManager}
-        />
-      )}
 
       {/* Franchise Value Preview */}
       {!trajectoryAnalysis.isLoading && trajectoryAnalysis.data?.hasData && trajectoryUserId && (
