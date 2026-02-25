@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
@@ -226,11 +226,6 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const [seasonFilter, setSeasonFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset to page 1 whenever the season filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [seasonFilter]);
-
   const leaderboard = useMemo(() => {
     if (!analysis) return [];
     return [...analysis.managerSummaries.values()].sort((a, b) => b.totalNetValue - a.totalNetValue);
@@ -322,7 +317,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
           items={TAB_ITEMS}
         />
         {activeTab === 'all-trades' && availableSeasons.length > 0 && (
-          <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+          <Select value={seasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
             <SelectTrigger className="h-8 text-xs w-[130px]">
               <SelectValue placeholder="Season" />
             </SelectTrigger>
