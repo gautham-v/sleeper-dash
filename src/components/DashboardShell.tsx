@@ -293,6 +293,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex flex-col divide-y divide-card-border/40 border border-card-border rounded-xl overflow-hidden bg-card-bg">
                 <button
+                  onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
+                    activeTab === 'draft'
+                      ? 'text-brand-cyan bg-brand-cyan/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <ClipboardList size={17} className={`flex-shrink-0 ${activeTab === 'draft' ? 'text-brand-cyan' : 'text-gray-500'}`} />
+                  <span className="flex-1">Draft</span>
+                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
+                </button>
+                <button
                   onClick={() => { handleTabChange('h2h'); setLeagueSheetOpen(false); }}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'h2h'
@@ -314,18 +326,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 >
                   <BookOpen size={17} className={`flex-shrink-0 ${activeTab === 'records' ? 'text-brand-cyan' : 'text-gray-500'}`} />
                   <span className="flex-1">Records</span>
-                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
-                </button>
-                <button
-                  onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
-                    activeTab === 'draft'
-                      ? 'text-brand-cyan bg-brand-cyan/10'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <ClipboardList size={17} className={`flex-shrink-0 ${activeTab === 'draft' ? 'text-brand-cyan' : 'text-gray-500'}`} />
-                  <span className="flex-1">Draft</span>
                   <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
                 </button>
               </div>

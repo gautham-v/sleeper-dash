@@ -5,9 +5,9 @@ export const TABS = [
   { id: 'managers',   label: 'Managers',   icon: Users },
   { id: 'franchise',  label: 'Franchise',  icon: TrendingUp },
   { id: 'trades',     label: 'Trades',     icon: ArrowLeftRight },
+  { id: 'draft',      label: 'Draft',      icon: ClipboardList },
   { id: 'h2h',        label: 'H2H',        icon: Scale },
   { id: 'records',    label: 'Records',    icon: BookOpen },
-  { id: 'draft',      label: 'Draft',      icon: ClipboardList },
 ] as const;
 
 export type TabId = (typeof TABS)[number]['id'];
