@@ -28,7 +28,7 @@ export interface SeasonWARInput {
  */
 export function computeAllTimeWAR(
   seasons: SeasonWARInput[],
-  managerInfo: Map<string, { displayName: string; avatar: string | null }>,
+  managerInfo: Map<string, { displayName: string; managerName: string; avatar: string | null }>,
 ): AllTimeWARAnalysis {
   // Per-manager global accumulation
   const allTimeCumulative = new Map<string, number[]>(); // userId → [cumWAR per global index]
@@ -151,6 +151,7 @@ export function computeAllTimeWAR(
     managerData.set(userId, {
       userId,
       displayName: info?.displayName ?? userId,
+      managerName: info?.managerName ?? userId,
       avatar: info?.avatar ?? null,
       points,
     });

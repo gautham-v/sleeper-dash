@@ -220,17 +220,21 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
             .filter((id) => id !== userId)
             .map((id) => {
               const manager = analysis.managerData.get(id);
+              const color = colorMap.get(id) ?? '#6b7280';
               return (
                 <Line
                   key={id}
                   type="monotone"
                   dataKey={id}
                   name={manager?.displayName ?? id}
-                  stroke={colorMap.get(id) ?? '#6b7280'}
+                  stroke={color}
                   strokeWidth={getLineStrokeWidth(id, false)}
                   dot={false}
+                  activeDot={{ r: 5, cursor: 'pointer', onClick: () => handleLegendClick(id) }}
                   connectNulls
                   opacity={getLineOpacity(id, false)}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleLegendClick(id)}
                 />
               );
             })}
@@ -247,8 +251,11 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
                 stroke="#22d3ee"
                 strokeWidth={getLineStrokeWidth(userId, true)}
                 dot={false}
+                activeDot={{ r: 5, cursor: 'pointer', onClick: () => handleLegendClick(userId) }}
                 connectNulls
                 opacity={getLineOpacity(userId, true)}
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleLegendClick(userId)}
               />
             );
           })()}
