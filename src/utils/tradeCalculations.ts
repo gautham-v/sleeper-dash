@@ -144,13 +144,13 @@ export function buildDraftPickResolution(
 
       const originalRosterId = getOriginalRosterId(pick, draft, rosterToUser);
       const key = `${season}:${pick.round}:${originalRosterId}`;
-      resolution.set(key, {
-        playerId: pick.player_id,
-        playerName,
-        position,
-        seasonPoints: seasonPts,
-        pickInRound,
-      });
+      const entry = { playerId: pick.player_id, playerName, position, seasonPoints: seasonPts, pickInRound };
+      resolution.set(key, entry);
+      // Secondary key by drafter's roster — covers orphaned original owners where getOriginalRosterId
+      // falls back to the drafter's roster_id (pick.roster_id != originalRosterId in that case)
+      if (pick.roster_id !== originalRosterId) {
+        resolution.set(`${season}:${pick.round}:${pick.roster_id}:holder`, entry);
+      }
     }
   }
 
@@ -227,7 +227,8 @@ export function analyzeTrade(
       // Dynasty leagues carry roster IDs between seasons, so this matches the
       // original slot owner's roster_id in the drafting league's resolution map.
       const resolutionKey = `${pick.season}:${pick.round}:${pick.roster_id}`;
-      const resolved = draftPickResolution.get(resolutionKey);
+      const holderKey = `${pick.season}:${pick.round}:${pick.owner_id}:holder`;
+      const resolved = draftPickResolution.get(resolutionKey) ?? draftPickResolution.get(holderKey);
 
       const pickAsset: TradeDraftPickAsset = resolved
         ? {
