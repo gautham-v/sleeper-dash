@@ -17,7 +17,7 @@ export default function OverviewPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const router = useRouter();
   const sessionUser = useSessionUser();
-  const { computed, isLoading } = useDashboardData(leagueId);
+  const { computed, isLoading, league } = useDashboardData(leagueId);
   const trajectoryAnalysis = useAllTimeWAR(leagueId);
 
   const handleSelectManager = (uid: string) => {
@@ -43,8 +43,16 @@ export default function OverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <div className="flex justify-end mb-2">
-          <ShareButton />
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
+              {league?.name ?? 'League Overview'}
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Standings, power rankings, and a snapshot of your league this season.
+            </p>
+          </div>
+          <ShareButton className="mt-1" />
         </div>
         <Overview
           computed={computed}
