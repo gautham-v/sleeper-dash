@@ -75,6 +75,7 @@ export default function FranchisePage() {
             <FranchiseTrajectoryTab
               userId={effectiveUserId}
               analysis={trajectoryAnalysis.data}
+              showRankings
             />
           ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">

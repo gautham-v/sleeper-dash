@@ -12,13 +12,14 @@ import {
   type TooltipProps,
 } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { TrendingUp } from 'lucide-react';
-import type { AllTimeWARAnalysis } from '../types/sleeper';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import type { AllTimeWARAnalysis, ManagerAllTimeWAR } from '../types/sleeper';
 
 interface Props {
   userId: string;
   analysis: AllTimeWARAnalysis;
   previewMode?: boolean;
+  showRankings?: boolean;
 }
 
 type ViewMode = 'cumulative' | 'rolling';
@@ -28,16 +29,25 @@ const COLORS = [
   '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#14b8a6',
 ];
 
-// Map a userId to a stable color index based on insertion order
 function buildColorMap(userIds: string[], currentUserId: string): Map<string, string> {
   const others = userIds.filter((id) => id !== currentUserId);
   const map = new Map<string, string>();
   others.forEach((id, i) => {
     map.set(id, COLORS[i % COLORS.length]);
   });
-  // Current user always gets the first color slot, bright
-  map.set(currentUserId, '#22d3ee'); // brand-cyan
+  // Current user always gets brand-cyan
+  map.set(currentUserId, '#22d3ee');
   return map;
+}
+
+/** Combined label for a manager: "Team Name · manager_username" when they differ */
+function getManagerLabel(manager: ManagerAllTimeWAR | undefined, id: string): string {
+  if (!manager) return id;
+  const { displayName, managerName } = manager;
+  if (managerName && managerName !== displayName) {
+    return `${displayName} · ${managerName}`;
+  }
+  return displayName;
 }
 
 interface ChartDatum {
@@ -47,15 +57,22 @@ interface ChartDatum {
   [userId: string]: number | string;
 }
 
+interface RankingRow {
+  userId: string;
+  displayName: string;
+  managerName: string;
+  currentWAR: number;
+  yoyChange: number | null;
+}
+
 function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> & { mode: ViewMode }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  // Get season/week from the first payload entry's data
   const datum = payload[0]?.payload as ChartDatum;
   const valueLabel = mode === 'cumulative' ? 'All-Time Value Score' : 'Recent Form Value Score';
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs shadow-xl min-w-[160px]">
+    <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs shadow-xl min-w-[190px]">
       <div className="text-gray-400 mb-2 font-medium">
         {datum.season} · Wk {datum.week}
       </div>
@@ -65,7 +82,7 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
           <div key={entry.dataKey} className="flex items-center justify-between gap-3 py-0.5">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
-              <span className="text-gray-300 truncate max-w-[100px]">{entry.name}</span>
+              <span className="text-gray-300 truncate max-w-[130px]">{entry.name}</span>
             </div>
             <span className="font-bold tabular-nums" style={{ color: entry.color }}>
               {typeof entry.value === 'number' ? entry.value.toFixed(1) : '—'}
@@ -77,7 +94,7 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
   );
 }
 
-export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
+export function FranchiseTrajectoryTab({ userId, analysis, showRankings = false }: Props) {
   const [mode, setMode] = useState<ViewMode>('cumulative');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
@@ -108,24 +125,40 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
     return Array.from(dataMap.values()).sort((a, b) => a.allTimeIndex - b.allTimeIndex);
   }, [analysis, mode]);
 
+  // Rankings with YoY change — sorted by current cumulative WAR descending
+  const rankings = useMemo((): RankingRow[] => {
+    if (!showRankings || !analysis.hasData) return [];
+
+    // allTimeIndex at which the most recent season starts
+    const lastSeasonStart = analysis.seasonBoundaries.at(-1)?.startIndex ?? 0;
+
+    return [...analysis.managerData.values()]
+      .map((m): RankingRow | null => {
+        if (!m.points.length) return null;
+        const currentWAR = m.points.at(-1)!.cumulativeWAR;
+
+        // Last point from the previous season (allTimeIndex strictly before lastSeasonStart)
+        const prevPoint = [...m.points].reverse().find((p) => p.allTimeIndex < lastSeasonStart);
+        const yoyChange = prevPoint != null ? currentWAR - prevPoint.cumulativeWAR : null;
+
+        return { userId: m.userId, displayName: m.displayName, managerName: m.managerName, currentWAR, yoyChange };
+      })
+      .filter((r): r is RankingRow => r !== null)
+      .sort((a, b) => b.currentWAR - a.currentWAR);
+  }, [analysis, showRankings]);
+
   function handleLegendClick(id: string) {
     setHighlightedId((prev) => (prev === id ? null : id));
   }
 
   function getLineOpacity(id: string, isCurrentUser: boolean): number {
-    if (highlightedId === null) {
-      return isCurrentUser ? 1 : 0.4;
-    }
+    if (highlightedId === null) return isCurrentUser ? 1 : 0.4;
     return highlightedId === id ? 1 : 0.1;
   }
 
   function getLineStrokeWidth(id: string, isCurrentUser: boolean): number {
-    if (highlightedId === null) {
-      return isCurrentUser ? 2.5 : 1;
-    }
-    if (highlightedId === id) {
-      return isCurrentUser ? 3.5 : 3;
-    }
+    if (highlightedId === null) return isCurrentUser ? 2.5 : 1;
+    if (highlightedId === id) return isCurrentUser ? 3.5 : 3;
     return 1;
   }
 
@@ -226,7 +259,7 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
                   key={id}
                   type="monotone"
                   dataKey={id}
-                  name={manager?.displayName ?? id}
+                  name={getManagerLabel(manager, id)}
                   stroke={color}
                   strokeWidth={getLineStrokeWidth(id, false)}
                   dot={false}
@@ -247,7 +280,7 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
                 key={userId}
                 type="monotone"
                 dataKey={userId}
-                name={manager?.displayName ?? userId}
+                name={getManagerLabel(manager, userId)}
                 stroke="#22d3ee"
                 strokeWidth={getLineStrokeWidth(userId, true)}
                 dot={false}
@@ -263,12 +296,13 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
       </ResponsiveContainer>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1 border-t border-gray-800">
+      <div className="flex flex-wrap gap-x-4 gap-y-2.5 pt-1 border-t border-gray-800">
         {userIds.map((id) => {
           const manager = analysis.managerData.get(id);
           const isCurrentUser = id === userId;
           const color = colorMap.get(id) ?? '#6b7280';
           const isHighlighted = highlightedId === id;
+          const hasDistinctManagerName = manager?.managerName && manager.managerName !== manager.displayName;
           return (
             <div
               key={id}
@@ -276,7 +310,7 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
               onClick={() => handleLegendClick(id)}
             >
               <span
-                className="inline-block rounded-full flex-shrink-0"
+                className="inline-block rounded-full flex-shrink-0 mt-0.5"
                 style={{
                   width: isCurrentUser ? 10 : 8,
                   height: isCurrentUser ? 10 : 8,
@@ -286,15 +320,104 @@ export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
                   outlineOffset: '2px',
                 }}
               />
-              <span
-                className={`text-xs truncate max-w-[100px] ${isCurrentUser ? 'text-white font-semibold' : 'text-gray-500'} ${isHighlighted ? 'font-bold text-white' : ''}`}
-              >
-                {manager?.displayName ?? id}
+              <span className="text-xs leading-tight">
+                <span
+                  className={`block truncate max-w-[110px] ${isCurrentUser ? 'text-white font-semibold' : 'text-gray-400'} ${isHighlighted ? 'font-bold !text-white' : ''}`}
+                >
+                  {manager?.displayName ?? id}
+                </span>
+                {hasDistinctManagerName && (
+                  <span className="block truncate max-w-[110px] text-[10px] text-gray-600">
+                    {manager!.managerName}
+                  </span>
+                )}
               </span>
             </div>
           );
         })}
       </div>
+
+      {/* Rankings table — franchise page only, cumulative mode */}
+      {showRankings && mode === 'cumulative' && rankings.length > 0 && (
+        <div className="pt-2 border-t border-gray-800">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            Current Standings · All-Time Franchise Value
+          </div>
+          <div className="space-y-1">
+            {rankings.map((row, i) => {
+              const color = colorMap.get(row.userId) ?? '#6b7280';
+              const isCurrentUser = row.userId === userId;
+              const hasDistinct = row.managerName && row.managerName !== row.displayName;
+              const yoy = row.yoyChange;
+              return (
+                <div
+                  key={row.userId}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isCurrentUser
+                      ? 'bg-brand-cyan/5 border border-brand-cyan/20'
+                      : 'hover:bg-white/5'
+                  }`}
+                >
+                  {/* Rank */}
+                  <span className="text-xs font-bold text-gray-500 w-5 text-right flex-shrink-0">
+                    #{i + 1}
+                  </span>
+
+                  {/* Color dot */}
+                  <span
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  />
+
+                  {/* Team + manager name */}
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xs font-semibold truncate ${isCurrentUser ? 'text-brand-cyan' : 'text-gray-200'}`}>
+                      {row.displayName}
+                    </div>
+                    {hasDistinct && (
+                      <div className="text-[10px] text-gray-500 truncate">{row.managerName}</div>
+                    )}
+                  </div>
+
+                  {/* Current franchise value */}
+                  <span className="text-xs font-bold tabular-nums text-gray-300 flex-shrink-0">
+                    {row.currentWAR >= 0 ? '+' : ''}{row.currentWAR.toFixed(1)}
+                  </span>
+
+                  {/* YoY change */}
+                  <div className="flex items-center gap-0.5 flex-shrink-0 min-w-[56px] justify-end">
+                    {yoy === null ? (
+                      <span className="text-[10px] text-gray-600">—</span>
+                    ) : yoy > 0.05 ? (
+                      <>
+                        <TrendingUp size={11} className="text-emerald-400 flex-shrink-0" />
+                        <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
+                          +{yoy.toFixed(1)}
+                        </span>
+                      </>
+                    ) : yoy < -0.05 ? (
+                      <>
+                        <TrendingDown size={11} className="text-red-400 flex-shrink-0" />
+                        <span className="text-[11px] font-semibold text-red-400 tabular-nums">
+                          {yoy.toFixed(1)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Minus size={11} className="text-gray-500 flex-shrink-0" />
+                        <span className="text-[11px] text-gray-500 tabular-nums">0.0</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[10px] text-gray-600 mt-2 px-1">
+            YoY = value added this season vs. end of previous season
+          </div>
+        </div>
+      )}
     </div>
   );
 }
