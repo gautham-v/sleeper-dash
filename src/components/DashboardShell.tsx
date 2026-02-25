@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useDashboardData } from '@/hooks/useLeagueData';
 import { SidebarNav, type SidebarNavProps } from '@/components/SidebarNav';
 import { TABS, type TabId } from '@/lib/tabs';
@@ -280,6 +280,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           side="bottom"
           className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
         >
+          <SheetTitle className="sr-only">More navigation options</SheetTitle>
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
@@ -356,6 +357,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           side="bottom"
           className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
         >
+          <SheetTitle className="sr-only">League selector</SheetTitle>
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
@@ -432,6 +434,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           side="bottom"
           className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
         >
+          <SheetTitle className="sr-only">Account menu</SheetTitle>
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
