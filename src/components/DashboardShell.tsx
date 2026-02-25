@@ -242,13 +242,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Sheet open={leagueSheetOpen} onOpenChange={setLeagueSheetOpen}>
         <SheetContent
           side="bottom"
-          className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 max-h-[85vh] overflow-y-auto [&>button]:hidden"
+          className="xl:hidden bg-base-bg text-white border-t border-card-border rounded-t-2xl p-0 overflow-hidden [&>button]:hidden"
         >
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
 
-          <div className="px-5 pb-8 space-y-5">
+          <div className="px-4 pb-4 space-y-3">
             {/* Quick nav — H2H, Records, Draft */}
             <div>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
@@ -257,7 +257,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col divide-y divide-card-border/40 border border-card-border rounded-xl overflow-hidden bg-card-bg">
                 <button
                   onClick={() => { handleTabChange('h2h'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'h2h'
                       ? 'text-brand-cyan bg-brand-cyan/10'
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -269,7 +269,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { handleTabChange('records'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'records'
                       ? 'text-brand-cyan bg-brand-cyan/10'
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -281,7 +281,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'draft'
                       ? 'text-brand-cyan bg-brand-cyan/10'
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -296,7 +296,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
             {/* User section — only if logged in */}
             {sessionUser && (
-              <div className="flex items-center justify-between py-3 border-b border-gray-800">
+              <div className="flex items-center justify-between py-2 border-b border-gray-800">
                 <div className="flex items-center gap-3">
                   {userAvatar ? (
                     <img
@@ -328,7 +328,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
                 Current League
               </div>
-              <div className="flex items-center gap-3 bg-card-bg rounded-xl p-3 border border-card-border">
+              <div className="flex items-center gap-3 bg-card-bg rounded-xl p-2.5 border border-card-border">
                 {league?.avatar ? (
                   <img
                     src={avatarUrl(league.avatar) ?? ''}
@@ -355,7 +355,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
                   Switch League
                 </div>
-                <div className="space-y-2">
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                   {allLeagueGroups
                     .filter(([, group]) => !group.some((g) => g.league_id === leagueId))
                     .map(([name, group]) => {
@@ -364,20 +364,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         <button
                           key={latest.league_id}
                           onClick={() => { handleChangeLeague(latest.league_id); setLeagueSheetOpen(false); }}
-                          className="w-full flex items-center gap-3 rounded-xl p-3 text-sm text-left transition-colors bg-card-bg border border-card-border text-gray-300 hover:border-gray-500 hover:text-white"
+                          className="flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-left transition-colors bg-card-bg border border-card-border text-gray-300 hover:border-gray-500 hover:text-white min-w-0"
+                          style={{ maxWidth: '180px' }}
                         >
                           {latest.avatar ? (
                             <img
                               src={avatarUrl(latest.avatar) ?? ''}
                               alt={name}
-                              className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+                              className="w-6 h-6 rounded-lg object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-7 h-7 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple text-xs font-bold flex-shrink-0 border border-brand-purple/20">
+                            <div className="w-6 h-6 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple text-xs font-bold flex-shrink-0 border border-brand-purple/20">
                               {name.slice(0, 2)}
                             </div>
                           )}
-                          <span className="font-medium truncate flex-1">{name}</span>
+                          <span className="font-medium truncate">{name}</span>
                         </button>
                       );
                     })}
@@ -389,7 +390,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {sessionUser && userId && (
               <button
                 onClick={() => { setLeagueSheetOpen(false); router.push(`/league/${leagueId}/managers/${userId}`); }}
-                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-4 border border-card-border hover:border-gray-500 transition-colors group"
+                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
               >
                 <div className="text-left">
                   <div className="font-medium text-white text-sm">My Profile</div>
@@ -403,7 +404,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {sessionUser && (
               <button
                 onClick={() => { setLeagueSheetOpen(false); handleCareerStats(); }}
-                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-4 border border-card-border hover:border-gray-500 transition-colors group"
+                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
               >
                 <div className="text-left">
                   <div className="font-medium text-white text-sm">Career Stats</div>
@@ -414,7 +415,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             )}
 
             {/* About / Contact */}
-            <div className="border-t border-gray-800 pt-3 flex items-center gap-1">
+            <div className="border-t border-gray-800 pt-2 flex items-center gap-1">
               <AboutModal>
                 <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
                   <Info size={12} />
@@ -428,7 +429,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   Contact
                 </button>
               </ContactModal>
-              <span className="text-[10px] text-gray-700 ml-auto">Built in Seattle 🌧️</span>
             </div>
           </div>
         </SheetContent>

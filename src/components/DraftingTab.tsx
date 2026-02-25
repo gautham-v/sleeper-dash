@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Target, Users } from 'lucide-react';
 import type { LeagueDraftAnalysis, AnalyzedPick } from '../types/sleeper';
 import {
@@ -9,6 +9,13 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 interface DraftingTabProps {
   userId: string;
@@ -83,8 +90,11 @@ function PickCard({ pick, label, icon: Icon, borderClass }: {
   );
 }
 
+const PICKS_PER_PAGE = 10;
+
 export function DraftingTab({ userId, analysis }: DraftingTabProps) {
   const summary = analysis.managerSummaries.get(userId);
+  const [picksPage, setPicksPage] = useState(1);
 
   const allPicks = useMemo(() => {
     if (!summary) return [];
@@ -92,6 +102,13 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
       .flatMap(cls => cls.picks)
       .sort((a, b) => Number(b.season) - Number(a.season) || a.pickNo - b.pickNo);
   }, [summary]);
+
+  const pagedPicks = allPicks.slice((picksPage - 1) * PICKS_PER_PAGE, picksPage * PICKS_PER_PAGE);
+  const totalPickPages = Math.ceil(allPicks.length / PICKS_PER_PAGE);
+
+  useEffect(() => {
+    setPicksPage(1);
+  }, [userId]);
 
   if (!analysis.hasData || !summary) {
     return (
@@ -246,7 +263,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPicks.map((pick, idx) => {
+              {pagedPicks.map((pick, idx) => {
                 const { label, className } = hitOrBustLabel(pick.surplus);
                 const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                 return (
@@ -275,6 +292,20 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
               })}
             </TableBody>
           </Table>
+          {totalPickPages > 1 && (
+            <div className="px-5 py-3 border-t border-card-border">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious onClick={() => setPicksPage(p => Math.max(1, p - 1))} disabled={picksPage === 1} />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext onClick={() => setPicksPage(p => Math.min(totalPickPages, p + 1))} disabled={picksPage === totalPickPages} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </div>
       )}
     </div>

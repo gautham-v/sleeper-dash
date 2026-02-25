@@ -8,15 +8,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Standings } from './Standings';
 import { AllTimeStandings } from './AllTimeStandings';
-import { LuckIndex } from './LuckIndex';
 import { PowerRankings } from './PowerRankings';
 import { Avatar } from './Avatar';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import {
-  calcAllTimeStats, calcAllTimeLuckIndex, calcLuckIndex, calcPowerRankings,
+  calcAllTimeStats, calcPowerRankings,
 } from '../utils/calculations';
-import type { TeamStanding, LuckEntry } from '../types/sleeper';
+import type { TeamStanding } from '../types/sleeper';
 
 interface LeagueTablesProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,11 +80,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     return Array.from(calcAllTimeStats(history).values());
   }, [history]);
 
-  const allTimeLuck = useMemo(() => {
-    if (!history) return [];
-    return calcAllTimeLuckIndex(history);
-  }, [history]);
-
   const allTimeRankings = useMemo(() => {
     if (!history) return [];
     const stats = calcAllTimeStats(history);
@@ -104,12 +98,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     if (!seasonData) return null;
     return buildStandingsFromHistory(seasonData);
   }, [seasonData]);
-
-  const seasonLuck = useMemo((): LuckEntry[] | null => {
-    if (!seasonData || !seasonStandings) return null;
-    const regular = seasonData.matchups.filter((m) => !m.isPlayoff);
-    return calcLuckIndex(regular, seasonStandings);
-  }, [seasonData, seasonStandings]);
 
   const seasonRankings = useMemo(() => {
     if (!seasonData || !seasonStandings) return null;
@@ -144,10 +132,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     }
   }
 
-  const displayLuck: LuckEntry[] = selectedSeason === 'alltime'
-    ? allTimeLuck
-    : (isCurrentSeason ? computed.luckIndex : seasonLuck) ?? [];
-
   const displayRankings = selectedSeason === 'alltime'
     ? null
     : (isCurrentSeason ? computed.powerRankings : seasonRankings) ?? [];
@@ -173,15 +157,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
               text-muted-foreground hover:text-foreground"
           >
             Standings
-          </TabsTrigger>
-          <TabsTrigger
-            value="luck"
-            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
-              data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
-              text-muted-foreground hover:text-foreground"
-          >
-            <span className="sm:hidden">Luck</span>
-            <span className="hidden sm:inline">Luck Index</span>
           </TabsTrigger>
         </TabsList>
 
@@ -311,15 +286,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
         )}
       </TabsContent>
 
-      <TabsContent value="luck" className="mt-0 pt-4">
-        {displayLuck.length > 0 ? (
-          <LuckIndex entries={displayLuck} onSelectManager={onSelectManager} />
-        ) : (
-          <div className="p-8 text-center text-muted-foreground text-sm">
-            No luck data available
-          </div>
-        )}
-      </TabsContent>
     </Tabs>
   );
 }

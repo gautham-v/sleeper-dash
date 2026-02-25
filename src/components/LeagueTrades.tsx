@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, Crown, Trophy } from 'lucide-react';
+import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { Avatar } from './Avatar';
 import {
@@ -107,6 +107,84 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
   );
 }
 
+function ImpactfulTradeCard({
+  trade,
+  winnerSide,
+  loserSide,
+  maxVal,
+  rank,
+}: {
+  trade: AnalyzedTrade;
+  winnerSide: AnalyzedTrade['sides'][number];
+  loserSide: AnalyzedTrade['sides'][number];
+  maxVal: number;
+  rank: number;
+}) {
+  const rankEmoji = rank === 0 ? '🥇' : rank === 1 ? '🥈' : '🥉';
+  return (
+    <div className="bg-card-bg border border-card-border rounded-2xl p-4">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-sm">{rankEmoji}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 flex-1 truncate">
+          Most Impactful Trade
+        </span>
+        <span className="text-[10px] text-gray-600 shrink-0">
+          Season Wk{trade.week} · {formatTimestamp(trade.timestamp)}
+        </span>
+      </div>
+      <div className="border-t border-card-border/50 my-2" />
+      {/* Winner */}
+      <div className="mb-2">
+        <div className="flex items-center gap-1 mb-1">
+          <Crown size={11} className="text-yellow-400 shrink-0" />
+          <span className="text-xs font-semibold text-emerald-400">WINNER: {winnerSide.displayName}</span>
+        </div>
+        <div className="ml-4 text-xs text-gray-500 mb-0.5">received:</div>
+        <div className="ml-4 flex flex-wrap gap-1">
+          {winnerSide.assetsReceived.map((a) => (
+            <span key={a.playerId} className="flex items-center gap-0.5">
+              <span className={`text-[10px] font-bold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
+              <span className="text-xs text-gray-300">{a.playerName}</span>
+            </span>
+          ))}
+          {winnerSide.picksReceived.map((p, i) => (
+            <span key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</span>
+          ))}
+          {winnerSide.assetsReceived.length === 0 && winnerSide.picksReceived.length === 0 && (
+            <span className="text-xs text-gray-600">—</span>
+          )}
+        </div>
+      </div>
+      {/* Loser */}
+      <div className="mb-3">
+        <div className="flex items-center gap-1 mb-1">
+          <ArrowDown size={11} className="text-red-400 shrink-0" />
+          <span className="text-xs font-semibold text-red-400">LOSER: {loserSide.displayName}</span>
+        </div>
+        <div className="ml-4 text-xs text-gray-500 mb-0.5">received:</div>
+        <div className="ml-4 flex flex-wrap gap-1">
+          {loserSide.assetsReceived.map((a) => (
+            <span key={a.playerId} className="flex items-center gap-0.5">
+              <span className={`text-[10px] font-bold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
+              <span className="text-xs text-gray-300">{a.playerName}</span>
+            </span>
+          ))}
+          {loserSide.picksReceived.map((p, i) => (
+            <span key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</span>
+          ))}
+          {loserSide.assetsReceived.length === 0 && loserSide.picksReceived.length === 0 && (
+            <span className="text-xs text-gray-600">—</span>
+          )}
+        </div>
+      </div>
+      <div className="border-t border-card-border/50 pt-2 flex items-center justify-between">
+        <span className="text-xs text-gray-500">Net Impact</span>
+        <span className="text-sm font-bold text-emerald-400 tabular-nums">+{maxVal.toFixed(1)} pts</span>
+      </div>
+    </div>
+  );
+}
+
 const TRADES_PER_PAGE = 10;
 
 export function LeagueTrades({ leagueId }: { leagueId: string }) {
@@ -168,19 +246,19 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   return (
     <div className="space-y-6">
       {/* ── Top highlights ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Top 3 Most Active Traders */}
+      <div className="space-y-3">
+        {/* Most Active Traders — full width */}
         {top3ActiveTraders.length > 0 && (
           <div className="bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2">
             <div className="flex items-center gap-1.5 mb-1">
               <Crown size={13} className="text-gray-400" />
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Most Active Traders</span>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-4">
               {top3ActiveTraders.map((manager, idx) => {
                 const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
                 return (
-                  <div key={manager.userId} className="flex items-center gap-2">
+                  <div key={manager.userId} className="flex items-center gap-2 flex-1 min-w-[160px]">
                     <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
                     <Avatar avatar={manager.avatar} name={manager.displayName} size="sm" />
                     <div className="flex-1 min-w-0">
@@ -194,26 +272,23 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
           </div>
         )}
 
-        {/* Top 3 Most Impactful Trades */}
+        {/* Top 3 Most Impactful Trades — 3 separate cards */}
         {top3ImpactfulTrades.length > 0 && (
-          <div className="bg-card-bg border border-card-border rounded-2xl p-4">
-            <div className="flex items-center gap-1.5 mb-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
               <ArrowLeftRight size={13} className="text-gray-400" />
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
             </div>
-            <div className="space-y-3">
-              {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide }, idx) => (
-                <div key={trade.transactionId} className="space-y-1">
-                  <div className="text-[10px] text-gray-600">{idx + 1}. {trade.season} Week {trade.week}</div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-300 truncate max-w-[45%]">{winnerSide?.displayName}</span>
-                    <span className="text-xs font-bold text-emerald-400 tabular-nums">{valueLabel(winnerSide?.netValue ?? 0)} pts</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-300 truncate max-w-[45%]">{loserSide?.displayName}</span>
-                    <span className="text-xs font-bold text-red-400 tabular-nums">{valueLabel(loserSide?.netValue ?? 0)} pts</span>
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide, maxVal }, idx) => (
+                <ImpactfulTradeCard
+                  key={trade.transactionId}
+                  trade={trade}
+                  winnerSide={winnerSide}
+                  loserSide={loserSide}
+                  maxVal={maxVal}
+                  rank={idx}
+                />
               ))}
             </div>
           </div>

@@ -454,3 +454,21 @@ export interface AllTimeWARAnalysis {
   seasonBoundaries: { season: string; startIndex: number }[];
   hasData: boolean;
 }
+
+// Manager roster player stats (for Players tab)
+export interface PlayerRosterStat {
+  playerId: string;
+  playerName: string;
+  position: string;
+  totalPoints: number;      // fantasy pts scored as a starter for this team
+  totalStarts: number;      // number of weeks started
+  weeksOnRoster: number;    // total weeks on roster (starter + bench)
+  seasons: number;          // distinct season count
+  firstSeason: string;      // earliest season
+  lastSeason: string;       // most recent season
+}
+
+export interface ManagerRosterStatsResult {
+  players: PlayerRosterStat[];
+  hasData: boolean;
+}

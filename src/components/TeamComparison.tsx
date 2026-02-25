@@ -135,7 +135,10 @@ export function TeamComparison({ leagueId }: Props) {
     if (signedInInLeague && signedInId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeamAId(signedInId);
-      const firstOther = allUsers.find((u) => u.userId !== signedInId);
+      const alphabeticalUsers = [...allUsers].sort((a, b) =>
+        a.displayName.localeCompare(b.displayName)
+      );
+      const firstOther = alphabeticalUsers.find((u) => u.userId !== signedInId);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (firstOther) setTeamBId(firstOther.userId);
     }

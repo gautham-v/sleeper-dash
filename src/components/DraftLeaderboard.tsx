@@ -40,30 +40,6 @@ function surplusLabel(surplus: number): string {
 
 // ── Section A ─────────────────────────────────────────────────────────────────
 
-function DraftInfoTooltip({ text }: { text: string }) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <span className="relative inline-flex items-center ml-1">
-      <button
-        type="button"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
-        className="text-gray-600 hover:text-gray-400 transition-colors"
-        aria-label="More info"
-      >
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a.75.75 0 1 0 0 1.5A.75.75 0 0 0 8 4.5zm-.75 2.5h1.5v4.5h-1.5V7z" />
-        </svg>
-      </button>
-      {visible && (
-        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 shadow-xl pointer-events-none whitespace-normal text-left">
-          {text}
-        </span>
-      )}
-    </span>
-  );
-}
-
 type SortKey = 'surplus' | 'hitRate' | 'avgPick';
 
 function SortHeader({
@@ -120,7 +96,6 @@ function AllTimeDraftRankings({
             >
               <span className="inline-flex items-center gap-1 justify-end">
                 Value+
-                <DraftInfoTooltip text="How much better or worse each pick performed vs. the average player taken in that draft round. Positive = outperformed expectations." />
                 {sortBy === 'surplus' && <ChevronDown size={11} />}
               </span>
             </TableHead>
@@ -162,6 +137,9 @@ function AllTimeDraftRankings({
           ))}
         </TableBody>
       </Table>
+      <div className="px-5 py-3 border-t border-card-border/50 text-xs text-muted-foreground">
+        Value+ = how much better/worse each pick performed vs. average for that draft round. Positive = outperformed expectations.
+      </div>
     </div>
   );
 }
@@ -463,19 +441,19 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
       <div className="space-y-4">
         {/* Best Draft Classes */}
         {top3Classes.length > 0 && (
-          <div className="bg-card-bg border border-card-border rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
               <Layers size={15} className="text-brand-cyan" />
               <span className="font-semibold text-white text-sm">Top 3 Best Draft Classes</span>
             </div>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {top3Classes.map((row, i) => {
                 const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
                 return (
                   <button
                     key={`${row.managerId}-${row.season}`}
                     onClick={() => onSelectManager(row.managerId)}
-                    className="w-full text-left hover:opacity-80 transition-opacity"
+                    className="bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-gray-600 transition-colors w-full"
                   >
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
@@ -484,7 +462,9 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
                         <span className="text-sm font-semibold text-white">{row.displayName}</span>
                         <span className="text-xs text-gray-500 ml-1.5">{row.season}</span>
                       </div>
-                      <span className={`text-sm font-bold tabular-nums shrink-0 ${surplusColor(row.avgSurplus)}`}>
+                    </div>
+                    <div className="ml-7 mb-2">
+                      <span className={`text-sm font-bold tabular-nums ${surplusColor(row.avgSurplus)}`}>
                         Avg {surplusLabel(row.avgSurplus)}
                       </span>
                     </div>

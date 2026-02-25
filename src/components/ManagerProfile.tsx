@@ -7,6 +7,7 @@ import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { useFranchiseOutlook } from '../hooks/useFranchiseOutlook';
 import { useAllTimeWAR } from '../hooks/useAllTimeWAR';
+import { useManagerRosterStats } from '../hooks/useManagerRosterStats';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,7 @@ interface Props {
 
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onViewCareerStats }: Props) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'franchise' | 'trajectory' | 'players'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'outlook' | 'value' | 'players'>('overview');
   const [, setDraftingUnlocked] = useState(false);
   const [, setTradingUnlocked] = useState(false);
   const [, setFranchiseUnlocked] = useState(false);
@@ -56,6 +57,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const tradeAnalysis = useLeagueTradeHistory(leagueId);
   const franchiseOutlook = useFranchiseOutlook(leagueId);
   const trajectoryAnalysis = useAllTimeWAR(trajectoryUnlocked ? leagueId : null);
+  const rosterStats = useManagerRosterStats(leagueId, userId);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -115,20 +117,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   // Records held by this manager
   const myRecords = useMemo(() => records.filter(r => r.holderId === userId), [records, userId]);
 
-  const myAllPicks = useMemo(() => {
-    if (!draftAnalysis.data) return [];
-    const summary = draftAnalysis.data.managerSummaries.get(userId);
-    if (!summary) return [];
-    return summary.draftClasses.flatMap(cls => cls.picks)
-      .sort((a, b) => Number(b.season) - Number(a.season) || a.pickNo - b.pickNo);
-  }, [draftAnalysis.data, userId]);
-
   const ringOfHonor = useMemo(() => {
-    return [...myAllPicks]
-      .filter(p => p.surplus > 0)
-      .sort((a, b) => b.surplus - a.surplus)
+    if (!rosterStats.data) return [];
+    return rosterStats.data.players
+      .filter(p => p.totalStarts > 0)
       .slice(0, 5);
-  }, [myAllPicks]);
+  }, [rosterStats.data]);
 
   // Map of season year -> playoff finish label for this user
   const playoffFinishBySeason = useMemo(() => {
@@ -291,8 +285,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           const section = v as typeof activeSection;
           if (section === 'drafting') setDraftingUnlocked(true);
           if (section === 'trading') setTradingUnlocked(true);
-          if (section === 'franchise') setFranchiseUnlocked(true);
-          if (section === 'trajectory') setTrajectoryUnlocked(true);
+          if (section === 'outlook') setFranchiseUnlocked(true);
+          if (section === 'value') setTrajectoryUnlocked(true);
           setActiveSection(section);
         }}
       >
@@ -304,8 +298,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               const section = v as typeof activeSection;
               if (section === 'drafting') setDraftingUnlocked(true);
               if (section === 'trading') setTradingUnlocked(true);
-              if (section === 'franchise') setFranchiseUnlocked(true);
-              if (section === 'trajectory') setTrajectoryUnlocked(true);
+              if (section === 'outlook') setFranchiseUnlocked(true);
+              if (section === 'value') setTrajectoryUnlocked(true);
               setActiveSection(section);
             }}
           >
@@ -314,12 +308,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             </SelectTrigger>
             <SelectContent className="bg-card-bg border-card-border text-white">
               <SelectItem value="overview">Overview</SelectItem>
-              <SelectItem value="h2h">Head-to-Head</SelectItem>
-              <SelectItem value="seasons">Season Log</SelectItem>
+              <SelectItem value="value">Value</SelectItem>
               <SelectItem value="drafting">Drafting</SelectItem>
               <SelectItem value="trading">Trades</SelectItem>
-              <SelectItem value="franchise">Franchise</SelectItem>
-              <SelectItem value="trajectory">Trajectory</SelectItem>
+              <SelectItem value="h2h">Head-to-Head</SelectItem>
+              <SelectItem value="seasons">Season Log</SelectItem>
+              <SelectItem value="outlook">Outlook</SelectItem>
               <SelectItem value="players">Players</SelectItem>
             </SelectContent>
           </Select>
@@ -327,12 +321,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
         {/* Desktop: Tab list */}
         <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
-          <TabsTrigger value="seasons">Season Log</TabsTrigger>
+          <TabsTrigger value="value">Value</TabsTrigger>
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
           <TabsTrigger value="trading">Trades</TabsTrigger>
-          <TabsTrigger value="franchise">Franchise</TabsTrigger>
-          <TabsTrigger value="trajectory">Trajectory</TabsTrigger>
+          <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
+          <TabsTrigger value="seasons">Season Log</TabsTrigger>
+          <TabsTrigger value="outlook">Outlook</TabsTrigger>
           <TabsTrigger value="players">Players</TabsTrigger>
         </TabsList>
 
@@ -440,7 +434,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           {/* CTAs for deeper analytics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
-              onClick={() => { setTrajectoryUnlocked(true); setActiveSection('trajectory'); }}
+              onClick={() => { setTrajectoryUnlocked(true); setActiveSection('value'); }}
               className="flex items-start gap-3 bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-brand-cyan/40 transition-colors group"
             >
               <TrendingUp size={18} className="text-brand-cyan mt-0.5 flex-shrink-0" />
@@ -450,7 +444,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               </div>
             </button>
             <button
-              onClick={() => { setFranchiseUnlocked(true); setActiveSection('franchise'); }}
+              onClick={() => { setFranchiseUnlocked(true); setActiveSection('outlook'); }}
               className="flex items-start gap-3 bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-brand-cyan/40 transition-colors group"
             >
               <TrendingUp size={18} className="text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -460,6 +454,64 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               </div>
             </button>
           </div>
+        </TabsContent>
+
+        {/* TRAJECTORY SECTION */}
+        <TabsContent value="value" className="mt-4">
+          {trajectoryAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Building franchise trajectory…
+            </div>
+          ) : trajectoryAnalysis.data ? (
+            <FranchiseTrajectoryTab userId={userId} analysis={trajectoryAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📈</div>
+              <div className="text-sm font-medium text-gray-300">Trajectory data unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No historical matchup data found for this league.
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        {/* DRAFTING SECTION */}
+        <TabsContent value="drafting" className="mt-4">
+          {draftAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Analyzing draft history…
+            </div>
+          ) : draftAnalysis.data ? (
+            <DraftingTab userId={userId} analysis={draftAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📋</div>
+              <div className="text-sm font-medium text-gray-300">Draft analysis unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No completed snake draft data found for this league.
+              </div>
+            </div>
+          )}
+        </TabsContent>
+        {/* TRADING SECTION */}
+        <TabsContent value="trading" className="mt-4">
+          {tradeAnalysis.isLoading ? (
+            <div className="flex items-center justify-center h-40 text-brand-cyan">
+              <Loader2 className="animate-spin mr-2" size={20} />
+              Analyzing trade history…
+            </div>
+          ) : tradeAnalysis.data ? (
+            <TradingTab userId={userId} analysis={tradeAnalysis.data} />
+          ) : (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-2xl mb-3">📋</div>
+              <div className="text-sm font-medium text-gray-300">Trade analysis unavailable</div>
+              <div className="text-xs text-gray-500 mt-1">
+                No completed trade data found for this league.
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* H2H SECTION */}
@@ -665,46 +717,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             })()}
           </div>
         </TabsContent>
-        {/* DRAFTING SECTION */}
-        <TabsContent value="drafting" className="mt-4">
-          {draftAnalysis.isLoading ? (
-            <div className="flex items-center justify-center h-40 text-brand-cyan">
-              <Loader2 className="animate-spin mr-2" size={20} />
-              Analyzing draft history…
-            </div>
-          ) : draftAnalysis.data ? (
-            <DraftingTab userId={userId} analysis={draftAnalysis.data} />
-          ) : (
-            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
-              <div className="text-2xl mb-3">📋</div>
-              <div className="text-sm font-medium text-gray-300">Draft analysis unavailable</div>
-              <div className="text-xs text-gray-500 mt-1">
-                No completed snake draft data found for this league.
-              </div>
-            </div>
-          )}
-        </TabsContent>
-        {/* TRADING SECTION */}
-        <TabsContent value="trading" className="mt-4">
-          {tradeAnalysis.isLoading ? (
-            <div className="flex items-center justify-center h-40 text-brand-cyan">
-              <Loader2 className="animate-spin mr-2" size={20} />
-              Analyzing trade history…
-            </div>
-          ) : tradeAnalysis.data ? (
-            <TradingTab userId={userId} analysis={tradeAnalysis.data} />
-          ) : (
-            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
-              <div className="text-2xl mb-3">📋</div>
-              <div className="text-sm font-medium text-gray-300">Trade analysis unavailable</div>
-              <div className="text-xs text-gray-500 mt-1">
-                No completed trade data found for this league.
-              </div>
-            </div>
-          )}
-        </TabsContent>
         {/* FRANCHISE OUTLOOK SECTION */}
-        <TabsContent value="franchise" className="mt-4">
+        <TabsContent value="outlook" className="mt-4">
           {franchiseOutlook.isLoading ? (
             <div className="flex items-center justify-center h-40 text-brand-cyan">
               <Loader2 className="animate-spin mr-2" size={20} />
@@ -722,25 +736,6 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             </div>
           )}
         </TabsContent>
-        {/* TRAJECTORY SECTION */}
-        <TabsContent value="trajectory" className="mt-4">
-          {trajectoryAnalysis.isLoading ? (
-            <div className="flex items-center justify-center h-40 text-brand-cyan">
-              <Loader2 className="animate-spin mr-2" size={20} />
-              Building franchise trajectory…
-            </div>
-          ) : trajectoryAnalysis.data ? (
-            <FranchiseTrajectoryTab userId={userId} analysis={trajectoryAnalysis.data} />
-          ) : (
-            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
-              <div className="text-2xl mb-3">📈</div>
-              <div className="text-sm font-medium text-gray-300">Trajectory data unavailable</div>
-              <div className="text-xs text-gray-500 mt-1">
-                No historical matchup data found for this league.
-              </div>
-            </div>
-          )}
-        </TabsContent>
 
         {/* PLAYERS SECTION */}
         <TabsContent value="players" className="mt-4 space-y-4">
@@ -750,21 +745,24 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               <div className="flex items-center gap-2 mb-3">
                 <Star size={16} className="text-yellow-400" />
                 <span className="font-semibold text-yellow-400">Ring of Honor</span>
-                <span className="text-xs text-gray-500 ml-1">— best picks by value score</span>
+                <span className="text-xs text-gray-500 ml-1">— top 5 by points scored</span>
               </div>
               <div className="space-y-2">
-                {ringOfHonor.map((pick, i) => {
-                  const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                {ringOfHonor.map((player, i) => {
+                  const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                  const tenure = player.firstSeason === player.lastSeason
+                    ? player.firstSeason
+                    : `${player.firstSeason}–${player.lastSeason}`;
                   return (
-                    <div key={`${pick.playerId}-${i}`} className="flex items-center gap-3 py-1">
+                    <div key={player.playerId} className="flex items-center gap-3 py-1">
                       <span className="text-sm text-yellow-600 w-4 shrink-0 font-bold">{i + 1}.</span>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                        {pick.position}
+                        {player.position}
                       </span>
-                      <span className="text-sm font-semibold text-white flex-1 truncate">{pick.playerName}</span>
-                      <span className="text-xs text-gray-500 shrink-0">{pick.season} R{pick.round}</span>
+                      <span className="text-sm font-semibold text-white flex-1 truncate">{player.playerName}</span>
+                      <span className="text-xs text-gray-500 shrink-0">{tenure}</span>
                       <span className="text-sm font-bold text-emerald-400 tabular-nums shrink-0">
-                        +{pick.surplus.toFixed(1)}
+                        {player.totalPoints.toFixed(1)} pts
                       </span>
                     </div>
                   );
@@ -773,78 +771,68 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             </div>
           )}
 
-          {/* All Drafted Players Table */}
-          {draftAnalysis.isLoading ? (
+          {/* All Players Table */}
+          {rosterStats.isLoading ? (
             <div className="flex items-center justify-center h-40 text-brand-cyan">
               <Loader2 className="animate-spin mr-2" size={20} />
               Loading player history...
             </div>
-          ) : myAllPicks.length > 0 ? (
+          ) : rosterStats.data?.hasData ? (
             <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
               <div className="px-5 pt-4 pb-3 flex items-center gap-2">
                 <Users size={15} className="text-gray-400" />
-                <span className="font-semibold text-white text-sm">All Drafted Players</span>
-                <span className="text-xs text-gray-600">({myAllPicks.length})</span>
+                <span className="font-semibold text-white text-sm">All Players</span>
+                <span className="text-xs text-gray-600">({rosterStats.data.players.length})</span>
               </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                      <TableHead className="text-left py-2.5 px-5">Player</TableHead>
-                      <TableHead className="text-center py-2.5 px-3">Year</TableHead>
-                      <TableHead className="text-center py-2.5 px-3">Rd/Pick</TableHead>
-                      <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Result</TableHead>
-                      <TableHead className="text-right py-2.5 px-5">Value Score</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {myAllPicks.map((pick, idx) => {
-                      const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
-                      const isHit = pick.surplus > 1;
-                      const isBust = pick.surplus < -1;
-                      return (
-                        <TableRow key={`${pick.season}-${pick.pickNo}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
-                          <TableCell className="py-3 px-5">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                                {pick.position}
-                              </span>
-                              <span className="text-sm text-white font-medium truncate">{pick.playerName}</span>
-                              {pick.isKeeper && <span className="text-[10px] text-brand-cyan font-medium ml-1 shrink-0">(K)</span>}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3 px-3 text-center text-sm text-gray-400">{pick.season}</TableCell>
-                          <TableCell className="py-3 px-3 text-center text-sm text-gray-400 tabular-nums">
-                            R{pick.round} #{pick.pickNo}
-                          </TableCell>
-                          <TableCell className="py-3 px-3 text-center hidden sm:table-cell">
-                            {isHit ? (
-                              <span className="text-xs font-semibold text-emerald-400">Hit</span>
-                            ) : isBust ? (
-                              <span className="text-xs font-semibold text-red-400">Bust</span>
-                            ) : (
-                              <span className="text-xs text-gray-500">Average</span>
-                            )}
-                          </TableCell>
-                          <TableCell className={`py-3 px-5 text-right tabular-nums text-sm font-bold ${pick.surplus > 1 ? 'text-emerald-400' : pick.surplus < -1 ? 'text-red-400' : 'text-gray-400'}`}>
-                            {(pick.surplus >= 0 ? '+' : '') + pick.surplus.toFixed(1)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                    <TableHead className="text-left py-2.5 px-5">Player</TableHead>
+                    <TableHead className="text-right py-2.5 px-3">Total Pts</TableHead>
+                    <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Starts</TableHead>
+                    <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Tenure</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rosterStats.data.players.map((player, idx) => {
+                    const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
+                    const tenure = player.firstSeason === player.lastSeason
+                      ? player.firstSeason
+                      : `${player.firstSeason}–${player.lastSeason}`;
+                    return (
+                      <TableRow key={`${player.playerId}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                        <TableCell className="py-3 px-5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
+                              {player.position}
+                            </span>
+                            <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
+                          {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
+                        </TableCell>
+                        <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                          {player.totalStarts}
+                        </TableCell>
+                        <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
+                          {tenure}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          ) : !draftAnalysis.data ? (
+          ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
               <div className="text-2xl mb-3">📋</div>
-              <div className="text-sm font-medium text-gray-300">No draft history available</div>
+              <div className="text-sm font-medium text-gray-300">No player history available</div>
               <div className="text-xs text-gray-500 mt-1">
-                Draft analysis requires completed snake draft data for this league.
+                Player history requires completed matchup data for this league.
               </div>
             </div>
-          ) : null}
+          )}
         </TabsContent>
       </Tabs>
     </div>
