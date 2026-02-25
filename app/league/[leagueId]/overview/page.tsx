@@ -9,6 +9,7 @@ import { Overview } from '@/components/Overview';
 import { LeagueTables } from '@/components/LeagueTables';
 import { RecordsSpotlight } from '@/components/RecordsSpotlight';
 import { FranchiseTrajectoryTab } from '@/components/FranchiseTrajectoryTab';
+import { ShareButton } from '@/components/ShareButton';
 import { Loader2 } from 'lucide-react';
 import type { TabId } from '@/lib/tabs';
 
@@ -41,18 +42,23 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-8">
-      <Overview
-        computed={computed}
-        leagueId={leagueId}
-        userId={sessionUser?.userId ?? ''}
-        onNavigate={handleNavigate}
-        onViewMyProfile={
-          sessionUser?.userId
-            ? () => handleSelectManager(sessionUser.userId)
-            : undefined
-        }
-        onSelectManager={handleSelectManager}
-      />
+      <div>
+        <div className="flex justify-end mb-2">
+          <ShareButton />
+        </div>
+        <Overview
+          computed={computed}
+          leagueId={leagueId}
+          userId={sessionUser?.userId ?? ''}
+          onNavigate={handleNavigate}
+          onViewMyProfile={
+            sessionUser?.userId
+              ? () => handleSelectManager(sessionUser.userId)
+              : undefined
+          }
+          onSelectManager={handleSelectManager}
+        />
+      </div>
 
       {/* Records Spotlight */}
       <RecordsSpotlight

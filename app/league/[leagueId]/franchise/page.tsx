@@ -11,6 +11,7 @@ import { FranchiseTrajectoryTab } from '@/components/FranchiseTrajectoryTab';
 import { FranchiseOutlookTab } from '@/components/FranchiseOutlookTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ShareButton } from '@/components/ShareButton';
 
 export default function FranchisePage() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -53,9 +54,12 @@ export default function FranchisePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Franchise Analytics</h2>
-        <p className="text-sm text-gray-400 mt-1">All-time trajectory and contender window analysis</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Franchise Analytics</h2>
+          <p className="text-sm text-gray-400 mt-1">All-time trajectory and contender window analysis</p>
+        </div>
+        <ShareButton className="mt-1" />
       </div>
 
       <Tabs defaultValue="trajectory">
