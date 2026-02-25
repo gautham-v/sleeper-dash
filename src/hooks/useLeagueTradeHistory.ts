@@ -7,7 +7,7 @@ import { buildDraftPickResolution, computeLeagueTradeAnalysis } from '../utils/t
 
 // ---------- localStorage cache ----------
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v13';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
