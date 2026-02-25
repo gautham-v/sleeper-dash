@@ -83,15 +83,24 @@ function getOriginalOwnerUserId(
   draft: SleeperDraft,
   rosterToUser: Map<number, string>,
 ): string {
-  const numTeams = draft.settings.teams;
+  const numTeams = draft.settings?.teams;
+  // slot_to_roster_id may be absent at runtime even if declared non-nullable in the type
+  const slotMap = draft.slot_to_roster_id as Record<string, number> | null | undefined;
+
+  if (!numTeams || !slotMap) {
+    // Fallback: use the drafter's userId (works unless one manager has 2+ picks in same round)
+    return pick.picked_by;
+  }
+
   const posInRound = ((pick.pick_no - 1) % numTeams) + 1; // 1-indexed
   const round = Math.ceil(pick.pick_no / numTeams);
   // Snake drafts reverse even rounds; linear drafts always same order
   const slot = (draft.type === 'snake' && round % 2 === 0)
     ? numTeams - posInRound + 1
     : posInRound;
-  const originalRosterId = draft.slot_to_roster_id[slot.toString()];
-  return rosterToUser.get(originalRosterId) ?? '';
+  const originalRosterId = slotMap[slot.toString()];
+  if (!originalRosterId) return pick.picked_by;
+  return rosterToUser.get(originalRosterId) ?? pick.picked_by;
 }
 
 /**

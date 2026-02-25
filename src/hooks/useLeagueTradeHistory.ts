@@ -7,7 +7,7 @@ import { buildDraftPickResolution, computeLeagueTradeAnalysis } from '../utils/t
 
 // ---------- localStorage cache ----------
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
@@ -149,13 +149,10 @@ export async function fetchLeagueTradeAnalysis(leagueId: string): Promise<League
     }),
   );
 
-  console.log('[tradeAnalysis] draftInputs count:', draftInputs.length, 'samples:', draftInputs.map(d => ({ season: d.season, picks: d.picks.length, teams: d.draft.settings?.teams, slotKeys: Object.keys(d.draft.slot_to_roster_id ?? {}).length })));
   let draftPickResolution: Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }>;
   try {
     draftPickResolution = buildDraftPickResolution(draftInputs, playerMap);
-    console.log('[tradeAnalysis] resolution size:', draftPickResolution.size);
-  } catch (e) {
-    console.error('[tradeAnalysis] buildDraftPickResolution ERROR:', e);
+  } catch {
     draftPickResolution = new Map();
   }
 
