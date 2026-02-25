@@ -6,7 +6,7 @@ import type { AllTimeWARAnalysis, ManagerAllTimeWAR } from '../types/sleeper';
 
 // ---------- localStorage cache ----------
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
@@ -91,18 +91,17 @@ export function useAllTimeWAR(leagueId: string | null) {
       );
 
       // 4. Build SeasonWARInput[] and managerInfo map
-      const managerInfo = new Map<string, { displayName: string; avatar: string | null }>();
+      const managerInfo = new Map<string, { displayName: string; managerName: string; avatar: string | null }>();
       const seasonInputs: SeasonWARInput[] = [];
 
       for (const { season, regularSeasonWeeks, rosters, users, weekMatchupResults } of seasonRawData) {
-        // Build userId → display info
+        // Build userId → display info — always overwrite so the most recent season's name wins
         for (const user of users) {
-          if (!managerInfo.has(user.user_id)) {
-            managerInfo.set(user.user_id, {
-              displayName: user.metadata?.team_name || user.display_name,
-              avatar: user.avatar,
-            });
-          }
+          managerInfo.set(user.user_id, {
+            displayName: user.metadata?.team_name || user.display_name,
+            managerName: user.display_name,
+            avatar: user.avatar,
+          });
         }
 
         // Build rosterId → userId (skip orphan rosters with no owner)

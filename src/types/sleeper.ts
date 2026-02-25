@@ -444,7 +444,8 @@ export interface AllTimeWARPoint {
 
 export interface ManagerAllTimeWAR {
   userId: string;
-  displayName: string;
+  displayName: string;   // team name (falls back to Sleeper username if no team name set)
+  managerName: string;   // Sleeper username, always the actual account display_name
   avatar: string | null;
   points: AllTimeWARPoint[];
 }
