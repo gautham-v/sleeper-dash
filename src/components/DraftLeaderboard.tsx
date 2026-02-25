@@ -476,34 +476,6 @@ function Top3ClassCards({
   );
 }
 
-function Top3PickRows({ picks, type }: { picks: PickRow[]; type: 'steals' | 'busts' }) {
-  const isSteal = type === 'steals';
-  const colorClass = isSteal ? 'text-emerald-400' : 'text-red-400';
-  const bgBorderClass = isSteal
-    ? 'bg-emerald-500/10 border-emerald-500/30'
-    : 'bg-red-500/10 border-red-500/30';
-
-  return (
-    <div className="space-y-1.5">
-      {picks.map((pick, i) => (
-        <div
-          key={`${pick.managerId}-${pick.season}-${pick.pickNo}`}
-          className={`${bgBorderClass} border rounded-xl px-3 py-2 flex items-center gap-2`}
-        >
-          <span className={`text-[10px] font-bold ${colorClass} w-5 shrink-0`}>{i + 1}.</span>
-          <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-            {pick.position}
-          </span>
-          <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
-          <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
-          <span className="text-xs text-gray-500 shrink-0">{pick.season}</span>
-          <span className={`text-xs font-bold ${colorClass} tabular-nums shrink-0`}>{surplusLabel(pick.surplus)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────────────────
 
 type DraftTab = 'rankings' | 'classes' | 'steals' | 'busts';
@@ -617,8 +589,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
   }
 
   const top3Classes = filteredDraftClasses.slice(0, 3);
-  const top3Steals = steals.slice(0, 3);
-  const top3Busts = busts.slice(0, 3);
 
   return (
     <div className="space-y-4">
@@ -660,31 +630,25 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
       )}
 
       {activeTab === 'steals' && (
-        <div className="space-y-4">
-          {top3Steals.length > 0 && <Top3PickRows picks={top3Steals} type="steals" />}
-          <PickTable
-            key={seasonFilter}
-            title="Biggest Steals in League History"
-            icon={TrendingUp}
-            iconClass="text-emerald-400"
-            rows={steals}
-            emptyText="No pick data found."
-          />
-        </div>
+        <PickTable
+          key={seasonFilter}
+          title="Biggest Steals in League History"
+          icon={TrendingUp}
+          iconClass="text-emerald-400"
+          rows={steals}
+          emptyText="No pick data found."
+        />
       )}
 
       {activeTab === 'busts' && (
-        <div className="space-y-4">
-          {top3Busts.length > 0 && <Top3PickRows picks={top3Busts} type="busts" />}
-          <PickTable
-            key={seasonFilter}
-            title="Biggest Busts in League History"
-            icon={TrendingDown}
-            iconClass="text-red-400"
-            rows={busts}
-            emptyText="No pick data found."
-          />
-        </div>
+        <PickTable
+          key={seasonFilter}
+          title="Biggest Busts in League History"
+          icon={TrendingDown}
+          iconClass="text-red-400"
+          rows={busts}
+          emptyText="No pick data found."
+        />
       )}
 
       {/* ── Footer ── */}
