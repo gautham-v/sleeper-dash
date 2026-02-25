@@ -74,9 +74,15 @@ export function getPostTradePoints(
 // ---------- Draft pick resolution ----------
 
 /**
- * Compute the original owner (slot owner) user ID for a draft pick.
- * "Original owner" = the team whose pick SLOT this was, not who drafted with it.
- * This is unique per pick even when one manager holds multiple picks in the same round.
+ * Build a resolution map for traded draft picks.
+ * Key: "season:round:originalOwnerUserId" where originalOwnerUserId is derived from
+ * SleeperDraftPick.roster_id (the original slot holder's roster in the draft league),
+ * matching how TradedDraftPick.roster_id is used in analyzeTrade.
+ * Value: player info + full season points.
+ */
+/**
+ * Compute the original slot owner's user_id for a draft pick.
+ * Uses slot_to_roster_id first, then draft_order as fallback, then picked_by.
  */
 function getOriginalOwnerUserId(
   pick: SleeperDraftPick,
@@ -84,31 +90,33 @@ function getOriginalOwnerUserId(
   rosterToUser: Map<number, string>,
 ): string {
   const numTeams = draft.settings?.teams;
-  // slot_to_roster_id may be absent at runtime even if declared non-nullable in the type
-  const slotMap = draft.slot_to_roster_id as Record<string, number> | null | undefined;
+  if (!numTeams) return pick.picked_by;
 
-  if (!numTeams || !slotMap) {
-    // Fallback: use the drafter's userId (works unless one manager has 2+ picks in same round)
-    return pick.picked_by;
-  }
-
-  const posInRound = ((pick.pick_no - 1) % numTeams) + 1; // 1-indexed
+  const posInRound = ((pick.pick_no - 1) % numTeams) + 1; // 1-indexed position within round
   const round = Math.ceil(pick.pick_no / numTeams);
-  // Snake drafts reverse even rounds; linear drafts always same order
   const slot = (draft.type === 'snake' && round % 2 === 0)
     ? numTeams - posInRound + 1
     : posInRound;
-  const originalRosterId = slotMap[slot.toString()];
-  if (!originalRosterId) return pick.picked_by;
-  return rosterToUser.get(originalRosterId) ?? pick.picked_by;
+
+  // Try slot_to_roster_id
+  const slotMap = draft.slot_to_roster_id as Record<string, number> | null | undefined;
+  if (slotMap) {
+    const originalRosterId = slotMap[slot.toString()];
+    if (originalRosterId) return rosterToUser.get(originalRosterId) ?? pick.picked_by;
+  }
+
+  // Try draft_order (user_id → slot_number) — invert to find who owns this slot
+  const draftOrder = draft.draft_order as Record<string, number> | null | undefined;
+  if (draftOrder) {
+    for (const [userId, userSlot] of Object.entries(draftOrder)) {
+      if (userSlot === slot) return userId;
+    }
+  }
+
+  // Fallback: drafter (only correct when pick was not traded before the draft)
+  return pick.picked_by;
 }
 
-/**
- * Build a resolution map for traded draft picks.
- * Key: "season:round:originalOwnerUserId" where originalOwnerUserId is the team whose
- * draft SLOT this was (stable and unique even if one manager holds two picks in same round).
- * Value: player info + full season points.
- */
 export function buildDraftPickResolution(
   drafts: Array<{
     season: string;
@@ -129,7 +137,6 @@ export function buildDraftPickResolution(
       const position = pick.metadata.position || playerMap.get(pick.player_id)?.position || '';
       const seasonPts = playerSeasonPoints.get(pick.player_id) ?? 0;
 
-      // Key by season, round, and the ORIGINAL OWNER (slot owner) — unique per pick slot
       const originalOwnerUserId = getOriginalOwnerUserId(pick, draft, rosterToUser);
       const key = `${season}:${pick.round}:${originalOwnerUserId}`;
       resolution.set(key, {
