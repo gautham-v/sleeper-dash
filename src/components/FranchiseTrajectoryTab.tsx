@@ -295,8 +295,43 @@ export function FranchiseTrajectoryTab({ userId, analysis, showRankings = false 
         </LineChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-2.5 pt-1 border-t border-gray-800">
+      {/* Legend — mobile: horizontal scrollable chips; desktop: wrapping two-line list */}
+
+      {/* Mobile chips */}
+      <div
+        className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-1 px-1 pt-1 border-t border-gray-800"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {/* Current user first, then others */}
+        {[userId, ...userIds.filter((id) => id !== userId)].map((id) => {
+          const manager = analysis.managerData.get(id);
+          const isCurrentUser = id === userId;
+          const color = colorMap.get(id) ?? '#6b7280';
+          const isHighlighted = highlightedId === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleLegendClick(id)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-all"
+              style={{
+                borderColor: isHighlighted ? color : isCurrentUser ? `${color}99` : '#374151',
+                backgroundColor: isHighlighted ? `${color}20` : 'transparent',
+                color: isHighlighted ? '#fff' : isCurrentUser ? '#e5e7eb' : '#6b7280',
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: color, opacity: isCurrentUser ? 1 : 0.7 }}
+              />
+              <span className="truncate max-w-[80px]">{manager?.displayName ?? id}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Desktop list */}
+      <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-2.5 pt-1 border-t border-gray-800">
         {userIds.map((id) => {
           const manager = analysis.managerData.get(id);
           const isCurrentUser = id === userId;
