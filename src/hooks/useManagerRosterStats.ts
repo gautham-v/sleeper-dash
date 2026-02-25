@@ -24,6 +24,7 @@ function saveRosterCache(leagueId: string, userId: string, data: ManagerRosterSt
       `manager-roster-stats-${CACHE_VERSION}-${leagueId}-${userId}`,
       JSON.stringify({ cachedAt: Date.now(), ...data })
     );
+  // eslint-disable-next-line no-empty
   } catch {}
 }
 
@@ -36,10 +37,12 @@ async function getPlayerDatabase(): Promise<Record<string, SleeperPlayer>> {
         return parsed.players;
       }
     }
+  // eslint-disable-next-line no-empty
   } catch {}
   const players = await sleeperApi.getAllPlayers();
   try {
     localStorage.setItem(PLAYERS_CACHE_KEY, JSON.stringify({ cachedAt: Date.now(), players }));
+  // eslint-disable-next-line no-empty
   } catch {}
   return players;
 }

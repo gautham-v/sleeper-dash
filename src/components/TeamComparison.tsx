@@ -139,7 +139,6 @@ export function TeamComparison({ leagueId }: Props) {
         a.displayName.localeCompare(b.displayName)
       );
       const firstOther = alphabeticalUsers.find((u) => u.userId !== signedInId);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (firstOther) setTeamBId(firstOther.userId);
     }
     // If signed-in user is not in the league, leave both empty (existing behavior)

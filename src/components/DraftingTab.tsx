@@ -106,6 +106,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
   const pagedPicks = allPicks.slice((picksPage - 1) * PICKS_PER_PAGE, picksPage * PICKS_PER_PAGE);
   const totalPickPages = Math.ceil(allPicks.length / PICKS_PER_PAGE);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setPicksPage(1);
   }, [userId]);
