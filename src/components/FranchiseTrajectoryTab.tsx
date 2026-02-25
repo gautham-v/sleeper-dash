@@ -52,7 +52,7 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
 
   // Get season/week from the first payload entry's data
   const datum = payload[0]?.payload as ChartDatum;
-  const valueLabel = mode === 'cumulative' ? 'Cumulative WAR' : 'Rolling WAR';
+  const valueLabel = mode === 'cumulative' ? 'All-Time Value Score' : 'Recent Form Value Score';
 
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-xs shadow-xl min-w-[160px]">
@@ -77,8 +77,9 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
   );
 }
 
-export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }: Props) {
+export function FranchiseTrajectoryTab({ userId, analysis, previewMode: _previewMode = false }: Props) {
   const [mode, setMode] = useState<ViewMode>('cumulative');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   const { colorMap, userIds, seasonBoundaries } = useMemo(() => {
     const managers = [...analysis.managerData.values()];
@@ -107,6 +108,27 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
     return Array.from(dataMap.values()).sort((a, b) => a.allTimeIndex - b.allTimeIndex);
   }, [analysis, mode]);
 
+  function handleLegendClick(id: string) {
+    setHighlightedId((prev) => (prev === id ? null : id));
+  }
+
+  function getLineOpacity(id: string, isCurrentUser: boolean): number {
+    if (highlightedId === null) {
+      return isCurrentUser ? 1 : 0.4;
+    }
+    return highlightedId === id ? 1 : 0.1;
+  }
+
+  function getLineStrokeWidth(id: string, isCurrentUser: boolean): number {
+    if (highlightedId === null) {
+      return isCurrentUser ? 2.5 : 1;
+    }
+    if (highlightedId === id) {
+      return isCurrentUser ? 3.5 : 3;
+    }
+    return 1;
+  }
+
   if (!analysis.hasData) {
     return (
       <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
@@ -120,16 +142,11 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
   }
 
   return (
-    <div className={`relative bg-card-bg border border-card-border rounded-2xl p-5 space-y-4 ${previewMode ? 'pointer-events-none select-none' : ''}`}>
-      {/* Gradient fade-out overlay in preview mode */}
-      {previewMode && (
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-card-bg to-transparent rounded-b-2xl z-10 pointer-events-none" />
-      )}
-
+    <div className="relative bg-card-bg border border-card-border rounded-2xl p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <TrendingUp size={16} className="text-brand-cyan" />
-        <h3 className="font-semibold text-white">Franchise Trajectory</h3>
+        <h3 className="font-semibold text-white">Franchise Value</h3>
       </div>
 
       {/* Toggle */}
@@ -143,19 +160,19 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
           value="cumulative"
           className="px-3 py-1.5 text-xs font-medium data-[state=on]:bg-brand-cyan/20 data-[state=on]:text-brand-cyan data-[state=on]:border-brand-cyan/40"
         >
-          Cumulative All-Time
+          All-Time Total
         </ToggleGroupItem>
         <ToggleGroupItem
           value="rolling"
           className="px-3 py-1.5 text-xs font-medium data-[state=on]:bg-brand-cyan/20 data-[state=on]:text-brand-cyan data-[state=on]:border-brand-cyan/40"
         >
-          Rolling 17-Week
+          Recent Form (17-wk)
         </ToggleGroupItem>
       </ToggleGroup>
 
       {mode === 'rolling' && (
         <p className="text-xs text-gray-500">
-          Sum of week-over-week WAR deltas over the trailing 17 weeks. Shows current competitive strength independent of franchise age.
+          Shows how much value each team has added over the past 17 weeks, regardless of how long they&apos;ve been in the league.
         </p>
       )}
 
@@ -210,10 +227,10 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
                   dataKey={id}
                   name={manager?.displayName ?? id}
                   stroke={colorMap.get(id) ?? '#6b7280'}
-                  strokeWidth={1}
+                  strokeWidth={getLineStrokeWidth(id, false)}
                   dot={false}
                   connectNulls
-                  opacity={0.4}
+                  opacity={getLineOpacity(id, false)}
                 />
               );
             })}
@@ -228,10 +245,10 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
                 dataKey={userId}
                 name={manager?.displayName ?? userId}
                 stroke="#22d3ee"
-                strokeWidth={2.5}
+                strokeWidth={getLineStrokeWidth(userId, true)}
                 dot={false}
                 connectNulls
-                opacity={1}
+                opacity={getLineOpacity(userId, true)}
               />
             );
           })()}
@@ -244,8 +261,13 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
           const manager = analysis.managerData.get(id);
           const isCurrentUser = id === userId;
           const color = colorMap.get(id) ?? '#6b7280';
+          const isHighlighted = highlightedId === id;
           return (
-            <div key={id} className="flex items-center gap-1.5">
+            <div
+              key={id}
+              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => handleLegendClick(id)}
+            >
               <span
                 className="inline-block rounded-full flex-shrink-0"
                 style={{
@@ -253,10 +275,12 @@ export function FranchiseTrajectoryTab({ userId, analysis, previewMode = false }
                   height: isCurrentUser ? 10 : 8,
                   backgroundColor: color,
                   opacity: isCurrentUser ? 1 : 0.6,
+                  outline: isHighlighted ? `2px solid ${color}` : 'none',
+                  outlineOffset: '2px',
                 }}
               />
               <span
-                className={`text-xs truncate max-w-[100px] ${isCurrentUser ? 'text-white font-semibold' : 'text-gray-500'}`}
+                className={`text-xs truncate max-w-[100px] ${isCurrentUser ? 'text-white font-semibold' : 'text-gray-500'} ${isHighlighted ? 'font-bold text-white' : ''}`}
               >
                 {manager?.displayName ?? id}
               </span>

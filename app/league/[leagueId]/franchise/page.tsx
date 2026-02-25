@@ -62,7 +62,7 @@ export default function FranchisePage() {
         onValueChange={(v) => { if (v === 'outlook') setOutlookUnlocked(true); }}
       >
         <TabsList className="bg-card-bg border border-card-border">
-          <TabsTrigger value="trajectory">Trajectory</TabsTrigger>
+          <TabsTrigger value="trajectory">Franchise Value</TabsTrigger>
           <TabsTrigger value="outlook">Franchise Outlook</TabsTrigger>
         </TabsList>
 
@@ -71,7 +71,7 @@ export default function FranchisePage() {
           {trajectoryAnalysis.isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="animate-spin text-brand-cyan mr-2" size={24} />
-              <span className="text-gray-400 text-sm">Building franchise trajectory…</span>
+              <span className="text-gray-400 text-sm">Building franchise value…</span>
             </div>
           ) : trajectoryAnalysis.data ? (
             <FranchiseTrajectoryTab

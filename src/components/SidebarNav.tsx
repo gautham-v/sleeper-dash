@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-import { ChevronDown, BarChart2 } from 'lucide-react';
+import { ChevronDown, BarChart2, UserCircle } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
@@ -20,6 +20,7 @@ export type SidebarNavProps = {
   onCareerStats?: () => void;
   careerStatsActive?: boolean;
   onViewMyProfile?: () => void;
+  myProfileActive?: boolean;
   userId?: string;
 };
 
@@ -27,6 +28,7 @@ export function SidebarNav({
   league, leagueId, activeTab, allLeagueGroups, isOffseason, currentWeek,
   onChangeLeague, onTabChange, onClose,
   onCareerStats, careerStatsActive = false,
+  onViewMyProfile, myProfileActive = false,
 }: SidebarNavProps) {
   const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null!);
@@ -140,24 +142,42 @@ export function SidebarNav({
           );
         })}
 
-        {onCareerStats && (
+        {(onCareerStats || onViewMyProfile) && (
           <>
             <div className="border-t border-card-border/40 my-2" />
             <div className="text-[10px] text-gray-600 uppercase tracking-widest px-3 mb-1">Your Account</div>
-            <button
-              onClick={() => { onCareerStats(); onClose?.(); }}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative border ${
-                careerStatsActive
-                  ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30 before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border-transparent hover:border-card-border/40'
-              }`}
-            >
-              <BarChart2 size={18} className={careerStatsActive ? 'text-brand-cyan' : 'text-gray-500'} />
-              <div className="text-left">
-                <div>Career Stats</div>
-                <div className="text-[10px] text-gray-600 font-normal">Stats across all your leagues</div>
-              </div>
-            </button>
+            {onViewMyProfile && (
+              <button
+                onClick={() => { onViewMyProfile(); onClose?.(); }}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative border ${
+                  myProfileActive
+                    ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30 before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border-transparent hover:border-card-border/40'
+                }`}
+              >
+                <UserCircle size={18} className={myProfileActive ? 'text-brand-cyan' : 'text-gray-500'} />
+                <div className="text-left">
+                  <div>My Profile</div>
+                  <div className="text-[10px] text-gray-600 font-normal">Your manager profile</div>
+                </div>
+              </button>
+            )}
+            {onCareerStats && (
+              <button
+                onClick={() => { onCareerStats(); onClose?.(); }}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 justify-start relative border ${
+                  careerStatsActive
+                    ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30 before:absolute before:left-0 before:top-[10%] before:h-[80%] before:w-1 before:bg-brand-cyan before:rounded-r-full'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5 border-transparent hover:border-card-border/40'
+                }`}
+              >
+                <BarChart2 size={18} className={careerStatsActive ? 'text-brand-cyan' : 'text-gray-500'} />
+                <div className="text-left">
+                  <div>Career Stats</div>
+                  <div className="text-[10px] text-gray-600 font-normal">Stats across all your leagues</div>
+                </div>
+              </button>
+            )}
           </>
         )}
       </nav>

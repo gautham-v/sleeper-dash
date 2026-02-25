@@ -54,11 +54,13 @@ function SeasonHighlightCard({
   record,
   icon: Icon,
   accent,
+  valueColor,
 }: {
   label: string;
   record: { leagueName: string; wins: number; losses: number; season: string } | null;
   icon: React.ElementType;
   accent: string;
+  valueColor: string;
 }) {
   if (!record) return null;
   return (
@@ -67,7 +69,7 @@ function SeasonHighlightCard({
         <Icon size={11} />
         {label}
       </div>
-      <div className="text-2xl font-bold leading-none mb-1">
+      <div className={`text-2xl font-bold leading-none mb-1 ${valueColor}`}>
         {record.wins}–{record.losses}
       </div>
       <div className="text-xs opacity-60">
@@ -222,13 +224,15 @@ export function CareerOverview({ stats, isLoading, leagueCount }: CareerOverview
             label="Best Season"
             record={stats.bestSingleSeasonRecord}
             icon={Star}
-            accent="bg-green-950/30 border-green-800/30 text-green-300"
+            accent="bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+            valueColor="text-emerald-400"
           />
           <SeasonHighlightCard
             label="Worst Season"
             record={stats.worstSingleSeasonRecord}
             icon={TrendingDown}
-            accent="bg-red-950/30 border-red-800/30 text-red-300"
+            accent="bg-red-500/10 border-red-500/30 text-red-300"
+            valueColor="text-red-400"
           />
         </div>
       )}

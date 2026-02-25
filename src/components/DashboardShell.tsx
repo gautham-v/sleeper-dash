@@ -13,7 +13,6 @@ import {
   Info,
   Mail,
   Scale,
-  ArrowLeftRight,
   ClipboardList,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
@@ -98,6 +97,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const userDisplayName = sessionUser?.displayName ?? '';
   const userAvatar = sessionUser?.avatar ?? null;
 
+  const isMyProfileRoute = showingManagerProfile && !!userId && params.userId === userId;
+
   const sidebarProps: SidebarNavProps = {
     league,
     leagueId,
@@ -110,8 +111,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     onCareerStats: sessionUser ? handleCareerStats : undefined,
     careerStatsActive: isCareerRoute,
     onViewMyProfile: sessionUser && userId
-      ? () => { handleSelectManager(userId); handleTabChange('managers'); }
+      ? () => { handleSelectManager(userId); }
       : undefined,
+    myProfileActive: isMyProfileRoute,
     userId,
   };
 
@@ -209,7 +211,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Mobile Bottom Tab Bar */}
           <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-card-border bg-base-bg/95 backdrop-blur-md">
             <div className="flex h-16">
-              {TABS.filter(({ id }) => !['h2h', 'draft', 'trades'].includes(id)).map(({ id, label, icon: Icon }) => (
+              {TABS.filter(({ id }) => !['h2h', 'records', 'draft'].includes(id)).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => handleTabChange(id)}
@@ -224,7 +226,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setLeagueSheetOpen(true)}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
-                  ['h2h', 'draft', 'trades'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
+                  ['h2h', 'records', 'draft'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
                 <Layers size={20} />
@@ -247,44 +249,47 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="px-5 pb-8 space-y-5">
-            {/* Quick nav — Trades, H2H, Draft */}
+            {/* Quick nav — H2H, Records, Draft */}
             <div>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
                 More Pages
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => { handleTabChange('trades'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-2.5 rounded-xl p-3 text-sm font-medium text-left transition-colors border ${
-                    activeTab === 'trades'
-                      ? 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan'
-                      : 'bg-card-bg border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
-                  }`}
-                >
-                  <ArrowLeftRight size={16} className="flex-shrink-0" />
-                  Trades
-                </button>
+              <div className="flex flex-col divide-y divide-card-border/40 border border-card-border rounded-xl overflow-hidden bg-card-bg">
                 <button
                   onClick={() => { handleTabChange('h2h'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-2.5 rounded-xl p-3 text-sm font-medium text-left transition-colors border ${
+                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'h2h'
-                      ? 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan'
-                      : 'bg-card-bg border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
+                      ? 'text-brand-cyan bg-brand-cyan/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <Scale size={16} className="flex-shrink-0" />
-                  Head-to-Head
+                  <Scale size={17} className={`flex-shrink-0 ${activeTab === 'h2h' ? 'text-brand-cyan' : 'text-gray-500'}`} />
+                  <span className="flex-1">Head-to-Head</span>
+                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
+                </button>
+                <button
+                  onClick={() => { handleTabChange('records'); setLeagueSheetOpen(false); }}
+                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
+                    activeTab === 'records'
+                      ? 'text-brand-cyan bg-brand-cyan/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <BookOpen size={17} className={`flex-shrink-0 ${activeTab === 'records' ? 'text-brand-cyan' : 'text-gray-500'}`} />
+                  <span className="flex-1">Records</span>
+                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
                 </button>
                 <button
                   onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-2.5 rounded-xl p-3 text-sm font-medium text-left transition-colors border col-span-2 ${
+                  className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-left transition-colors w-full ${
                     activeTab === 'draft'
-                      ? 'bg-brand-cyan/10 border-brand-cyan/40 text-brand-cyan'
-                      : 'bg-card-bg border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
+                      ? 'text-brand-cyan bg-brand-cyan/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <ClipboardList size={16} className="flex-shrink-0" />
-                  Draft
+                  <ClipboardList size={17} className={`flex-shrink-0 ${activeTab === 'draft' ? 'text-brand-cyan' : 'text-gray-500'}`} />
+                  <span className="flex-1">Draft</span>
+                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
                 </button>
               </div>
             </div>
