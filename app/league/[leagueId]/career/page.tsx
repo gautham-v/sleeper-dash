@@ -37,8 +37,8 @@ export default function CareerPage() {
   const crossStats = useCrossLeagueStats(userId, rootLeagueIds);
 
   // Analytics hooks (lazy — only active once respective tab is first opened)
-  const tradesEnabled = activatedTabs.has('trades') && !!userId && rootLeagues.length > 0;
-  const draftsEnabled = activatedTabs.has('drafts') && !!userId && rootLeagues.length > 0;
+  const tradesEnabled = (activatedTabs.has('trades') || activatedTabs.has('overview')) && !!userId && rootLeagues.length > 0;
+  const draftsEnabled = (activatedTabs.has('drafts') || activatedTabs.has('overview')) && !!userId && rootLeagues.length > 0;
   const holdingsEnabled = activatedTabs.has('holdings') && !!userId && rootLeagues.length > 0;
 
   const tradeStats = useCrossLeagueTradeStats(
@@ -125,6 +125,8 @@ export default function CareerPage() {
               stats={crossStats.data}
               isLoading={crossStats.isLoading}
               leagueCount={totalLeagues}
+              tradeStats={tradeStats}
+              draftStats={draftStats}
             />
           </TabsContent>
 

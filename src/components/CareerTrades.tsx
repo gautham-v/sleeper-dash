@@ -40,7 +40,7 @@ function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; use
   const theirSide = trade.sides.find((s) => s.userId !== userId) ?? trade.sides[1];
 
   return (
-    <div className="rounded-xl border border-card-border bg-black/20 p-4 space-y-3">
+    <div className="rounded-xl border border-card-border bg-card-bg p-4 space-y-3">
       <div className="flex items-center justify-between text-[11px] text-gray-500">
         <span className="flex items-center gap-1.5">
           <ArrowLeftRight size={11} />

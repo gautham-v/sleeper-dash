@@ -40,6 +40,30 @@ function surplusLabel(surplus: number): string {
 
 // ── Section A ─────────────────────────────────────────────────────────────────
 
+function DraftInfoTooltip({ text }: { text: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="relative inline-flex items-center ml-1">
+      <button
+        type="button"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        className="text-gray-600 hover:text-gray-400 transition-colors"
+        aria-label="More info"
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a.75.75 0 1 0 0 1.5A.75.75 0 0 0 8 4.5zm-.75 2.5h1.5v4.5h-1.5V7z" />
+        </svg>
+      </button>
+      {visible && (
+        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 shadow-xl pointer-events-none whitespace-normal text-left">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 type SortKey = 'surplus' | 'hitRate' | 'avgPick';
 
 function SortHeader({
@@ -88,7 +112,18 @@ function AllTimeDraftRankings({
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Manager</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">Grade</TableHead>
-            <SortHeader label="Surplus"   sortKey="surplus"  active={sortBy} onClick={setSortBy} />
+            <TableHead
+              className={`text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell cursor-pointer select-none ${
+                sortBy === 'surplus' ? 'text-brand-cyan' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              onClick={() => setSortBy('surplus')}
+            >
+              <span className="inline-flex items-center gap-1 justify-end">
+                Value+
+                <DraftInfoTooltip text="How much better or worse each pick performed vs. the average player taken in that draft round. Positive = outperformed expectations." />
+                {sortBy === 'surplus' && <ChevronDown size={11} />}
+              </span>
+            </TableHead>
             <SortHeader label="Hit%"      sortKey="hitRate"  active={sortBy} onClick={setSortBy} />
             <SortHeader label="Avg/Pick"  sortKey="avgPick"  active={sortBy} onClick={setSortBy} />
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell">Bust%</TableHead>
@@ -142,6 +177,7 @@ interface DraftClassRow {
   avgSurplus: number;
   hitRate: number;
   bustRate: number;
+  topPicks: AnalyzedPick[];
 }
 
 const DRAFT_PAGE_SIZE = 10;
@@ -331,46 +367,6 @@ function PickTable({
   );
 }
 
-// ── Top-3 highlight cards ──────────────────────────────────────────────────────
-
-interface Top3CardProps {
-  rank: number;
-  label: string;
-  name: string;
-  avatar: string | null;
-  season?: string;
-  stat: string;
-  statColor: string;
-  cardClass: string;
-  iconClass: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
-  onClick: () => void;
-}
-
-function Top3Card({ rank, label, name, avatar, season, stat, statColor, cardClass, iconClass, Icon, onClick }: Top3CardProps) {
-  const rankLabel = rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd';
-  return (
-    <button
-      className={`${cardClass} rounded-xl p-3 text-left w-full transition-opacity hover:opacity-90`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-1 mb-1.5">
-        <Icon size={11} className={iconClass} />
-        <span className={`text-[10px] font-bold uppercase tracking-wider ${iconClass}`}>{rankLabel}</span>
-      </div>
-      <div className="flex items-center gap-2 mb-1">
-        <Avatar avatar={avatar} name={name} size="sm" />
-        <div className="min-w-0">
-          <div className="text-xs font-semibold text-white truncate">{name}</div>
-          {season && <div className="text-[10px] text-gray-500">{season}</div>}
-        </div>
-      </div>
-      <div className={`text-sm font-bold tabular-nums ${statColor}`}>{stat}</div>
-      <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
-    </button>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────────────────
 
 interface DraftLeaderboardProps {
@@ -403,6 +399,7 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
           avgSurplus:  dc.avgSurplus,
           hitRate:     dc.hitRate,
           bustRate:    dc.bustRate,
+          topPicks:    [...dc.picks].sort((a, b) => b.surplus - a.surplus).slice(0, 3),
         });
       }
     }
@@ -466,28 +463,46 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
       <div className="space-y-4">
         {/* Best Draft Classes */}
         {top3Classes.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Layers size={13} className="text-brand-cyan" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Best Draft Classes</span>
+          <div className="bg-card-bg border border-card-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers size={15} className="text-brand-cyan" />
+              <span className="font-semibold text-white text-sm">Top 3 Best Draft Classes</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {top3Classes.map((row, i) => (
-                <Top3Card
-                  key={`${row.managerId}-${row.season}`}
-                  rank={i + 1}
-                  label="Avg Surplus"
-                  name={row.displayName}
-                  avatar={row.avatar}
-                  season={row.season}
-                  stat={surplusLabel(row.avgSurplus)}
-                  statColor="text-emerald-400"
-                  cardClass="bg-emerald-500/10 border border-emerald-500/30"
-                  iconClass="text-emerald-400"
-                  Icon={Layers}
-                  onClick={() => onSelectManager(row.managerId)}
-                />
-              ))}
+            <div className="space-y-4">
+              {top3Classes.map((row, i) => {
+                const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+                return (
+                  <button
+                    key={`${row.managerId}-${row.season}`}
+                    onClick={() => onSelectManager(row.managerId)}
+                    className="w-full text-left hover:opacity-80 transition-opacity"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
+                      <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-semibold text-white">{row.displayName}</span>
+                        <span className="text-xs text-gray-500 ml-1.5">{row.season}</span>
+                      </div>
+                      <span className={`text-sm font-bold tabular-nums shrink-0 ${surplusColor(row.avgSurplus)}`}>
+                        Avg {surplusLabel(row.avgSurplus)}
+                      </span>
+                    </div>
+                    {row.topPicks.length > 0 && (
+                      <div className="ml-7 flex flex-wrap gap-1">
+                        {row.topPicks.map((pick) => (
+                          <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-800/60 border border-gray-700/50 rounded px-1.5 py-0.5 text-gray-300">
+                            {pick.playerName}
+                            <span className={`ml-1 text-[10px] font-semibold ${surplusColor(pick.surplus)}`}>
+                              ({surplusLabel(pick.surplus)})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -569,7 +584,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
             title="Biggest Steals in League History"
             icon={TrendingUp}
             iconClass="text-emerald-400"
-            containerClass="bg-emerald-500/10 border border-emerald-500/30"
             rows={steals}
             emptyText="No pick data found."
           />
@@ -577,7 +591,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
             title="Biggest Busts in League History"
             icon={TrendingDown}
             iconClass="text-red-400"
-            containerClass="bg-red-500/10 border border-red-500/30"
             rows={busts}
             emptyText="No pick data found."
           />
@@ -585,7 +598,7 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
 
         {/* Footer note */}
         <p className="text-xs text-gray-600 px-1">
-          Surplus = pick WAR minus expected WAR for that round. Hit = top 30% WAR in round; Bust = bottom 30%.
+          Value+ = how much better/worse a pick performed vs. average for that draft slot. Hit = top 30% performer in round; Bust = bottom 30%.
         </p>
       </div>
     </div>

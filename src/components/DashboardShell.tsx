@@ -385,6 +385,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
 
+            {/* My Profile */}
+            {sessionUser && userId && (
+              <button
+                onClick={() => { setLeagueSheetOpen(false); router.push(`/league/${leagueId}/managers/${userId}`); }}
+                className="w-full flex items-center justify-between bg-card-bg rounded-xl p-4 border border-card-border hover:border-gray-500 transition-colors group"
+              >
+                <div className="text-left">
+                  <div className="font-medium text-white text-sm">My Profile</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Your manager stats and history</div>
+                </div>
+                <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
+              </button>
+            )}
+
             {/* Career Stats */}
             {sessionUser && (
               <button

@@ -52,11 +52,11 @@ function TradeDetailCard({ trade, side, label, icon: Icon, borderClass }: {
     <div className={`rounded-2xl p-4 border ${borderClass}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <Icon size={13} className="opacity-70" />
-        <span className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
       </div>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-gray-500 mb-1">
+          <div className="text-xs text-muted-foreground mb-1">
             vs {otherSide?.displayName ?? '?'} · {trade.season} Wk{trade.week}
           </div>
           <div className="space-y-0.5">
@@ -184,7 +184,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                 side={side}
                 label="Best Trade"
                 icon={TrendingUp}
-                borderClass="bg-green-900/10 border-green-700/30 text-green-400"
+                borderClass="bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
               />
             );
           })()}
@@ -196,7 +196,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                 side={side}
                 label="Worst Trade"
                 icon={TrendingDown}
-                borderClass="bg-red-900/10 border-red-700/30 text-red-400"
+                borderClass="bg-red-500/10 border-red-500/30 text-red-400"
               />
             );
           })()}

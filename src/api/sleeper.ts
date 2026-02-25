@@ -9,6 +9,7 @@ import type {
   SleeperDraftPick,
   SleeperNFLState,
   SleeperPlayer,
+  FutureDraftPick,
 } from '../types/sleeper';
 
 const BASE_URL = 'https://api.sleeper.app/v1';
@@ -55,4 +56,7 @@ export const sleeperApi = {
 
   getAllPlayers: () =>
     fetchJSON<Record<string, SleeperPlayer>>(`${BASE_URL}/players/nfl`),
+
+  getTradedPicks: (leagueId: string) =>
+    fetchJSON<FutureDraftPick[]>(`${BASE_URL}/league/${leagueId}/traded_picks`),
 };

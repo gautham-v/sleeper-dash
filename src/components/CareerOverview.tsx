@@ -1,6 +1,6 @@
 'use client';
 
-import { Trophy, TrendingUp, Swords, Calendar, TrendingDown, Star } from 'lucide-react';
+import { Trophy, TrendingUp, Swords, Calendar, TrendingDown, Star, ArrowLeftRight, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,11 +14,14 @@ import {
 } from '@/components/ui/table';
 import { avatarUrl } from '@/utils/calculations';
 import type { CrossLeagueUserStats, LeagueCareerBreakdown } from '@/hooks/useLeagueData';
+import type { CrossLeagueTradeStats, CrossLeagueDraftStats } from '@/hooks/useCrossLeagueAnalytics';
 
 interface CareerOverviewProps {
   stats: CrossLeagueUserStats | null | undefined;
   isLoading: boolean;
   leagueCount: number;
+  tradeStats?: CrossLeagueTradeStats;
+  draftStats?: CrossLeagueDraftStats;
 }
 
 function pct(wins: number, losses: number): string {
@@ -65,19 +68,19 @@ function SeasonHighlightCard({
   if (!record) return null;
   return (
     <div className={`rounded-xl border p-4 ${accent}`}>
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider mb-2 opacity-70">
-        <Icon size={11} />
-        {label}
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider mb-2">
+        <Icon size={11} className={valueColor} />
+        <span className={valueColor}>{label}</span>
       </div>
       <div className={`text-2xl font-bold leading-none mb-1 ${valueColor}`}>
         {record.wins}–{record.losses}
       </div>
-      <div className="text-xs opacity-60">
+      <div className="text-xs text-muted-foreground">
         {record.wins + record.losses > 0
           ? `${((record.wins / (record.wins + record.losses)) * 100).toFixed(0)}% win rate`
           : '—'}
       </div>
-      <div className="mt-2 text-xs opacity-70 truncate">
+      <div className="mt-2 text-xs text-muted-foreground truncate">
         {record.leagueName} · {record.season}
       </div>
     </div>
@@ -159,7 +162,7 @@ function LeagueRow({ breakdown }: { breakdown: LeagueCareerBreakdown }) {
   );
 }
 
-export function CareerOverview({ stats, isLoading, leagueCount }: CareerOverviewProps) {
+export function CareerOverview({ stats, isLoading, leagueCount, tradeStats, draftStats }: CareerOverviewProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -217,6 +220,48 @@ export function CareerOverview({ stats, isLoading, leagueCount }: CareerOverview
         </CardContent>
       </Card>
 
+      {/* Performance Grades */}
+      {(tradeStats || draftStats) && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card-bg border border-card-border rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-2">
+              <ArrowLeftRight size={11} className="text-gray-600" />
+              Trade Grade
+            </div>
+            {tradeStats?.isLoading ? (
+              <div className="text-xl font-bold text-gray-600 animate-pulse">…</div>
+            ) : tradeStats?.hasData ? (
+              <>
+                <div className={`text-2xl font-bold ${tradeStats.overallGradeColor}`}>{tradeStats.overallGrade}</div>
+                <div className="text-[11px] text-gray-600 mt-0.5">
+                  {tradeStats.totalTrades} trades · {(tradeStats.overallWinRate * 100).toFixed(0)}% win rate
+                </div>
+              </>
+            ) : (
+              <div className="text-xl font-bold text-gray-600">—</div>
+            )}
+          </div>
+          <div className="bg-card-bg border border-card-border rounded-xl p-4">
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-2">
+              <Target size={11} className="text-gray-600" />
+              Draft Grade
+            </div>
+            {draftStats?.isLoading ? (
+              <div className="text-xl font-bold text-gray-600 animate-pulse">…</div>
+            ) : draftStats?.hasData ? (
+              <>
+                <div className={`text-2xl font-bold ${draftStats.overallGradeColor}`}>{draftStats.overallGrade}</div>
+                <div className="text-[11px] text-gray-600 mt-0.5">
+                  {(draftStats.hitRate * 100).toFixed(0)}% hit rate
+                </div>
+              </>
+            ) : (
+              <div className="text-xl font-bold text-gray-600">—</div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Season highlights */}
       {(stats.bestSingleSeasonRecord || stats.worstSingleSeasonRecord) && stats.totalSeasons > 1 && (
         <div className="grid grid-cols-2 gap-3">
@@ -224,14 +269,14 @@ export function CareerOverview({ stats, isLoading, leagueCount }: CareerOverview
             label="Best Season"
             record={stats.bestSingleSeasonRecord}
             icon={Star}
-            accent="bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+            accent="bg-emerald-500/10 border-emerald-500/30"
             valueColor="text-emerald-400"
           />
           <SeasonHighlightCard
             label="Worst Season"
             record={stats.worstSingleSeasonRecord}
             icon={TrendingDown}
-            accent="bg-red-500/10 border-red-500/30 text-red-300"
+            accent="bg-red-500/10 border-red-500/30"
             valueColor="text-red-400"
           />
         </div>
