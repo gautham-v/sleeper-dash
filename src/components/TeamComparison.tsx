@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ArrowLeftRight, Loader2, Trophy, Swords, TrendingUp, Shield } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -104,7 +104,7 @@ function StatRow({ label, valueA, valueB, higherIsBetter = true }: {
 export function TeamComparison({ leagueId }: Props) {
   const [teamAId, setTeamAId] = useState<string>('');
   const [teamBId, setTeamBId] = useState<string>('');
-  const [defaultsApplied, setDefaultsApplied] = useState(false);
+  const defaultsApplied = useRef(false);
 
   const sessionUser = useSessionUser();
   const { data: history, isLoading } = useLeagueHistory(leagueId);
@@ -126,8 +126,8 @@ export function TeamComparison({ leagueId }: Props) {
 
   // Set defaults once allUsers is ready
   useEffect(() => {
-    if (defaultsApplied || allUsers.length === 0) return;
-    setDefaultsApplied(true);
+    if (defaultsApplied.current || allUsers.length === 0) return;
+    defaultsApplied.current = true;
 
     const signedInId = sessionUser?.userId ?? null;
     const signedInInLeague = signedInId ? allUsers.some((u) => u.userId === signedInId) : false;
@@ -140,7 +140,7 @@ export function TeamComparison({ leagueId }: Props) {
       if (firstOther) setTeamBId(firstOther.userId);
     }
     // If signed-in user is not in the league, leave both empty (existing behavior)
-  }, [allUsers, defaultsApplied, sessionUser]);
+  }, [allUsers, sessionUser]);
 
   const allTimeStats = useMemo((): Map<string, TeamAllTimeStats> => {
     if (!history) return new Map();

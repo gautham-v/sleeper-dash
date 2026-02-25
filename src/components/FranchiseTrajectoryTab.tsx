@@ -77,7 +77,7 @@ function CustomTooltip({ active, payload, mode }: TooltipProps<number, string> &
   );
 }
 
-export function FranchiseTrajectoryTab({ userId, analysis, previewMode: _previewMode = false }: Props) {
+export function FranchiseTrajectoryTab({ userId, analysis }: Props) {
   const [mode, setMode] = useState<ViewMode>('cumulative');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
