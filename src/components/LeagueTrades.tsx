@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
@@ -24,6 +24,14 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const POSITION_COLORS: Record<string, string> = {
   QB: 'text-red-400',
@@ -206,10 +214,22 @@ function ImpactfulTradeCard({
 
 const TRADES_PER_PAGE = 10;
 
+const TAB_ITEMS = [
+  { value: 'leaderboard', label: 'Leaderboard' },
+  { value: 'all-trades', label: 'All Trades' },
+];
+
 export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const { data: analysis, isLoading } = useLeagueTradeHistory(leagueId);
   const router = useRouter();
-  const [tradePage, setTradePage] = useState(1);
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'all-trades'>('leaderboard');
+  const [seasonFilter, setSeasonFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 whenever the season filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [seasonFilter]);
 
   const leaderboard = useMemo(() => {
     if (!analysis) return [];
@@ -235,6 +255,18 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
       .sort((a, b) => b.maxVal - a.maxVal)
       .slice(0, 3);
   }, [analysis]);
+
+  const availableSeasons = useMemo(() => {
+    if (!analysis) return [];
+    const seasons = [...new Set(analysis.allTrades.map(t => t.season))];
+    return seasons.sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+  }, [analysis]);
+
+  const filteredTrades = useMemo(() => {
+    if (!analysis) return [];
+    if (seasonFilter === 'all') return analysis.allTrades;
+    return analysis.allTrades.filter(t => t.season === seasonFilter);
+  }, [analysis, seasonFilter]);
 
   const handleSelectManager = (userId: string) => {
     router.push(`/league/${leagueId}/managers/${userId}`);
@@ -262,200 +294,220 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
     );
   }
 
+  const totalPages = Math.ceil(filteredTrades.length / TRADES_PER_PAGE);
+  const pagedTrades = filteredTrades.slice(
+    (currentPage - 1) * TRADES_PER_PAGE,
+    currentPage * TRADES_PER_PAGE,
+  );
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages: (number | 'ellipsis')[] = [1];
+    if (currentPage > 3) pages.push('ellipsis');
+    for (let p = Math.max(2, currentPage - 1); p <= Math.min(totalPages - 1, currentPage + 1); p++) {
+      pages.push(p);
+    }
+    if (currentPage < totalPages - 2) pages.push('ellipsis');
+    pages.push(totalPages);
+    return pages;
+  };
+
   return (
     <div className="space-y-6">
-      {/* ── Top highlights ── */}
-      <div className="space-y-3">
-        {/* Most Active Traders — full width */}
-        {top3ActiveTraders.length > 0 && (
-          <div className="bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Crown size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Most Active Traders</span>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              {top3ActiveTraders.map((manager, idx) => {
-                const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
-                return (
-                  <div key={manager.userId} className="flex items-center gap-2 flex-1 min-w-[160px]">
-                    <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
-                    <Avatar avatar={manager.avatar} name={manager.displayName} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-white truncate">{manager.displayName}</div>
-                    </div>
-                    <div className="text-sm text-gray-400 shrink-0 tabular-nums">{manager.totalTrades} trades</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Top 3 Most Impactful Trades — 3 separate cards */}
-        {top3ImpactfulTrades.length > 0 && (
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <ArrowLeftRight size={13} className="text-gray-400" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide, maxVal }, idx) => (
-                <ImpactfulTradeCard
-                  key={trade.transactionId}
-                  trade={trade}
-                  winnerSide={winnerSide}
-                  loserSide={loserSide}
-                  maxVal={maxVal}
-                  rank={idx}
-                />
+      {/* Controls row: tab strip + optional season filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <SegmentedControl
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as 'leaderboard' | 'all-trades')}
+          items={TAB_ITEMS}
+        />
+        {activeTab === 'all-trades' && availableSeasons.length > 0 && (
+          <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+            <SelectTrigger className="h-8 text-xs w-[130px]">
+              <SelectValue placeholder="Season" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All-Time</SelectItem>
+              {availableSeasons.map(season => (
+                <SelectItem key={season} value={season}>{season}</SelectItem>
               ))}
-            </div>
-          </div>
+            </SelectContent>
+          </Select>
         )}
       </div>
 
-      {/* Jump to All Trades anchor */}
-      {analysis.allTrades.length > 0 && (
-        <div className="flex justify-end">
-          <a
-            href="#all-trades"
-            className="text-xs text-brand-cyan hover:underline flex items-center gap-1"
-          >
-            <ArrowLeftRight size={11} />
-            Jump to All Trades ({analysis.allTrades.length})
-          </a>
+      {/* ── Leaderboard tab ── */}
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-6">
+          {/* Most Active Traders */}
+          {top3ActiveTraders.length > 0 && (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Crown size={13} className="text-gray-400" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Most Active Traders</span>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {top3ActiveTraders.map((manager, idx) => {
+                  const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+                  return (
+                    <div key={manager.userId} className="flex items-center gap-2 flex-1 min-w-[160px]">
+                      <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
+                      <Avatar avatar={manager.avatar} name={manager.displayName} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-white truncate">{manager.displayName}</div>
+                      </div>
+                      <div className="text-sm text-gray-400 shrink-0 tabular-nums">{manager.totalTrades} trades</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Trade Intelligence Leaderboard */}
+          <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+            <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+              <Trophy size={15} className="text-gray-400" />
+              <span className="font-semibold text-white text-sm">Trade Intelligence Leaderboard</span>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                  <TableHead className="text-left py-2.5 px-5 w-8">#</TableHead>
+                  <TableHead className="text-left py-2.5 px-3">Manager</TableHead>
+                  <TableHead className="text-center py-2.5 px-3"><span className="flex items-center gap-1 justify-center">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
+                  <TableHead className="text-right py-2.5 px-3"><span className="flex items-center gap-1 justify-end">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
+                  <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell"><span className="flex items-center gap-1 justify-center">Win Rate <MetricTooltip metricKey="winRate" side="bottom" /></span></TableHead>
+                  <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Trades</TableHead>
+                  <TableHead className="text-right py-2.5 px-3 hidden md:table-cell">Avg/Trade</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaderboard.map((summary, idx) => (
+                  <TableRow key={summary.userId} className="border-b border-gray-800/60 hover:bg-gray-800/20">
+                    <TableCell className="py-3 px-5 text-gray-500 tabular-nums">
+                      {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                    </TableCell>
+                    <TableCell className="py-3 px-3">
+                      <button
+                        className="flex items-center gap-2 text-left group"
+                        onClick={() => handleSelectManager(summary.userId)}
+                      >
+                        <Avatar avatar={summary.avatar} name={summary.displayName} size="sm" />
+                        <span className="font-medium text-white text-sm group-hover:text-brand-cyan transition-colors truncate">
+                          {summary.displayName}
+                        </span>
+                      </button>
+                    </TableCell>
+                    <TableCell className="py-3 px-3 text-center">
+                      <span className={`text-lg font-black ${summary.gradeColor}`}>{summary.grade}</span>
+                    </TableCell>
+                    <TableCell className={`py-3 px-3 text-right font-bold tabular-nums ${valueColor(summary.totalNetValue)}`}>
+                      {valueLabel(summary.totalNetValue)}
+                    </TableCell>
+                    <TableCell className="py-3 px-3 text-center tabular-nums text-gray-400 hidden sm:table-cell">
+                      {(summary.tradeWinRate * 100).toFixed(0)}%
+                    </TableCell>
+                    <TableCell className="py-3 px-3 text-center tabular-nums text-gray-400 hidden sm:table-cell">
+                      {summary.totalTrades}
+                    </TableCell>
+                    <TableCell className={`py-3 px-3 text-right tabular-nums hidden md:table-cell ${valueColor(summary.avgValuePerTrade)}`}>
+                      {valueLabel(summary.avgValuePerTrade)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="px-5 py-3 border-t border-gray-800 text-xs text-gray-600">
+              Net value = post-trade fantasy points received minus sent. Grade based on total net value percentile.
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Trade Intelligence Leaderboard */}
-      <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
-        <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-          <Trophy size={15} className="text-gray-400" />
-          <span className="font-semibold text-white text-sm">Trade Intelligence Leaderboard</span>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-              <TableHead className="text-left py-2.5 px-5 w-8">#</TableHead>
-              <TableHead className="text-left py-2.5 px-3">Manager</TableHead>
-              <TableHead className="text-center py-2.5 px-3"><span className="flex items-center gap-1 justify-center">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
-              <TableHead className="text-right py-2.5 px-3"><span className="flex items-center gap-1 justify-end">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
-              <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell"><span className="flex items-center gap-1 justify-center">Win Rate <MetricTooltip metricKey="winRate" side="bottom" /></span></TableHead>
-              <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Trades</TableHead>
-              <TableHead className="text-right py-2.5 px-3 hidden md:table-cell">Avg/Trade</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaderboard.map((summary, idx) => (
-              <TableRow key={summary.userId} className="border-b border-gray-800/60 hover:bg-gray-800/20">
-                <TableCell className="py-3 px-5 text-gray-500 tabular-nums">
-                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
-                </TableCell>
-                <TableCell className="py-3 px-3">
-                  <button
-                    className="flex items-center gap-2 text-left group"
-                    onClick={() => handleSelectManager(summary.userId)}
-                  >
-                    <Avatar avatar={summary.avatar} name={summary.displayName} size="sm" />
-                    <span className="font-medium text-white text-sm group-hover:text-brand-cyan transition-colors truncate">
-                      {summary.displayName}
-                    </span>
-                  </button>
-                </TableCell>
-                <TableCell className="py-3 px-3 text-center">
-                  <span className={`text-lg font-black ${summary.gradeColor}`}>{summary.grade}</span>
-                </TableCell>
-                <TableCell className={`py-3 px-3 text-right font-bold tabular-nums ${valueColor(summary.totalNetValue)}`}>
-                  {valueLabel(summary.totalNetValue)}
-                </TableCell>
-                <TableCell className="py-3 px-3 text-center tabular-nums text-gray-400 hidden sm:table-cell">
-                  {(summary.tradeWinRate * 100).toFixed(0)}%
-                </TableCell>
-                <TableCell className="py-3 px-3 text-center tabular-nums text-gray-400 hidden sm:table-cell">
-                  {summary.totalTrades}
-                </TableCell>
-                <TableCell className={`py-3 px-3 text-right tabular-nums hidden md:table-cell ${valueColor(summary.avgValuePerTrade)}`}>
-                  {valueLabel(summary.avgValuePerTrade)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <div className="px-5 py-3 border-t border-gray-800 text-xs text-gray-600">
-          Net value = post-trade fantasy points received minus sent. Grade based on total net value percentile.
-        </div>
-      </div>
-
-      {/* All Trades (paginated) */}
-      {analysis.allTrades.length > 0 && (() => {
-        const totalPages = Math.ceil(analysis.allTrades.length / TRADES_PER_PAGE);
-        const pagedTrades = analysis.allTrades.slice(
-          (tradePage - 1) * TRADES_PER_PAGE,
-          tradePage * TRADES_PER_PAGE,
-        );
-
-        // Build page numbers with ellipsis for large sets
-        const getPageNumbers = () => {
-          if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-          const pages: (number | 'ellipsis')[] = [1];
-          if (tradePage > 3) pages.push('ellipsis');
-          for (let p = Math.max(2, tradePage - 1); p <= Math.min(totalPages - 1, tradePage + 1); p++) {
-            pages.push(p);
-          }
-          if (tradePage < totalPages - 2) pages.push('ellipsis');
-          pages.push(totalPages);
-          return pages;
-        };
-
-        return (
-          <div id="all-trades">
-            <div className="flex items-center gap-2 mb-3">
-              <ArrowLeftRight size={15} className="text-gray-400" />
-              <span className="font-semibold text-white text-sm">All Trades</span>
-              <span className="text-xs text-gray-500">({analysis.allTrades.length})</span>
+      {/* ── All Trades tab ── */}
+      {activeTab === 'all-trades' && (
+        <div className="space-y-6">
+          {/* Top 3 Most Impactful Trades */}
+          {top3ImpactfulTrades.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <ArrowLeftRight size={13} className="text-gray-400" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide, maxVal }, idx) => (
+                  <ImpactfulTradeCard
+                    key={trade.transactionId}
+                    trade={trade}
+                    winnerSide={winnerSide}
+                    loserSide={loserSide}
+                    maxVal={maxVal}
+                    rank={idx}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {pagedTrades.map((trade) => (
-                <TradeCard key={trade.transactionId} trade={trade} />
-              ))}
+          )}
+
+          {/* Paginated All Trades list */}
+          {filteredTrades.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ArrowLeftRight size={15} className="text-gray-400" />
+                <span className="font-semibold text-white text-sm">All Trades</span>
+                <span className="text-xs text-gray-500">({filteredTrades.length})</span>
+              </div>
+              <div className="space-y-3">
+                {pagedTrades.map((trade) => (
+                  <TradeCard key={trade.transactionId} trade={trade} />
+                ))}
+              </div>
+              {totalPages > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      />
+                    </PaginationItem>
+                    {getPageNumbers().map((p, i) =>
+                      p === 'ellipsis' ? (
+                        <PaginationItem key={`ellipsis-${i}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            isActive={p === currentPage}
+                            onClick={() => setCurrentPage(p)}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
-            {totalPages > 1 && (
-              <Pagination className="mt-4">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setTradePage((p) => Math.max(1, p - 1))}
-                      disabled={tradePage === 1}
-                    />
-                  </PaginationItem>
-                  {getPageNumbers().map((p, i) =>
-                    p === 'ellipsis' ? (
-                      <PaginationItem key={`ellipsis-${i}`}>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : (
-                      <PaginationItem key={p}>
-                        <PaginationLink
-                          isActive={p === tradePage}
-                          onClick={() => setTradePage(p)}
-                        >
-                          {p}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setTradePage((p) => Math.min(totalPages, p + 1))}
-                      disabled={tradePage === totalPages}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
-          </div>
-        );
-      })()}
+          )}
+
+          {filteredTrades.length === 0 && (
+            <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
+              <div className="text-sm font-medium text-gray-300">No trades for this season</div>
+              <div className="text-xs text-gray-500 mt-1">Try selecting a different season filter.</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
