@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { CrossLeagueTradeStats } from '@/hooks/useCrossLeagueAnalytics';
-import type { AnalyzedTrade } from '@/types/trade';
+import type { AnalyzedTrade, TradeDraftPickAsset } from '@/types/trade';
 
 const POSITION_COLORS: Record<string, string> = {
   QB: 'text-red-400',
@@ -33,6 +33,23 @@ function valueColor(v: number): string {
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function PickDisplay({ p }: { p: TradeDraftPickAsset }) {
+  if (p.status === 'resolved' && p.draftedPlayerName) {
+    return (
+      <div className="flex items-center gap-1 text-sm">
+        {p.draftedPlayerPosition && (
+          <span className={`text-xs font-semibold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
+            {p.draftedPlayerPosition}
+          </span>
+        )}
+        <span className="text-gray-200 truncate">{p.draftedPlayerName}</span>
+        <span className="text-gray-500 text-xs shrink-0">({p.season} R{p.round})</span>
+      </div>
+    );
+  }
+  return <div className="text-sm text-yellow-400">{p.season} Rd{p.round}</div>;
 }
 
 function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; userId: string; leagueName: string }) {
@@ -59,7 +76,7 @@ function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; use
               </div>
             ))}
             {mySide.picksReceived.map((p, i) => (
-              <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round}</div>
+              <PickDisplay key={i} p={p} />
             ))}
             {mySide.assetsReceived.length === 0 && mySide.picksReceived.length === 0 && (
               <div className="text-xs text-gray-600">—</div>
@@ -77,7 +94,7 @@ function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; use
               </div>
             ))}
             {theirSide?.picksReceived.map((p, i) => (
-              <div key={i} className="text-sm text-yellow-400 text-right">{p.season} Rd{p.round}</div>
+              <div key={i} className="text-right"><PickDisplay p={p} /></div>
             ))}
           </div>
         </div>

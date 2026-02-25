@@ -13,7 +13,7 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
-import type { AnalyzedTrade } from '../types/trade';
+import type { AnalyzedTrade, TradeDraftPickAsset } from '../types/trade';
 import {
   Pagination,
   PaginationContent,
@@ -48,6 +48,23 @@ function formatTimestamp(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function PickDisplay({ p }: { p: TradeDraftPickAsset }) {
+  if (p.status === 'resolved' && p.draftedPlayerName) {
+    return (
+      <div className="flex items-center gap-0.5 text-sm flex-wrap">
+        {p.draftedPlayerPosition && (
+          <span className={`text-[10px] font-bold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
+            {p.draftedPlayerPosition}
+          </span>
+        )}
+        <span className="text-gray-300">{p.draftedPlayerName}</span>
+        <span className="text-gray-500 text-xs">({p.season} R{p.round})</span>
+      </div>
+    );
+  }
+  return <span className="text-sm text-yellow-400">{p.season} Rd{p.round} Pick</span>;
+}
+
 function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlightUserId?: string }) {
   const side = highlightUserId
     ? trade.sides.find((s) => s.userId === highlightUserId) ?? trade.sides[0]
@@ -74,7 +91,7 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
               </div>
             ))}
             {side.picksReceived.map((p, i) => (
-              <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round} Pick</div>
+              <div key={i}><PickDisplay p={p} /></div>
             ))}
             {side.assetsReceived.length === 0 && side.picksReceived.length === 0 && (
               <div className="text-xs text-gray-600">—</div>
@@ -92,7 +109,7 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
               </div>
             ))}
             {otherSide?.picksReceived.map((p, i) => (
-              <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round} Pick</div>
+              <div key={i} className="text-right"><PickDisplay p={p} /></div>
             ))}
           </div>
         </div>
@@ -145,7 +162,7 @@ function ImpactfulTradeCard({
             </span>
           ))}
           {winnerSide.picksReceived.map((p, i) => (
-            <span key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</span>
+            <span key={i}><PickDisplay p={p} /></span>
           ))}
           {winnerSide.assetsReceived.length === 0 && winnerSide.picksReceived.length === 0 && (
             <span className="text-xs text-gray-600">—</span>
@@ -167,7 +184,7 @@ function ImpactfulTradeCard({
             </span>
           ))}
           {loserSide.picksReceived.map((p, i) => (
-            <span key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round} Pick</span>
+            <span key={i}><PickDisplay p={p} /></span>
           ))}
           {loserSide.assetsReceived.length === 0 && loserSide.picksReceived.length === 0 && (
             <span className="text-xs text-gray-600">—</span>

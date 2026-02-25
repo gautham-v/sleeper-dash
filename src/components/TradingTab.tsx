@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { ArrowLeftRight, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { ArrowLeftRight, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { LeagueTradeAnalysis, AnalyzedTrade, TradeSide } from '../types/trade';
 import {
   Table,
@@ -39,6 +39,24 @@ function resultBadge(netValue: number, hasUnresolved: boolean): { text: string; 
   return { text: 'Even', className: 'bg-gray-800/50 text-gray-400 border-gray-700/40' };
 }
 
+function PickDisplay({ p, size = 'sm' }: { p: import('../types/trade').TradeDraftPickAsset; size?: 'xs' | 'sm' }) {
+  const textSize = size === 'xs' ? 'text-xs' : 'text-sm';
+  if (p.status === 'resolved' && p.draftedPlayerName) {
+    return (
+      <div className={`flex items-center gap-1 ${textSize}`}>
+        {p.draftedPlayerPosition && (
+          <span className={`text-xs font-semibold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
+            {p.draftedPlayerPosition}
+          </span>
+        )}
+        <span className="text-gray-200 truncate">{p.draftedPlayerName}</span>
+        <span className="text-gray-500 text-xs shrink-0">({p.season} R{p.round})</span>
+      </div>
+    );
+  }
+  return <div className={`${textSize} text-yellow-400`}>{p.season} Rd{p.round} Pick</div>;
+}
+
 function TradeDetailCard({ trade, side, label, icon: Icon, borderClass }: {
   trade: AnalyzedTrade;
   side: TradeSide;
@@ -67,7 +85,7 @@ function TradeDetailCard({ trade, side, label, icon: Icon, borderClass }: {
               </div>
             ))}
             {side.picksReceived.slice(0, 1).map((p, i) => (
-              <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round} Pick</div>
+              <PickDisplay key={i} p={p} />
             ))}
             {side.assetsReceived.length + side.picksReceived.length > 3 && (
               <div className="text-xs text-gray-500">+{side.assetsReceived.length + side.picksReceived.length - 3} more</div>
@@ -87,8 +105,15 @@ interface TradingTabProps {
   analysis: LeagueTradeAnalysis;
 }
 
+const TRADES_PER_PAGE = 10;
+
 export function TradingTab({ userId, analysis }: TradingTabProps) {
   const summary = analysis.managerSummaries.get(userId);
+  const [tradePage, setTradePage] = useState(1);
+
+  useEffect(() => {
+    setTradePage(1);
+  }, [userId]);
 
   const tradeRows = useMemo(() => {
     if (!summary) return [];
@@ -97,6 +122,9 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
       return { trade, side };
     });
   }, [summary, userId]);
+
+  const totalPages = Math.ceil(tradeRows.length / TRADES_PER_PAGE);
+  const paginatedRows = tradeRows.slice((tradePage - 1) * TRADES_PER_PAGE, tradePage * TRADES_PER_PAGE);
 
   if (!analysis.hasData || !summary) {
     return (
@@ -209,6 +237,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
           <div className="px-5 pt-4 pb-3 flex items-center gap-2">
             <Target size={15} className="text-gray-400" />
             <span className="font-semibold text-white text-sm">Trade History</span>
+            <span className="text-xs text-gray-500 ml-1">({tradeRows.length} total)</span>
           </div>
 
           {/* Desktop table */}
@@ -224,7 +253,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tradeRows.map(({ trade, side }) => {
+                {paginatedRows.map(({ trade, side }) => {
                   const badge = resultBadge(side.netValue, trade.hasUnresolved);
                   return (
                     <TableRow key={trade.transactionId} className="border-b border-gray-800/60 hover:bg-gray-800/20">
@@ -240,7 +269,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                             </div>
                           ))}
                           {side.picksReceived.map((p, i) => (
-                            <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round}</div>
+                            <PickDisplay key={i} p={p} />
                           ))}
                         </div>
                       </TableCell>
@@ -253,7 +282,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                             </div>
                           ))}
                           {side.picksSent.map((p, i) => (
-                            <div key={i} className="text-sm text-yellow-400">{p.season} Rd{p.round}</div>
+                            <PickDisplay key={i} p={p} />
                           ))}
                         </div>
                       </TableCell>
@@ -274,7 +303,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
 
           {/* Mobile cards */}
           <div className="sm:hidden divide-y divide-gray-800">
-            {tradeRows.map(({ trade, side }) => {
+            {paginatedRows.map(({ trade, side }) => {
               const badge = resultBadge(side.netValue, trade.hasUnresolved);
               const otherSide = trade.sides.find((s) => s.userId !== userId);
               return (
@@ -298,7 +327,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                         </div>
                       ))}
                       {side.picksReceived.map((p, i) => (
-                        <div key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round}</div>
+                        <PickDisplay key={i} p={p} size="xs" />
                       ))}
                     </div>
                     <div>
@@ -310,7 +339,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                         </div>
                       ))}
                       {side.picksSent.map((p, i) => (
-                        <div key={i} className="text-xs text-yellow-400">{p.season} Rd{p.round}</div>
+                        <PickDisplay key={i} p={p} size="xs" />
                       ))}
                     </div>
                   </div>
@@ -323,6 +352,36 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
               );
             })}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-gray-800">
+              <span className="text-xs text-gray-500">
+                {(tradePage - 1) * TRADES_PER_PAGE + 1}–{Math.min(tradePage * TRADES_PER_PAGE, tradeRows.length)} of {tradeRows.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setTradePage((p) => Math.max(1, p - 1))}
+                  disabled={tradePage === 1}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-xs text-gray-400 px-2 tabular-nums">
+                  {tradePage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setTradePage((p) => Math.min(totalPages, p + 1))}
+                  disabled={tradePage === totalPages}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ChevronDown, Trophy, TrendingUp, Shuffle } from 'lucide-react';
+import { ChevronDown, Trophy, Shuffle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -266,11 +266,11 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
                         <span className="text-foreground font-bold text-xs">{mgr.titles}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <TrendingUp size={11} className="text-brand-cyan" />
-                      <span className="text-brand-cyan font-bold text-sm tabular-nums">
+                    <div className="flex flex-col items-end flex-shrink-0 min-w-[44px]">
+                      <span className="text-brand-cyan font-bold text-sm tabular-nums leading-none">
                         {(mgr.winPct * 100).toFixed(1)}%
                       </span>
+                      <span className="text-[10px] text-muted-foreground leading-none mt-0.5">Win%</span>
                     </div>
                   </div>
                 );

@@ -21,6 +21,7 @@ export interface TradeDraftPickAsset {
   round: number;
   draftedPlayerId: string | null;
   draftedPlayerName: string | null;
+  draftedPlayerPosition: string | null;
   postTradePoints: number;
   status: 'resolved' | 'unresolved';
 }
@@ -88,5 +89,5 @@ export interface SeasonTradeInput {
   rosterToUser: Map<number, string>;
   userInfo: Map<string, { displayName: string; avatar: string | null }>;
   playerMap: Map<string, { name: string; position: string }>;
-  draftPickResolution: Map<string, { playerId: string; playerName: string; seasonPoints: number }>;
+  draftPickResolution: Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }>;
 }

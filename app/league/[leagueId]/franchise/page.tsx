@@ -17,8 +17,7 @@ export default function FranchisePage() {
   const sessionUser = useSessionUser();
   const { computed, isLoading: dashLoading } = useDashboardData(leagueId);
   const trajectoryAnalysis = useAllTimeWAR(leagueId);
-  const [outlookUnlocked, setOutlookUnlocked] = useState(false);
-  const franchiseOutlook = useFranchiseOutlook(outlookUnlocked ? leagueId : null);
+  const franchiseOutlook = useFranchiseOutlook(leagueId);
 
   // Default userId: session user if they're in standings, else first in standings (champion)
   const defaultUserId = useMemo(() => {
@@ -57,10 +56,7 @@ export default function FranchisePage() {
         <p className="text-sm text-gray-400 mt-1">All-time trajectory and contender window analysis</p>
       </div>
 
-      <Tabs
-        defaultValue="trajectory"
-        onValueChange={(v) => { if (v === 'outlook') setOutlookUnlocked(true); }}
-      >
+      <Tabs defaultValue="trajectory">
         <TabsList className="bg-card-bg border border-card-border">
           <TabsTrigger value="trajectory">Franchise Value</TabsTrigger>
           <TabsTrigger value="outlook">Franchise Outlook</TabsTrigger>

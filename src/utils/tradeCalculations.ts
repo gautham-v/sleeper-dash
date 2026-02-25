@@ -81,14 +81,15 @@ export function getPostTradePoints(
 export function buildDraftPickResolution(
   drafts: Array<{ season: string; picks: SleeperDraftPick[]; playerSeasonPoints: Map<string, number> }>,
   playerMap: Map<string, { name: string; position: string }>,
-): Map<string, { playerId: string; playerName: string; seasonPoints: number }> {
-  const resolution = new Map<string, { playerId: string; playerName: string; seasonPoints: number }>();
+): Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }> {
+  const resolution = new Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }>();
 
   for (const { season, picks, playerSeasonPoints } of drafts) {
     for (const pick of picks) {
       const playerName = `${pick.metadata.first_name ?? ''} ${pick.metadata.last_name ?? ''}`.trim()
         || playerMap.get(pick.player_id)?.name
         || pick.player_id;
+      const position = pick.metadata.position || playerMap.get(pick.player_id)?.position || '';
       const seasonPts = playerSeasonPoints.get(pick.player_id) ?? 0;
 
       // Key by season, round, and the roster that made the pick
@@ -96,6 +97,7 @@ export function buildDraftPickResolution(
       resolution.set(key, {
         playerId: pick.player_id,
         playerName,
+        position,
         seasonPoints: seasonPts,
       });
     }
@@ -116,7 +118,7 @@ export function analyzeTrade(
   playerMap: Map<string, { name: string; position: string }>,
   rosterToUser: Map<number, string>,
   userInfo: Map<string, { displayName: string; avatar: string | null }>,
-  draftPickResolution: Map<string, { playerId: string; playerName: string; seasonPoints: number }>,
+  draftPickResolution: Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }>,
 ): AnalyzedTrade {
   const rosterIds = trade.roster_ids;
   let hasUnresolved = false;
@@ -179,6 +181,7 @@ export function analyzeTrade(
             round: pick.round,
             draftedPlayerId: resolved.playerId,
             draftedPlayerName: resolved.playerName,
+            draftedPlayerPosition: resolved.position || null,
             postTradePoints: resolved.seasonPoints,
             status: 'resolved',
           }
@@ -187,6 +190,7 @@ export function analyzeTrade(
             round: pick.round,
             draftedPlayerId: null,
             draftedPlayerName: null,
+            draftedPlayerPosition: null,
             postTradePoints: 0,
             status: 'unresolved',
           };
