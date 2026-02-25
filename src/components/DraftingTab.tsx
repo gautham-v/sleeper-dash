@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { MetricTooltip } from '@/components/MetricTooltip';
 import { TrendingUp, TrendingDown, Target, Users } from 'lucide-react';
 import type { LeagueDraftAnalysis, AnalyzedPick } from '../types/sleeper';
 import {
@@ -135,7 +136,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
             <div className={`text-5xl font-black leading-none ${summary.gradeColor}`}>
               {summary.grade}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Draft Grade</div>
+            <div className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">Draft Grade <MetricTooltip metricKey="grade" side="right" /></div>
           </div>
 
           {/* Stats grid */}
@@ -144,13 +145,13 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
               <div className={`text-xl font-bold tabular-nums ${surplusColor(summary.totalSurplus)}`}>
                 {surplusLabel(summary.totalSurplus)}
               </div>
-              <div className="text-xs text-gray-500">Total Surplus</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Total Surplus <MetricTooltip metricKey="surplus" /></div>
             </div>
             <div>
               <div className="text-xl font-bold text-white tabular-nums">
                 {(summary.hitRate * 100).toFixed(0)}%
               </div>
-              <div className="text-xs text-gray-500">Hit Rate</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Hit Rate <MetricTooltip metricKey="hitRate" /></div>
             </div>
             <div>
               <div className="text-xl font-bold text-white tabular-nums">
@@ -162,13 +163,13 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
               <div className={`text-base font-bold tabular-nums ${surplusColor(summary.avgSurplusPerPick)}`}>
                 {surplusLabel(summary.avgSurplusPerPick)}
               </div>
-              <div className="text-xs text-gray-500">Avg Surplus/Pick</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Avg Surplus/Pick <MetricTooltip metricKey="surplus" /></div>
             </div>
             <div>
               <div className="text-base font-bold text-white tabular-nums">
                 {(summary.bustRate * 100).toFixed(0)}%
               </div>
-              <div className="text-xs text-gray-500">Bust Rate</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Bust Rate <MetricTooltip metricKey="bustRate" /></div>
             </div>
           </div>
         </div>
@@ -211,7 +212,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
             <TableHeader>
               <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
                 <TableHead className="text-left py-2.5 px-5">Season</TableHead>
-                <TableHead className="text-center py-2.5 px-3">Grade</TableHead>
+                <TableHead className="text-center py-2.5 px-3"><span className="flex items-center justify-center gap-1">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
                 <TableHead className="text-center py-2.5 px-3">Picks</TableHead>
                 <TableHead className="text-center py-2.5 px-3">Avg Value</TableHead>
                 <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Hit%</TableHead>
@@ -260,7 +261,7 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
                 <TableHead className="text-center py-2.5 px-3">Year</TableHead>
                 <TableHead className="text-center py-2.5 px-3">Rd/Pick</TableHead>
                 <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Result</TableHead>
-                <TableHead className="text-right py-2.5 px-5">Value Score</TableHead>
+                <TableHead className="text-right py-2.5 px-5"><span className="flex items-center justify-end gap-1">Value Score <MetricTooltip metricKey="surplus" side="bottom" /></span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

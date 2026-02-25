@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeftRight, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MetricTooltip } from '@/components/MetricTooltip';
 import type { LeagueTradeAnalysis, AnalyzedTrade, TradeSide } from '../types/trade';
 import {
   Table,
@@ -173,7 +174,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
             <div className={`text-5xl font-black leading-none ${summary.gradeColor}`}>
               {summary.grade}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Trade Grade</div>
+            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">Trade Grade <MetricTooltip metricKey="grade" side="right" /></div>
           </div>
 
           {/* Stats grid */}
@@ -182,13 +183,13 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
               <div className={`text-xl font-bold tabular-nums ${valueColor(summary.totalNetValue)}`}>
                 {valueLabel(summary.totalNetValue)}
               </div>
-              <div className="text-xs text-gray-500">Total Net Value</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Total Net Value <MetricTooltip metricKey="netValue" /></div>
             </div>
             <div>
               <div className="text-xl font-bold text-white tabular-nums">
                 {(summary.tradeWinRate * 100).toFixed(0)}%
               </div>
-              <div className="text-xs text-gray-500">Win Rate</div>
+              <div className="text-xs text-gray-500 flex items-center gap-1">Win Rate <MetricTooltip metricKey="winRate" /></div>
             </div>
             <div>
               <div className="text-xl font-bold text-white tabular-nums">
@@ -271,7 +272,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                   <TableHead className="text-left py-2.5 px-5">Season</TableHead>
                   <TableHead className="text-left py-2.5 px-3">Received</TableHead>
                   <TableHead className="text-left py-2.5 px-3">Sent</TableHead>
-                  <TableHead className="text-right py-2.5 px-3">Net Value</TableHead>
+                  <TableHead className="text-right py-2.5 px-3"><span className="flex items-center gap-1 justify-end">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
                   <TableHead className="text-center py-2.5 px-3">Result</TableHead>
                 </TableRow>
               </TableHeader>

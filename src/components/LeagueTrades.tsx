@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
+import { MetricTooltip } from '@/components/MetricTooltip';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { Avatar } from './Avatar';
 import {
@@ -337,9 +338,9 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
             <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
               <TableHead className="text-left py-2.5 px-5 w-8">#</TableHead>
               <TableHead className="text-left py-2.5 px-3">Manager</TableHead>
-              <TableHead className="text-center py-2.5 px-3">Grade</TableHead>
-              <TableHead className="text-right py-2.5 px-3">Net Value</TableHead>
-              <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Win Rate</TableHead>
+              <TableHead className="text-center py-2.5 px-3"><span className="flex items-center gap-1 justify-center">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
+              <TableHead className="text-right py-2.5 px-3"><span className="flex items-center gap-1 justify-end">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
+              <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell"><span className="flex items-center gap-1 justify-center">Win Rate <MetricTooltip metricKey="winRate" side="bottom" /></span></TableHead>
               <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Trades</TableHead>
               <TableHead className="text-right py-2.5 px-3 hidden md:table-cell">Avg/Trade</TableHead>
             </TableRow>

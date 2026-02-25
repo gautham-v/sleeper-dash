@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import type { CrossLeagueTradeStats } from '@/hooks/useCrossLeagueAnalytics';
 import type { AnalyzedTrade, TradeDraftPickAsset } from '@/types/trade';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 const POSITION_COLORS: Record<string, string> = {
   QB: 'text-red-400',
@@ -150,7 +151,7 @@ export function CareerTrades({ stats, userId }: CareerTradesProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <BarChart2 size={11} className="text-gray-600" />
-                Overall Grade
+                <span className="flex items-center gap-1">Overall Grade <MetricTooltip metricKey="grade" /></span>
               </div>
               <GradeBadge grade={stats.overallGrade} gradeColor={stats.overallGradeColor} />
               <div className="text-[11px] text-gray-600">across all leagues</div>
@@ -166,7 +167,7 @@ export function CareerTrades({ stats, userId }: CareerTradesProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <TrendingUp size={11} className="text-gray-600" />
-                Net Value
+                <span className="flex items-center gap-1">Net Value <MetricTooltip metricKey="netValue" /></span>
               </div>
               <div className={`text-xl font-bold tabular-nums ${valueColor(stats.totalNetValue)}`}>
                 {stats.totalNetValue >= 0 ? '+' : ''}{stats.totalNetValue.toFixed(1)}
@@ -176,7 +177,7 @@ export function CareerTrades({ stats, userId }: CareerTradesProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <TrendingUp size={11} className="text-gray-600" />
-                Win Rate
+                <span className="flex items-center gap-1">Win Rate <MetricTooltip metricKey="winRate" /></span>
               </div>
               <div className="text-xl font-bold text-white">
                 {(stats.overallWinRate * 100).toFixed(0)}%
@@ -237,9 +238,9 @@ export function CareerTrades({ stats, userId }: CareerTradesProps) {
                 <TableHeader>
                   <TableRow className="border-card-border/50 hover:bg-transparent">
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pl-4">League</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Grade</TableHead>
+                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center"><span className="flex items-center justify-center gap-1">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Trades</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Net Value</TableHead>
+                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center"><span className="flex items-center justify-center gap-1">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center pr-4">Top Partner</TableHead>
                   </TableRow>
                 </TableHeader>

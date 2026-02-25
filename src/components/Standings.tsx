@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 interface StandingsProps {
   standings: TeamStanding[];
@@ -64,6 +65,7 @@ export function Standings({ standings, onSelectManager, draftSurplusByUserId, sh
                 <span className="inline-flex items-center gap-1 justify-end">
                   Draft Δ
                   {draftDeltaSorted && <ChevronDown size={11} />}
+                  <MetricTooltip metricKey="surplus" side="bottom" />
                 </span>
               </TableHead>
             )}
