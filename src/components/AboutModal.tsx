@@ -69,16 +69,16 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
           <X size={18} />
         </button>
 
-        <SheetTitle className="sr-only">About recordbook.fyi</SheetTitle>
+        <SheetTitle className="sr-only">About leaguemate.fyi</SheetTitle>
 
         {/* Scrollable content — separate from drag handle */}
         <div className="flex-1 overflow-y-auto min-h-0 px-5 pb-8 pt-1 sm:pt-6 sm:px-7 space-y-6">
 
           {/* Header */}
           <div className="flex items-center gap-3.5">
-            <span className="text-4xl leading-none">📖</span>
+            <span className="text-4xl leading-none">🏈</span>
             <div>
-              <h2 className="text-xl font-bold text-white leading-tight">recordbook.fyi</h2>
+              <h2 className="text-xl font-bold text-white leading-tight">leaguemate.fyi</h2>
               <p className="text-sm text-gray-400 mt-0.5">Fantasy football analytics for Sleeper leagues</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">The Story</h3>
             <p className="text-sm text-gray-300 leading-relaxed">
               Hey, I'm <span className="text-white font-semibold">Gautham</span> 👋 — a product manager based in{' '}
-              <span className="text-white font-semibold">Seattle, WA</span> 🌧️🏔️. I built recordbook.fyi because I
+              <span className="text-white font-semibold">Seattle, WA</span> 🌧️🏔️. I built leaguemate.fyi because I
               wanted deeper historical stats for my own Sleeper leagues and figured other fantasy nerds might too.
             </p>
           </section>
