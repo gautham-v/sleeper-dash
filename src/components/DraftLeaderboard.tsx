@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MetricTooltip } from '@/components/MetricTooltip';
-import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers, Star } from 'lucide-react';
+import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers } from 'lucide-react';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { Avatar } from './Avatar';
 import type { ManagerDraftSummary, AnalyzedPick } from '../types/sleeper';
@@ -16,6 +16,10 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -266,12 +270,11 @@ interface PickRow extends AnalyzedPick {
 }
 
 function PickTable({
-  title, icon: Icon, iconClass, containerClass, rows, emptyText,
+  title, icon: Icon, iconClass, rows, emptyText,
 }: {
   title: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   iconClass: string;
-  containerClass?: string;
   rows: PickRow[];
   emptyText: string;
 }) {
@@ -281,7 +284,7 @@ function PickTable({
   const offset = (page - 1) * DRAFT_PAGE_SIZE;
 
   return (
-    <div className={`${containerClass ?? 'bg-card-bg border border-card-border'} rounded-2xl overflow-hidden`}>
+    <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center gap-2">
         <Icon size={16} className={iconClass} />
         <h2 className="text-base font-semibold text-white">{title}</h2>
@@ -347,7 +350,91 @@ function PickTable({
   );
 }
 
+// ── Top-3 summary components (shown at top of their respective tabs) ──────────
+
+function Top3ClassCards({
+  rows, onSelectManager,
+}: { rows: DraftClassRow[]; onSelectManager: (id: string) => void }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {rows.map((row, i) => {
+        const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+        return (
+          <button
+            key={`${row.managerId}-${row.season}`}
+            onClick={() => onSelectManager(row.managerId)}
+            className="bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-gray-600 transition-colors w-full"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
+              <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-white">{row.displayName}</span>
+                <span className="text-xs text-gray-500 ml-1.5">{row.season}</span>
+              </div>
+            </div>
+            <div className="ml-7 mb-2">
+              <span className={`text-sm font-bold tabular-nums ${surplusColor(row.avgSurplus)}`}>
+                Avg {surplusLabel(row.avgSurplus)}
+              </span>
+            </div>
+            {row.topPicks.length > 0 && (
+              <div className="ml-7 flex flex-wrap gap-1">
+                {row.topPicks.map((pick) => (
+                  <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-800/60 border border-gray-700/50 rounded px-1.5 py-0.5 text-gray-300">
+                    {pick.playerName}
+                    <span className={`ml-1 text-[10px] font-semibold ${surplusColor(pick.surplus)}`}>
+                      ({surplusLabel(pick.surplus)})
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Top3PickRows({ picks, type }: { picks: PickRow[]; type: 'steals' | 'busts' }) {
+  const isSteal = type === 'steals';
+  const colorClass = isSteal ? 'text-emerald-400' : 'text-red-400';
+  const bgBorderClass = isSteal
+    ? 'bg-emerald-500/10 border-emerald-500/30'
+    : 'bg-red-500/10 border-red-500/30';
+
+  return (
+    <div className="space-y-1.5">
+      {picks.map((pick, i) => (
+        <div
+          key={`${pick.managerId}-${pick.season}-${pick.pickNo}`}
+          className={`${bgBorderClass} border rounded-xl px-3 py-2 flex items-center gap-2`}
+        >
+          <span className={`text-[10px] font-bold ${colorClass} w-5 shrink-0`}>{i + 1}.</span>
+          <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+            {pick.position}
+          </span>
+          <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
+          <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
+          <span className="text-xs text-gray-500 shrink-0">{pick.season}</span>
+          <span className={`text-xs font-bold ${colorClass} tabular-nums shrink-0`}>{surplusLabel(pick.surplus)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
+
+type DraftTab = 'rankings' | 'classes' | 'steals' | 'busts';
+
+const TAB_ITEMS = [
+  { value: 'rankings', label: 'Rankings' },
+  { value: 'classes', label: 'Classes' },
+  { value: 'steals', label: 'Steals' },
+  { value: 'busts', label: 'Busts' },
+];
 
 interface DraftLeaderboardProps {
   leagueId: string;
@@ -356,6 +443,8 @@ interface DraftLeaderboardProps {
 
 export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboardProps) {
   const { data, isLoading, isError } = useLeagueDraftHistory(leagueId);
+  const [activeTab, setActiveTab] = useState<DraftTab>('rankings');
+  const [seasonFilter, setSeasonFilter] = useState<string>('all');
 
   // ── Derived data ──────────────────────────────────────────────────────────
 
@@ -364,7 +453,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
     [data],
   );
 
-  // Section B — all (manager × season) pairs sorted by avgSurplus desc
   const draftClassRows = useMemo((): DraftClassRow[] => {
     if (!data) return [];
     const rows: DraftClassRow[] = [];
@@ -386,7 +474,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
     return rows.sort((a, b) => b.avgSurplus - a.avgSurplus);
   }, [data]);
 
-  // Sections C & D — all picks with manager metadata attached
   const allPickRows = useMemo((): PickRow[] => {
     if (!data) return [];
     const rows: PickRow[] = [];
@@ -400,13 +487,31 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
     return rows;
   }, [data]);
 
+  // Available seasons (descending), derived from draft class data
+  const seasons = useMemo(() => {
+    const s = new Set<string>();
+    for (const row of draftClassRows) s.add(row.season);
+    return Array.from(s).sort((a, b) => parseInt(b) - parseInt(a));
+  }, [draftClassRows]);
+
+  // Season-filtered views
+  const filteredDraftClasses = useMemo(() => {
+    if (seasonFilter === 'all') return draftClassRows;
+    return draftClassRows.filter(r => r.season === seasonFilter);
+  }, [draftClassRows, seasonFilter]);
+
+  const filteredPickRows = useMemo(() => {
+    if (seasonFilter === 'all') return allPickRows;
+    return allPickRows.filter(r => r.season === seasonFilter);
+  }, [allPickRows, seasonFilter]);
+
   const steals = useMemo(
-    () => [...allPickRows].sort((a, b) => b.surplus - a.surplus),
-    [allPickRows],
+    () => [...filteredPickRows].sort((a, b) => b.surplus - a.surplus),
+    [filteredPickRows],
   );
   const busts = useMemo(
-    () => [...allPickRows].sort((a, b) => a.surplus - b.surplus),
-    [allPickRows],
+    () => [...filteredPickRows].sort((a, b) => a.surplus - b.surplus),
+    [filteredPickRows],
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -432,144 +537,68 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
     );
   }
 
-  // Top-3 data
-  const top3Classes = draftClassRows.slice(0, 3);
+  const top3Classes = filteredDraftClasses.slice(0, 3);
   const top3Steals = steals.slice(0, 3);
   const top3Busts = busts.slice(0, 3);
+  const showSeasonFilter = activeTab !== 'rankings';
 
   return (
-    <div className="space-y-6">
-      {/* ── Top-3 Highlights ── */}
-      <div className="space-y-4">
-        {/* Best Draft Classes */}
-        {top3Classes.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Layers size={15} className="text-brand-cyan" />
-              <span className="font-semibold text-white text-sm">Top 3 Best Draft Classes</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {top3Classes.map((row, i) => {
-                const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
-                return (
-                  <button
-                    key={`${row.managerId}-${row.season}`}
-                    onClick={() => onSelectManager(row.managerId)}
-                    className="bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-gray-600 transition-colors w-full"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm w-5 shrink-0">{rankEmoji}</span>
-                      <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold text-white">{row.displayName}</span>
-                        <span className="text-xs text-gray-500 ml-1.5">{row.season}</span>
-                      </div>
-                    </div>
-                    <div className="ml-7 mb-2">
-                      <span className={`text-sm font-bold tabular-nums ${surplusColor(row.avgSurplus)}`}>
-                        Avg {surplusLabel(row.avgSurplus)}
-                      </span>
-                    </div>
-                    {row.topPicks.length > 0 && (
-                      <div className="ml-7 flex flex-wrap gap-1">
-                        {row.topPicks.map((pick) => (
-                          <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-800/60 border border-gray-700/50 rounded px-1.5 py-0.5 text-gray-300">
-                            {pick.playerName}
-                            <span className={`ml-1 text-[10px] font-semibold ${surplusColor(pick.surplus)}`}>
-                              ({surplusLabel(pick.surplus)})
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* ── Controls: tab strip + season filter ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <SegmentedControl
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as DraftTab)}
+          items={TAB_ITEMS}
+        />
+        {showSeasonFilter && (
+          <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+            <SelectTrigger className="h-8 text-xs w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All-Time</SelectItem>
+              {seasons.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-
-        {/* Biggest Steals + Busts */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Top 3 Steals */}
-          {top3Steals.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={13} className="text-emerald-400" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Biggest Steals</span>
-              </div>
-              <div className="space-y-1.5">
-                {top3Steals.map((pick, i) => (
-                  <div key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-emerald-400 w-5 shrink-0">{i + 1}.</span>
-                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                      {pick.position}
-                    </span>
-                    <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
-                    <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
-                    <span className="text-xs font-bold text-emerald-400 tabular-nums shrink-0">{surplusLabel(pick.surplus)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Top 3 Busts */}
-          {top3Busts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingDown size={13} className="text-red-400" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Top 3 Biggest Busts</span>
-              </div>
-              <div className="space-y-1.5">
-                {top3Busts.map((pick, i) => (
-                  <div key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-red-400 w-5 shrink-0">{i + 1}.</span>
-                    <span className={`text-[10px] font-bold px-1 py-0.5 rounded border shrink-0 ${POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                      {pick.position}
-                    </span>
-                    <span className="text-xs font-medium text-white truncate flex-1">{pick.playerName}</span>
-                    <span className="text-xs text-gray-400 shrink-0">{pick.managerName.split(' ')[0]}</span>
-                    <span className="text-xs font-bold text-red-400 tabular-nums shrink-0">{surplusLabel(pick.surplus)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Jump to full analysis */}
-        <div className="flex justify-end">
-          <a
-            href="#full-draft-analysis"
-            className="text-xs text-brand-cyan hover:underline flex items-center gap-1"
-          >
-            <Star size={11} />
-            Jump to Full Draft Analysis
-          </a>
-        </div>
       </div>
 
-      {/* ── Full Analysis ── */}
-      <div id="full-draft-analysis" className="space-y-6">
-        {/* Section A */}
+      {/* ── Tab content ── */}
+      {activeTab === 'rankings' && (
         <AllTimeDraftRankings managers={managers} onSelectManager={onSelectManager} />
+      )}
 
-        {/* Section B */}
-        {draftClassRows.length > 0 && (
-          <BestDraftClasses rows={draftClassRows} onSelectManager={onSelectManager} />
-        )}
+      {activeTab === 'classes' && (
+        <div className="space-y-4">
+          {top3Classes.length > 0 && (
+            <Top3ClassCards rows={top3Classes} onSelectManager={onSelectManager} />
+          )}
+          <BestDraftClasses key={seasonFilter} rows={filteredDraftClasses} onSelectManager={onSelectManager} />
+        </div>
+      )}
 
-        {/* Sections C & D side-by-side on large screens */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {activeTab === 'steals' && (
+        <div className="space-y-4">
+          {top3Steals.length > 0 && <Top3PickRows picks={top3Steals} type="steals" />}
           <PickTable
+            key={seasonFilter}
             title="Biggest Steals in League History"
             icon={TrendingUp}
             iconClass="text-emerald-400"
             rows={steals}
             emptyText="No pick data found."
           />
+        </div>
+      )}
+
+      {activeTab === 'busts' && (
+        <div className="space-y-4">
+          {top3Busts.length > 0 && <Top3PickRows picks={top3Busts} type="busts" />}
           <PickTable
+            key={seasonFilter}
             title="Biggest Busts in League History"
             icon={TrendingDown}
             iconClass="text-red-400"
@@ -577,12 +606,12 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
             emptyText="No pick data found."
           />
         </div>
+      )}
 
-        {/* Footer note */}
-        <p className="text-xs text-gray-600 px-1">
-          Value+ = how much better/worse a pick performed vs. average for that draft slot. Hit = top 30% performer in round; Bust = bottom 30%.
-        </p>
-      </div>
+      {/* ── Footer ── */}
+      <p className="text-xs text-gray-600 px-1">
+        Value+ = how much better/worse a pick performed vs. average for that draft slot. Hit = top 30% performer in round; Bust = bottom 30%.
+      </p>
     </div>
   );
 }
