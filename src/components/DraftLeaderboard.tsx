@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { MetricTooltip } from '@/components/MetricTooltip';
 import { Loader2, ChevronDown, TrendingUp, TrendingDown, Medal, Layers, Star } from 'lucide-react';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { Avatar } from './Avatar';
@@ -44,7 +45,7 @@ type SortKey = 'surplus' | 'hitRate' | 'avgPick';
 
 function SortHeader({
   label, sortKey, active, onClick,
-}: { label: string; sortKey: SortKey; active: SortKey; onClick: (k: SortKey) => void }) {
+}: { label: React.ReactNode; sortKey: SortKey; active: SortKey; onClick: (k: SortKey) => void }) {
   const isActive = active === sortKey;
   return (
     <TableHead
@@ -87,7 +88,7 @@ function AllTimeDraftRankings({
           <TableRow className="border-card-border hover:bg-transparent">
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Manager</TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">Grade</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto"><span className="flex items-center justify-center gap-1">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
             <TableHead
               className={`text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell cursor-pointer select-none ${
                 sortBy === 'surplus' ? 'text-brand-cyan' : 'text-muted-foreground hover:text-foreground'
@@ -97,11 +98,12 @@ function AllTimeDraftRankings({
               <span className="inline-flex items-center gap-1 justify-end">
                 Value+
                 {sortBy === 'surplus' && <ChevronDown size={11} />}
+                <MetricTooltip metricKey="surplus" side="bottom" />
               </span>
             </TableHead>
-            <SortHeader label="Hit%"      sortKey="hitRate"  active={sortBy} onClick={setSortBy} />
+            <SortHeader label={<span className="flex items-center gap-1">Hit% <MetricTooltip metricKey="hitRate" side="bottom" /></span>}  sortKey="hitRate"  active={sortBy} onClick={setSortBy} />
             <SortHeader label="Avg/Pick"  sortKey="avgPick"  active={sortBy} onClick={setSortBy} />
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell">Bust%</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell"><span className="flex items-center justify-end gap-1">Bust% <MetricTooltip metricKey="bustRate" side="bottom" /></span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -216,7 +218,7 @@ function BestDraftClasses({
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Manager</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Season</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Picks</TableHead>
-            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto">Avg Surplus</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto"><span className="flex items-center justify-end gap-1">Avg Surplus <MetricTooltip metricKey="surplus" side="bottom" /></span></TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Hit%</TableHead>
             <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell">Bust%</TableHead>
           </TableRow>

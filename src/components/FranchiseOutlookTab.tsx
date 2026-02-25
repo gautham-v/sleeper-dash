@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,6 +13,7 @@ import {
   Cell,
 } from 'recharts';
 import type { FranchiseOutlookResult, FranchiseTier, RiskCategory } from '../types/sleeper';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 interface FranchiseOutlookTabProps {
   userId: string;
@@ -78,7 +78,7 @@ function SummaryCard({
   label,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -86,32 +86,6 @@ function SummaryCard({
       <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">{label}</div>
       {children}
     </div>
-  );
-}
-
-function InfoTooltip({ text }: { text: string }) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <span className="relative inline-flex items-center ml-1">
-      <button
-        type="button"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
-        onFocus={() => setVisible(true)}
-        onBlur={() => setVisible(false)}
-        className="text-gray-500 hover:text-gray-300 transition-colors focus:outline-none"
-        aria-label="More information"
-      >
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a.75.75 0 1 0 0 1.5A.75.75 0 0 0 8 4.5zm-.75 2.5h1.5v4.5h-1.5V7z" />
-        </svg>
-      </button>
-      {visible && (
-        <span className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 shadow-xl pointer-events-none">
-          {text}
-        </span>
-      )}
-    </span>
   );
 }
 
@@ -195,7 +169,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
           <div className="text-right">
             <div className="flex items-center justify-end gap-1 text-xs text-gray-500">
               Franchise Score
-              <InfoTooltip text="Franchise Score measures how many more wins your team generates compared to an average team over the same period." />
+              <MetricTooltip metricKey="franchiseScore" side="left" />
             </div>
             <div className="text-2xl font-bold text-brand-cyan tabular-nums">
               {currentWAR > 0 ? currentWAR.toFixed(1) : '—'}
@@ -224,7 +198,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
           </div>
         </SummaryCard>
 
-        <SummaryCard label="Contender Window">
+        <SummaryCard label={<span className="flex items-center gap-1">Contender Window <MetricTooltip metricKey="contenderWindow" side="bottom" /></span>}>
           <div className="text-xl font-bold text-white tabular-nums">
             {windowLength} <span className="text-sm font-normal text-gray-400">yr{windowLength !== 1 ? 's' : ''}</span>
           </div>
@@ -244,7 +218,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
           </div>
         </SummaryCard>
 
-        <SummaryCard label="Roster Age Risk">
+        <SummaryCard label={<span className="flex items-center gap-1">Roster Age Risk <MetricTooltip metricKey="rosterAgeRisk" side="bottom" /></span>}>
           <div className="text-xl font-bold text-white tabular-nums">{riskScore}</div>
           <div className={`text-xs font-medium mt-0.5 ${
             riskCategory === 'Low' ? 'text-emerald-400' :

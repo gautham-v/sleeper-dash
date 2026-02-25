@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import type { CrossLeagueDraftStats } from '@/hooks/useCrossLeagueAnalytics';
 import type { AnalyzedPick } from '@/types/sleeper';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 const POSITION_COLORS: Record<string, string> = {
   QB:  'bg-red-900/50 text-red-300 border-red-800/50',
@@ -115,7 +116,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <BarChart2 size={11} className="text-gray-600" />
-                Overall Grade
+                <span className="flex items-center gap-1">Overall Grade <MetricTooltip metricKey="grade" /></span>
               </div>
               <GradeBadge grade={stats.overallGrade} gradeColor={stats.overallGradeColor} />
               <div className="text-[11px] text-gray-600">across all leagues</div>
@@ -123,7 +124,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <TrendingUp size={11} className="text-gray-600" />
-                Total WAR
+                <span className="flex items-center gap-1">Total WAR <MetricTooltip metricKey="war" /></span>
               </div>
               <div className={`text-xl font-bold tabular-nums ${surplusColor(stats.totalWAR)}`}>
                 {stats.totalWAR >= 0 ? '+' : ''}{stats.totalWAR.toFixed(1)}
@@ -133,7 +134,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <TrendingUp size={11} className="text-gray-600" />
-                Hit Rate
+                <span className="flex items-center gap-1">Hit Rate <MetricTooltip metricKey="hitRate" /></span>
               </div>
               <div className="text-xl font-bold text-green-400">
                 {(stats.hitRate * 100).toFixed(0)}%
@@ -143,7 +144,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
             <div className="flex flex-col gap-1 px-4 py-4">
               <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
                 <TrendingDown size={11} className="text-gray-600" />
-                Bust Rate
+                <span className="flex items-center gap-1">Bust Rate <MetricTooltip metricKey="bustRate" /></span>
               </div>
               <div className="text-xl font-bold text-red-400">
                 {(stats.bustRate * 100).toFixed(0)}%
@@ -190,8 +191,8 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
                 <TableHeader>
                   <TableRow className="border-card-border/50 hover:bg-transparent">
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider pl-4">League</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Grade</TableHead>
-                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">WAR</TableHead>
+                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center"><span className="flex items-center justify-center gap-1">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
+                    <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center"><span className="flex items-center justify-center gap-1">WAR <MetricTooltip metricKey="war" side="bottom" /></span></TableHead>
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Hit%</TableHead>
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center">Bust%</TableHead>
                     <TableHead className="text-[11px] text-gray-600 font-medium uppercase tracking-wider text-center pr-4">Best Pick</TableHead>

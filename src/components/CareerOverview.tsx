@@ -15,6 +15,7 @@ import {
 import { avatarUrl } from '@/utils/calculations';
 import type { CrossLeagueUserStats, LeagueCareerBreakdown } from '@/hooks/useLeagueData';
 import type { CrossLeagueTradeStats, CrossLeagueDraftStats } from '@/hooks/useCrossLeagueAnalytics';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 interface CareerOverviewProps {
   stats: CrossLeagueUserStats | null | undefined;
@@ -226,7 +227,7 @@ export function CareerOverview({ stats, isLoading, leagueCount, tradeStats, draf
           <div className="bg-card-bg border border-card-border rounded-xl p-4">
             <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-2">
               <ArrowLeftRight size={11} className="text-gray-600" />
-              Trade Grade
+              <span className="flex items-center gap-1">Trade Grade <MetricTooltip metricKey="grade" /></span>
             </div>
             {tradeStats?.isLoading ? (
               <div className="text-xl font-bold text-gray-600 animate-pulse">…</div>
@@ -244,7 +245,7 @@ export function CareerOverview({ stats, isLoading, leagueCount, tradeStats, draf
           <div className="bg-card-bg border border-card-border rounded-xl p-4">
             <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium uppercase tracking-wider mb-2">
               <Target size={11} className="text-gray-600" />
-              Draft Grade
+              <span className="flex items-center gap-1">Draft Grade <MetricTooltip metricKey="grade" /></span>
             </div>
             {draftStats?.isLoading ? (
               <div className="text-xl font-bold text-gray-600 animate-pulse">…</div>

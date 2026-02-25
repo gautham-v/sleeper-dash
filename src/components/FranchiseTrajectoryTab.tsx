@@ -11,9 +11,10 @@ import {
   ResponsiveContainer,
   type TooltipProps,
 } from 'recharts';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { AllTimeWARAnalysis, ManagerAllTimeWAR } from '../types/sleeper';
+import { MetricTooltip } from '@/components/MetricTooltip';
 
 interface Props {
   userId: string;
@@ -179,29 +180,18 @@ export function FranchiseTrajectoryTab({ userId, analysis, showRankings = false 
       {/* Header */}
       <div className="flex items-center gap-2">
         <TrendingUp size={16} className="text-brand-cyan" />
-        <h3 className="font-semibold text-white">Franchise Value</h3>
+        <h3 className="font-semibold text-white flex items-center gap-1">Franchise Value <MetricTooltip metricKey="war" side="right" /></h3>
       </div>
 
       {/* Toggle */}
-      <ToggleGroup
-        type="single"
+      <SegmentedControl
         value={mode}
-        onValueChange={(v) => { if (v) setMode(v as ViewMode); }}
-        className="justify-start"
-      >
-        <ToggleGroupItem
-          value="cumulative"
-          className="px-3 py-1.5 text-xs font-medium data-[state=on]:bg-brand-cyan/20 data-[state=on]:text-brand-cyan data-[state=on]:border-brand-cyan/40"
-        >
-          All-Time Total
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="rolling"
-          className="px-3 py-1.5 text-xs font-medium data-[state=on]:bg-brand-cyan/20 data-[state=on]:text-brand-cyan data-[state=on]:border-brand-cyan/40"
-        >
-          Recent Form (17-wk)
-        </ToggleGroupItem>
-      </ToggleGroup>
+        onValueChange={(v) => setMode(v as ViewMode)}
+        items={[
+          { value: 'cumulative', label: 'All-Time Total' },
+          { value: 'rolling', label: 'Recent Form (17-wk)' },
+        ]}
+      />
 
       {mode === 'rolling' && (
         <p className="text-xs text-gray-500">
@@ -375,8 +365,8 @@ export function FranchiseTrajectoryTab({ userId, analysis, showRankings = false 
       {/* Rankings table — franchise page only, cumulative mode */}
       {showRankings && mode === 'cumulative' && rankings.length > 0 && (
         <div className="pt-2 border-t border-gray-800">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Current Standings · All-Time Franchise Value
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1">
+            Current Standings · All-Time Franchise Value <MetricTooltip metricKey="war" side="right" />
           </div>
           <div className="space-y-1">
             {rankings.map((row, i) => {
