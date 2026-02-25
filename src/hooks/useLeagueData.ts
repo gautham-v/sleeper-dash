@@ -412,7 +412,7 @@ export function useLeagueRecords(leagueId: string | null) {
           season: league.season,
           playoff_week_start: league.settings.playoff_week_start || 15,
         });
-        if (!league.previous_league_id) break;
+        if (!league.previous_league_id || league.previous_league_id === '0') break;
         currentId = league.previous_league_id;
       }
 
@@ -588,7 +588,7 @@ export function useLeagueHistory(leagueId: string | null) {
           season: league.season,
           playoff_week_start: league.settings.playoff_week_start || 15,
         });
-        if (!league.previous_league_id) break;
+        if (!league.previous_league_id || league.previous_league_id === '0') break;
         currentId = league.previous_league_id;
       }
       leagueChain.reverse();
@@ -689,7 +689,7 @@ export function useYearOverYear(leagueId: string | null) {
       for (let i = 0; i < 8; i++) {
         const league = await sleeperApi.getLeague(currentId);
         leagueChain.push({ league_id: league.league_id, season: league.season });
-        if (!league.previous_league_id) break;
+        if (!league.previous_league_id || league.previous_league_id === '0') break;
         currentId = league.previous_league_id;
       }
 

@@ -67,7 +67,7 @@ export async function fetchLeagueDraftAnalysis(leagueId: string): Promise<League
   for (let i = 0; i < 8; i++) {
     const league = await sleeperApi.getLeague(currentId);
     leagueChain.push({ league_id: league.league_id, season: league.season });
-    if (!league.previous_league_id) break;
+    if (!league.previous_league_id || league.previous_league_id === '0') break;
     currentId = league.previous_league_id;
   }
   leagueChain.reverse(); // chronological order
