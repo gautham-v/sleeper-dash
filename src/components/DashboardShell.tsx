@@ -82,7 +82,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   const handleCareerStats = () => {
-    router.push(`/league/${leagueId}/career`);
+    if (userId) {
+      router.push(`/league/${leagueId}/managers/${userId}/career-stats`);
+    }
   };
 
   const handleChangeUser = () => {
@@ -91,13 +93,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     router.push('/');
   };
 
-  const isCareerRoute = pathname.endsWith('/career');
+  const isCareerRoute = pathname.endsWith('/career') || pathname.endsWith('/career-stats');
 
   const userId = sessionUser?.userId;
   const userDisplayName = sessionUser?.displayName ?? '';
   const userAvatar = sessionUser?.avatar ?? null;
 
-  const isMyProfileRoute = showingManagerProfile && !!userId && params.userId === userId;
+  const isMyProfileRoute = showingManagerProfile && !!userId && params.userId === userId && !pathname.endsWith('/career-stats');
 
   const sidebarProps: SidebarNavProps = {
     league,

@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ChevronDown, BarChart2, UserCircle } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
@@ -47,10 +48,10 @@ export function SidebarNav({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 sm:p-5 flex items-center shrink-0">
-        <div className="flex items-center gap-2">
+        <Link href={`/league/${leagueId}/overview`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <span className="text-2xl leading-none">🏈</span>
           <span className="font-bold text-xl tracking-tight text-white">leaguemate.fyi</span>
-        </div>
+        </Link>
       </div>
 
       <div className="px-4 sm:px-5 mb-5 shrink-0">
