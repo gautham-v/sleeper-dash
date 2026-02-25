@@ -148,10 +148,9 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
                           <span className="text-muted-foreground font-medium w-12">{s.season}</span>
                           <span className="text-white tabular-nums">{s.wins}–{s.losses}</span>
                           <span className="text-muted-foreground tabular-nums">{s.pointsFor.toFixed(0)} pts</span>
-                          <span className="text-muted-foreground tabular-nums">#{s.rank}</span>
-                          {champYears.includes(s.season) && (
-                            <span className="text-yellow-500 text-xs">🏆</span>
-                          )}
+                          <span className="tabular-nums">
+                            {champYears.includes(s.season) ? "🏆" : <span className="text-muted-foreground">#{s.rank}</span>}
+                          </span>
                         </div>
                       ))}
                     </div>
