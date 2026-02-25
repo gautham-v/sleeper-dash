@@ -20,6 +20,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { assignGrade } from '../utils/draftCalculations';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -138,6 +139,84 @@ function AllTimeDraftRankings({
               </TableCell>
               <TableCell className="py-3 px-2 pr-4 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
                 {(m.bustRate * 100).toFixed(0)}%
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div className="px-5 py-3 border-t border-card-border/50 text-xs text-muted-foreground">
+        Value+ = how much better/worse each pick performed vs. average for that draft round. Positive = outperformed expectations.
+      </div>
+    </div>
+  );
+}
+
+function SeasonDraftRankings({
+  rows, onSelectManager,
+}: { rows: DraftClassRow[]; onSelectManager: (id: string) => void }) {
+  const sorted = useMemo(() => [...rows].sort((a, b) => b.avgSurplus - a.avgSurplus), [rows]);
+
+  const rowsWithGrades = useMemo(() => {
+    const n = sorted.length;
+    return sorted.map((row, i) => {
+      const percentile = n <= 1 ? 100 : ((n - 1 - i) / (n - 1)) * 100;
+      const { grade, gradeColor } = assignGrade(percentile);
+      return { ...row, grade, gradeColor };
+    });
+  }, [sorted]);
+
+  return (
+    <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+      <div className="px-5 pt-5 pb-3 flex items-center gap-2">
+        <Medal size={16} className="text-brand-cyan" />
+        <h2 className="text-base font-semibold text-white">Draft Rankings</h2>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow className="border-card-border hover:bg-transparent">
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pl-4 h-auto w-8">#</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 h-auto">Manager</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-center h-auto">
+              <span className="flex items-center justify-center gap-1">Grade <MetricTooltip metricKey="grade" side="bottom" /></span>
+            </TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">
+              <span className="inline-flex items-center gap-1 justify-end">Avg Surplus <MetricTooltip metricKey="surplus" side="bottom" /></span>
+            </TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Picks</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 text-right h-auto hidden sm:table-cell">Hit%</TableHead>
+            <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-medium py-3 px-2 pr-4 text-right h-auto hidden sm:table-cell">
+              <span className="flex items-center justify-end gap-1">Bust% <MetricTooltip metricKey="bustRate" side="bottom" /></span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rowsWithGrades.map((row, i) => (
+            <TableRow
+              key={row.managerId}
+              className="border-card-border hover:bg-muted/30 cursor-pointer"
+              onClick={() => onSelectManager(row.managerId)}
+            >
+              <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{i + 1}</TableCell>
+              <TableCell className="py-3 px-2">
+                <div className="flex items-center gap-2">
+                  <Avatar avatar={row.avatar} name={row.displayName} size="sm" />
+                  <span className="text-sm font-medium text-white truncate max-w-[120px]">{row.displayName}</span>
+                </div>
+              </TableCell>
+              <TableCell className="py-3 px-2 text-center">
+                <span className={`text-sm font-bold ${row.gradeColor}`}>{row.grade}</span>
+              </TableCell>
+              <TableCell className={`py-3 px-2 text-right tabular-nums text-sm font-medium hidden sm:table-cell ${surplusColor(row.avgSurplus)}`}>
+                {surplusLabel(row.avgSurplus)}
+              </TableCell>
+              <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
+                {row.picks}
+              </TableCell>
+              <TableCell className="py-3 px-2 text-right tabular-nums text-sm text-gray-300 hidden sm:table-cell">
+                {(row.hitRate * 100).toFixed(0)}%
+              </TableCell>
+              <TableCell className="py-3 px-2 pr-4 text-right tabular-nums text-sm text-gray-400 hidden sm:table-cell">
+                {(row.bustRate * 100).toFixed(0)}%
               </TableCell>
             </TableRow>
           ))}
@@ -540,7 +619,6 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
   const top3Classes = filteredDraftClasses.slice(0, 3);
   const top3Steals = steals.slice(0, 3);
   const top3Busts = busts.slice(0, 3);
-  const showSeasonFilter = activeTab !== 'rankings';
 
   return (
     <div className="space-y-4">
@@ -551,24 +629,25 @@ export function DraftLeaderboard({ leagueId, onSelectManager }: DraftLeaderboard
           onValueChange={(v) => setActiveTab(v as DraftTab)}
           items={TAB_ITEMS}
         />
-        {showSeasonFilter && (
-          <Select value={seasonFilter} onValueChange={setSeasonFilter}>
-            <SelectTrigger className="h-8 text-xs w-[130px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All-Time</SelectItem>
-              {seasons.map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+          <SelectTrigger className="h-8 text-xs w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All-Time</SelectItem>
+            {seasons.map(s => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── Tab content ── */}
-      {activeTab === 'rankings' && (
+      {activeTab === 'rankings' && seasonFilter === 'all' && (
         <AllTimeDraftRankings managers={managers} onSelectManager={onSelectManager} />
+      )}
+      {activeTab === 'rankings' && seasonFilter !== 'all' && (
+        <SeasonDraftRankings rows={filteredDraftClasses} onSelectManager={onSelectManager} />
       )}
 
       {activeTab === 'classes' && (
