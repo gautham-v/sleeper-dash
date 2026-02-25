@@ -41,20 +41,23 @@ function resultBadge(netValue: number, hasUnresolved: boolean): { text: string; 
 
 function PickDisplay({ p, size = 'sm' }: { p: import('../types/trade').TradeDraftPickAsset; size?: 'xs' | 'sm' }) {
   const textSize = size === 'xs' ? 'text-xs' : 'text-sm';
+  const pickLabel = p.pickInRound !== null
+    ? `${p.season} ${p.round}.${String(p.pickInRound).padStart(2, '0')}`
+    : `${p.season} Rd${p.round}`;
   if (p.status === 'resolved' && p.draftedPlayerName) {
     return (
-      <div className={`flex items-center gap-1 ${textSize}`}>
+      <div className={`flex items-center gap-1 ${textSize} flex-wrap`}>
         {p.draftedPlayerPosition && (
           <span className={`text-xs font-semibold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
             {p.draftedPlayerPosition}
           </span>
         )}
-        <span className="text-gray-200 truncate">{p.draftedPlayerName}</span>
-        <span className="text-gray-500 text-xs shrink-0">({p.season} R{p.round})</span>
+        <span className="text-yellow-400 text-xs shrink-0">{pickLabel}</span>
+        <span className="text-gray-500 text-xs">({p.draftedPlayerName})</span>
       </div>
     );
   }
-  return <div className={`${textSize} text-yellow-400`}>{p.season} Rd{p.round} Pick</div>;
+  return <div className={`${textSize} text-yellow-400`}>{pickLabel}</div>;
 }
 
 function TradeDetailCard({ trade, side, label, icon: Icon, borderClass }: {
@@ -68,32 +71,51 @@ function TradeDetailCard({ trade, side, label, icon: Icon, borderClass }: {
 
   return (
     <div className={`rounded-2xl p-4 border ${borderClass}`}>
-      <div className="flex items-center gap-1.5 mb-2">
+      <div className="flex items-center gap-1.5 mb-1">
         <Icon size={13} className="opacity-70" />
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+        <span className={`ml-auto text-sm font-bold tabular-nums ${valueColor(side.netValue)}`}>
+          {valueLabel(side.netValue)}
+        </span>
       </div>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="text-xs text-muted-foreground mb-1">
-            vs {otherSide?.displayName ?? '?'} · {trade.season} Wk{trade.week}
-          </div>
+      <div className="text-xs text-muted-foreground mb-3">
+        vs {otherSide?.displayName ?? '?'} · {trade.season} Wk{trade.week}
+      </div>
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+        <div>
+          <div className="text-[11px] text-gray-500 mb-1">You received</div>
           <div className="space-y-0.5">
-            {side.assetsReceived.slice(0, 2).map((a) => (
+            {side.assetsReceived.map((a) => (
               <div key={a.playerId} className="flex items-center gap-1 text-sm">
                 <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
                 <span className="text-gray-200 truncate">{a.playerName}</span>
               </div>
             ))}
-            {side.picksReceived.slice(0, 1).map((p, i) => (
+            {side.picksReceived.map((p, i) => (
               <PickDisplay key={i} p={p} />
             ))}
-            {side.assetsReceived.length + side.picksReceived.length > 3 && (
-              <div className="text-xs text-gray-500">+{side.assetsReceived.length + side.picksReceived.length - 3} more</div>
+            {side.assetsReceived.length === 0 && side.picksReceived.length === 0 && (
+              <div className="text-xs text-gray-600">—</div>
             )}
           </div>
         </div>
-        <div className={`text-lg font-bold tabular-nums flex-shrink-0 ${valueColor(side.netValue)}`}>
-          {valueLabel(side.netValue)}
+        <div className="self-center text-gray-700"><ArrowLeftRight size={13} /></div>
+        <div className="text-right">
+          <div className="text-[11px] text-gray-500 mb-1">{otherSide?.displayName ?? '?'} received</div>
+          <div className="space-y-0.5">
+            {otherSide?.assetsReceived.map((a) => (
+              <div key={a.playerId} className="flex items-center gap-1 text-sm justify-end">
+                <span className="text-gray-200 truncate">{a.playerName}</span>
+                <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
+              </div>
+            ))}
+            {otherSide?.picksReceived.map((p, i) => (
+              <div key={i} className="flex justify-end"><PickDisplay p={p} /></div>
+            ))}
+            {(otherSide?.assetsReceived.length ?? 0) === 0 && (otherSide?.picksReceived.length ?? 0) === 0 && (
+              <div className="text-xs text-gray-600 text-right">—</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

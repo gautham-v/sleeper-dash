@@ -442,9 +442,19 @@ export function TeamComparison({ leagueId }: Props) {
                               <span className="text-foreground truncate">{a.playerName}</span>
                             </div>
                           ))}
-                          {sideA?.picksReceived.map((p, i) => (
-                            <div key={i} className="text-yellow-400">{p.season} Rd{p.round}</div>
-                          ))}
+                          {sideA?.picksReceived.map((p, i) => {
+                            const pickLabel = p.pickInRound !== null
+                              ? `${p.season} ${p.round}.${String(p.pickInRound).padStart(2, '0')}`
+                              : `${p.season} Rd${p.round}`;
+                            return (
+                              <div key={i} className="flex items-center gap-1">
+                                <span className="text-yellow-400">{pickLabel}</span>
+                                {p.status === 'resolved' && p.draftedPlayerName && (
+                                  <span className="text-muted-foreground">({p.draftedPlayerName})</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                         <div className="self-center text-muted-foreground"><ArrowLeftRight size={12} /></div>
                         <div className="text-right">
@@ -455,9 +465,19 @@ export function TeamComparison({ leagueId }: Props) {
                               <span className={`font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
                             </div>
                           ))}
-                          {sideB?.picksReceived.map((p, i) => (
-                            <div key={i} className="text-yellow-400">{p.season} Rd{p.round}</div>
-                          ))}
+                          {sideB?.picksReceived.map((p, i) => {
+                            const pickLabel = p.pickInRound !== null
+                              ? `${p.season} ${p.round}.${String(p.pickInRound).padStart(2, '0')}`
+                              : `${p.season} Rd${p.round}`;
+                            return (
+                              <div key={i} className="flex items-center gap-1 justify-end">
+                                {p.status === 'resolved' && p.draftedPlayerName && (
+                                  <span className="text-muted-foreground">({p.draftedPlayerName})</span>
+                                )}
+                                <span className="text-yellow-400">{pickLabel}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

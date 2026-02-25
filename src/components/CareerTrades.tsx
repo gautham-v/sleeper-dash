@@ -35,21 +35,24 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function PickDisplay({ p }: { p: TradeDraftPickAsset }) {
+function PickDisplay({ p, rtl }: { p: TradeDraftPickAsset; rtl?: boolean }) {
+  const pickLabel = p.pickInRound !== null
+    ? `${p.season} ${p.round}.${String(p.pickInRound).padStart(2, '0')}`
+    : `${p.season} Rd${p.round}`;
   if (p.status === 'resolved' && p.draftedPlayerName) {
     return (
-      <div className="flex items-center gap-1 text-sm">
+      <div className={`flex items-center gap-1 text-sm flex-wrap ${rtl ? 'justify-end' : ''}`}>
         {p.draftedPlayerPosition && (
           <span className={`text-xs font-semibold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
             {p.draftedPlayerPosition}
           </span>
         )}
-        <span className="text-gray-200 truncate">{p.draftedPlayerName}</span>
-        <span className="text-gray-500 text-xs shrink-0">({p.season} R{p.round})</span>
+        <span className="text-yellow-400 text-xs shrink-0">{pickLabel}</span>
+        <span className="text-gray-500 text-xs">({p.draftedPlayerName})</span>
       </div>
     );
   }
-  return <div className="text-sm text-yellow-400">{p.season} Rd{p.round}</div>;
+  return <div className="text-sm text-yellow-400">{pickLabel}</div>;
 }
 
 function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; userId: string; leagueName: string }) {
@@ -94,7 +97,7 @@ function TradeSnippet({ trade, userId, leagueName }: { trade: AnalyzedTrade; use
               </div>
             ))}
             {theirSide?.picksReceived.map((p, i) => (
-              <div key={i} className="text-right"><PickDisplay p={p} /></div>
+              <div key={i}><PickDisplay p={p} rtl /></div>
             ))}
           </div>
         </div>
