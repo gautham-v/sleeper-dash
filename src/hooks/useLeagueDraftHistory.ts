@@ -9,7 +9,7 @@ import {
 
 // ---------- localStorage cache ----------
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
@@ -93,9 +93,10 @@ export async function fetchLeagueDraftAnalysis(leagueId: string): Promise<League
 
   await Promise.all(
     seasonRawData.map(async ({ league_id, season, drafts, users, rosters, weekMatchupResults }) => {
-      // Filter to snake drafts that have been completed or are in-progress
+      // Filter to snake or linear drafts that have been completed or are in-progress
+      // Linear drafts (common in keeper leagues) have the same pick structure as snake drafts
       const draft = drafts.find(
-        (d) => d.type === 'snake' && d.status !== 'pre_draft',
+        (d) => (d.type === 'snake' || d.type === 'linear') && d.status !== 'pre_draft',
       );
       if (!draft) return; // skip auction/no-draft seasons
 
