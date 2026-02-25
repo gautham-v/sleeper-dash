@@ -120,10 +120,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-base-bg flex flex-col items-center justify-center px-4 font-sans gap-8 py-12">
       <Card className="relative z-10 w-full max-w-sm border-card-border gap-0 py-0">
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
-          <span className="text-5xl leading-none">📖</span>
+          <span className="text-5xl leading-none">🏈</span>
           <div className="space-y-1.5">
             <CardTitle className="text-2xl font-bold tracking-tight text-white">
-              recordbook.fyi
+              leaguemate.fyi
             </CardTitle>
             <CardDescription>
               Fantasy football analytics for your Sleeper leagues

@@ -4,13 +4,13 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'recordbook.fyi',
-    template: '%s | recordbook.fyi',
+    default: 'leaguemate.fyi',
+    template: '%s | leaguemate.fyi',
   },
   description: 'Fantasy football analytics for your Sleeper leagues',
-  metadataBase: new URL('https://recordbook.fyi'),
+  metadataBase: new URL('https://leaguemate.fyi'),
   openGraph: {
-    siteName: 'recordbook.fyi',
+    siteName: 'leaguemate.fyi',
     type: 'website',
   },
 };

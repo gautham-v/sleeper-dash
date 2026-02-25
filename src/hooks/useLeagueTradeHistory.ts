@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
-import type { SleeperMatchup, SleeperTransaction } from '../types/sleeper';
+import type { SleeperMatchup, SleeperTransaction, SleeperDraft } from '../types/sleeper';
 import type { LeagueTradeAnalysis, ManagerTradeSummary, AnalyzedTrade, TaggedTransaction, SeasonTradeInput } from '../types/trade';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { buildDraftPickResolution, computeLeagueTradeAnalysis } from '../utils/tradeCalculations';
 
 // ---------- localStorage cache ----------
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v5';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
@@ -113,15 +113,27 @@ export async function fetchLeagueTradeAnalysis(leagueId: string): Promise<League
   }
 
   // 5. Fetch draft picks for pick resolution + build resolution map
-  const draftInputs: Array<{ season: string; picks: import('../types/sleeper').SleeperDraftPick[]; playerSeasonPoints: Map<string, number> }> = [];
+  const draftInputs: Array<{
+    season: string;
+    picks: import('../types/sleeper').SleeperDraftPick[];
+    playerSeasonPoints: Map<string, number>;
+    draft: SleeperDraft;
+    rosterToUser: Map<number, string>;
+  }> = [];
 
   await Promise.all(
-    seasonRawData.map(async ({ season, drafts, weekMatchupResults }) => {
-      const draft = drafts.find((d) => d.type === 'snake' && d.status !== 'pre_draft');
+    seasonRawData.map(async ({ season, drafts, rosters, weekMatchupResults }) => {
+      const draft = drafts.find((d) => d.status === 'complete');
       if (!draft) return;
 
       const picks = await sleeperApi.getDraftPicks(draft.draft_id);
       if (picks.length === 0) return;
+
+      // Build rosterToUser for this draft season
+      const seasonRosterToUser = new Map<number, string>();
+      for (const roster of rosters) {
+        if (roster.owner_id) seasonRosterToUser.set(roster.roster_id, roster.owner_id);
+      }
 
       // Also add pick metadata to playerMap
       for (const p of picks) {
@@ -133,11 +145,19 @@ export async function fetchLeagueTradeAnalysis(leagueId: string): Promise<League
 
       const playerSeasonPoints = computePlayerSeasonPoints(weekMatchupResults);
 
-      draftInputs.push({ season, picks, playerSeasonPoints });
+      draftInputs.push({ season, picks, playerSeasonPoints, draft, rosterToUser: seasonRosterToUser });
     }),
   );
 
-  const draftPickResolution = buildDraftPickResolution(draftInputs, playerMap);
+  console.log('[tradeAnalysis] draftInputs count:', draftInputs.length, 'samples:', draftInputs.map(d => ({ season: d.season, picks: d.picks.length, teams: d.draft.settings?.teams, slotKeys: Object.keys(d.draft.slot_to_roster_id ?? {}).length })));
+  let draftPickResolution: Map<string, { playerId: string; playerName: string; position: string; seasonPoints: number }>;
+  try {
+    draftPickResolution = buildDraftPickResolution(draftInputs, playerMap);
+    console.log('[tradeAnalysis] resolution size:', draftPickResolution.size);
+  } catch (e) {
+    console.error('[tradeAnalysis] buildDraftPickResolution ERROR:', e);
+    draftPickResolution = new Map();
+  }
 
   // 6. Build season trade inputs
   const seasonTradeInputs: SeasonTradeInput[] = [];

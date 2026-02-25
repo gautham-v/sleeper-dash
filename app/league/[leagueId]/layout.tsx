@@ -19,12 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       openGraph: {
-        title: `${league.name} | recordbook.fyi`,
+        title: `${league.name} | leaguemate.fyi`,
         description,
       },
       twitter: {
         card: 'summary',
-        title: `${league.name} | recordbook.fyi`,
+        title: `${league.name} | leaguemate.fyi`,
         description,
       },
     };

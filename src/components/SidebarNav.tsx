@@ -48,8 +48,8 @@ export function SidebarNav({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 sm:p-5 flex items-center shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-2xl leading-none">📖</span>
-          <span className="font-bold text-xl tracking-tight text-white">recordbook.fyi</span>
+          <span className="text-2xl leading-none">🏈</span>
+          <span className="font-bold text-xl tracking-tight text-white">leaguemate.fyi</span>
         </div>
       </div>
 

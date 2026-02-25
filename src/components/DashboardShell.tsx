@@ -147,7 +147,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ) : (
               <div className="flex-1 text-center">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 leading-none mb-0.5">
-                  recordbook.fyi
+                  leaguemate.fyi
                 </div>
                 <div className="text-sm font-bold text-white leading-tight">
                   {isCareerRoute ? 'Career Stats' : activeLabel}

@@ -48,8 +48,21 @@ function formatTimestamp(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function PickDisplay({ p }: { p: TradeDraftPickAsset }) {
+function PickDisplay({ p, rtl }: { p: TradeDraftPickAsset; rtl?: boolean }) {
   if (p.status === 'resolved' && p.draftedPlayerName) {
+    if (rtl) {
+      return (
+        <div className="flex items-center gap-0.5 text-sm flex-wrap justify-end">
+          <span className="text-gray-500 text-xs">({p.season} R{p.round})</span>
+          <span className="text-gray-300">{p.draftedPlayerName}</span>
+          {p.draftedPlayerPosition && (
+            <span className={`text-[10px] font-bold ${POSITION_COLORS[p.draftedPlayerPosition] ?? 'text-gray-400'}`}>
+              {p.draftedPlayerPosition}
+            </span>
+          )}
+        </div>
+      );
+    }
     return (
       <div className="flex items-center gap-0.5 text-sm flex-wrap">
         {p.draftedPlayerPosition && (
@@ -109,7 +122,7 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
               </div>
             ))}
             {otherSide?.picksReceived.map((p, i) => (
-              <div key={i} className="text-right"><PickDisplay p={p} /></div>
+              <div key={i}><PickDisplay p={p} rtl /></div>
             ))}
           </div>
         </div>

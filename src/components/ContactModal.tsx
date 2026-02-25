@@ -141,7 +141,7 @@ export function ContactModal({ children }: { children: React.ReactNode }) {
           </div>
 
           <p className="text-xs text-gray-600 text-center">
-            Built with ☕ in Seattle, WA 🌧️ — recordbook.fyi is free forever.
+            Built with ☕ in Seattle, WA 🌧️ — leaguemate.fyi is free forever.
           </p>
         </div>
       </SheetContent>
