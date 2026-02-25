@@ -86,6 +86,13 @@ function PickCard({ pick, label, icon: Icon, borderClass }: {
 export function DraftingTab({ userId, analysis }: DraftingTabProps) {
   const summary = analysis.managerSummaries.get(userId);
 
+  const allPicks = useMemo(() => {
+    if (!summary) return [];
+    return summary.draftClasses
+      .flatMap(cls => cls.picks)
+      .sort((a, b) => Number(b.season) - Number(a.season) || a.pickNo - b.pickNo);
+  }, [summary]);
+
   if (!analysis.hasData || !summary) {
     return (
       <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
@@ -99,13 +106,6 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
   }
 
   const totalManagers = analysis.managerSummaries.size;
-
-  const allPicks = useMemo(() => {
-    if (!summary) return [];
-    return summary.draftClasses
-      .flatMap(cls => cls.picks)
-      .sort((a, b) => Number(b.season) - Number(a.season) || a.pickNo - b.pickNo);
-  }, [summary]);
 
   return (
     <div className="space-y-4">
