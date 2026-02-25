@@ -35,10 +35,12 @@ export default function FranchisePage() {
   // Manager list for dropdowns: from standings
   const managers = useMemo(() => {
     if (!computed) return [];
-    return computed.standings.map((s) => ({
-      userId: s.userId,
-      displayName: s.displayName,
-    }));
+    return computed.standings
+      .filter((s) => !!s.userId)
+      .map((s) => ({
+        userId: s.userId,
+        displayName: s.displayName,
+      }));
   }, [computed]);
 
   if (dashLoading) {
