@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { ManagersList } from '@/components/ManagersList';
+import { RecordsSpotlight } from '@/components/RecordsSpotlight';
 import { ShareButton } from '@/components/ShareButton';
 
 export default function ManagersPage() {
@@ -18,6 +19,14 @@ export default function ManagersPage() {
           </p>
         </div>
         <ShareButton className="mt-1" />
+      </div>
+      <RecordsSpotlight
+        leagueId={leagueId}
+        onSelectManager={(uid) => router.push(`/league/${leagueId}/managers/${uid}`)}
+      />
+      <div className="flex items-center gap-3 mt-6 mb-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest whitespace-nowrap">All Managers</h3>
+        <div className="flex-1 h-px bg-card-border" />
       </div>
       <ManagersList
         leagueId={leagueId}

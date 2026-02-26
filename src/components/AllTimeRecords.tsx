@@ -15,6 +15,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { AllTimeRecordEntry } from '../types/sleeper';
 
 interface Props {
@@ -49,24 +52,32 @@ function HolderCell({ record, onSelectManager }: {
 
   if (isTied && allHolders) {
     return (
-      <div className="flex flex-col gap-1.5">
-        <Badge variant="outline" className="text-xs w-fit rounded-full px-2 py-0.5 text-muted-foreground">
-          Tied
-        </Badge>
-        {allHolders.map((h, i) => (
-          <button
-            key={i}
-            className="flex items-center gap-2 min-w-0 group text-left"
-            onClick={() => h.holderId && onSelectManager?.(h.holderId)}
-            disabled={!h.holderId || !onSelectManager}
-          >
-            <Avatar avatar={h.avatar} name={h.holder} size="sm" />
-            <span className={`font-medium text-white text-sm truncate ${h.holderId && onSelectManager ? 'group-hover:text-brand-cyan transition-colors' : ''}`}>
-              {h.holder}
-            </span>
-          </button>
-        ))}
-      </div>
+      <TooltipProvider delayDuration={150}>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs w-fit rounded-full px-2 py-0.5 text-muted-foreground shrink-0">
+            Tied
+          </Badge>
+          <div className="flex items-center">
+            {allHolders.map((h, i) => (
+              <Tooltip key={i}>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`rounded-full ring-2 ring-card-bg transition-transform hover:scale-110 hover:z-10 relative focus:outline-none ${i > 0 ? '-ml-2' : ''}`}
+                    style={{ zIndex: allHolders.length - i }}
+                    onClick={() => h.holderId && onSelectManager?.(h.holderId)}
+                    disabled={!h.holderId || !onSelectManager}
+                  >
+                    <Avatar avatar={h.avatar} name={h.holder} size="sm" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {h.holder}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </div>
+      </TooltipProvider>
     );
   }
 
@@ -165,7 +176,73 @@ export function AllTimeRecords({ leagueId, onSelectManager }: Props) {
         </DropdownMenu>
       </div>
 
-      <Table className="w-full table-fixed">
+      {/* Mobile card list */}
+      <div className="block sm:hidden divide-y divide-gray-800">
+        {records.map((record) => {
+          const meta = RECORD_META[record.id] ?? { icon: <Star size={14} />, accentText: 'text-foreground' };
+          const isTied = record.coHolders && record.coHolders.length > 0;
+          const allHolders = isTied
+            ? [{ holderId: record.holderId, holder: record.holder, avatar: record.avatar }, ...record.coHolders!]
+            : null;
+          return (
+            <div key={record.id} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="w-4 h-4 flex items-center justify-center text-muted-foreground flex-shrink-0">
+                    {meta.icon}
+                  </div>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide leading-snug">
+                    {record.category}
+                  </span>
+                </div>
+                <span className={`font-bold text-sm tabular-nums shrink-0 ${meta.accentText}`}>
+                  {record.value}
+                </span>
+              </div>
+              {isTied && allHolders ? (
+                <TooltipProvider delayDuration={150}>
+                  <div className="flex items-center pl-5">
+                    {allHolders.map((h, i) => (
+                      <Tooltip key={i}>
+                        <TooltipTrigger asChild>
+                          <button
+                            className={`rounded-full ring-2 ring-card-bg relative focus:outline-none ${i > 0 ? '-ml-2' : ''}`}
+                            style={{ zIndex: allHolders.length - i }}
+                            onClick={() => h.holderId && onSelectManager?.(h.holderId)}
+                            disabled={!h.holderId || !onSelectManager}
+                          >
+                            <Avatar avatar={h.avatar} name={h.holder} size="sm" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{h.holder}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </TooltipProvider>
+              ) : (
+                <button
+                  className="flex items-center gap-2 pl-5 group text-left"
+                  onClick={() => record.holderId && onSelectManager?.(record.holderId)}
+                  disabled={!record.holderId || !onSelectManager}
+                >
+                  <Avatar avatar={record.avatar} name={record.holder} size="sm" />
+                  <span className={`font-medium text-white text-sm ${record.holderId && onSelectManager ? 'group-active:text-brand-cyan' : ''}`}>
+                    {record.holder}
+                  </span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {records.length === 0 && (
+          <div className="py-8 text-center text-muted-foreground text-sm px-4">
+            No records available for this season.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <Table className="hidden sm:table w-full table-fixed">
         <colgroup>
           <col className="w-[42%]" />
           <col className="w-[34%]" />

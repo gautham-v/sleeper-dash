@@ -42,19 +42,21 @@ export function RecordsSpotlight({ leagueId, onSelectManager }: Props) {
           View All →
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden divide-y divide-border">
         {records.map((r) => (
           <button
             key={r.id}
             onClick={() => r.holderId && onSelectManager?.(r.holderId)}
             disabled={!r.holderId || !onSelectManager}
-            className="bg-card-bg border border-card-border rounded-2xl p-4 text-left hover:border-gray-600 transition-colors disabled:cursor-default"
+            className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-muted/20 transition-colors disabled:cursor-default"
           >
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 truncate">{r.category}</div>
-            <div className="text-2xl font-bold text-white tabular-nums mb-2 truncate">{r.value}</div>
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{r.category}</div>
+              <div className="text-sm font-bold text-white tabular-nums">{r.value}</div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Avatar avatar={r.avatar} name={r.holder} size="sm" />
-              <span className="text-xs text-gray-300 truncate">{r.holder}</span>
+              <span className="text-sm text-gray-300 font-medium">{r.holder}</span>
             </div>
           </button>
         ))}

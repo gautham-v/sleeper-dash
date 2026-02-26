@@ -3,14 +3,11 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useDashboardData } from '@/hooks/useLeagueData';
-import { useAllTimeWAR } from '@/hooks/useAllTimeWAR';
 import { useSessionUser } from '@/hooks/useSessionUser';
 import { Overview } from '@/components/Overview';
 import { LeagueTables } from '@/components/LeagueTables';
-import { RecordsSpotlight } from '@/components/RecordsSpotlight';
-import { FranchiseTrajectoryTab } from '@/components/FranchiseTrajectoryTab';
 import { ShareButton } from '@/components/ShareButton';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 import type { TabId } from '@/lib/tabs';
 
 export default function OverviewPage() {
@@ -18,8 +15,6 @@ export default function OverviewPage() {
   const router = useRouter();
   const sessionUser = useSessionUser();
   const { computed, isLoading, league } = useDashboardData(leagueId);
-  const trajectoryAnalysis = useAllTimeWAR(leagueId);
-
   const handleSelectManager = (uid: string) => {
     router.push(`/league/${leagueId}/managers/${uid}`);
   };
@@ -36,9 +31,6 @@ export default function OverviewPage() {
       </div>
     );
   }
-
-  // Default userId for trajectory preview
-  const trajectoryUserId = sessionUser?.userId || computed.standings[0]?.userId || '';
 
   return (
     <div className="space-y-8">
@@ -68,33 +60,20 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Records Spotlight */}
-      <RecordsSpotlight
-        leagueId={leagueId}
-        onSelectManager={handleSelectManager}
-      />
-
-      {/* Franchise Value Preview */}
-      {!trajectoryAnalysis.isLoading && trajectoryAnalysis.data?.hasData && trajectoryUserId && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📈</span>
-              <h2 className="text-base font-semibold text-white">Franchise Value</h2>
-            </div>
-            <Link
-              href={`/league/${leagueId}/franchise`}
-              className="text-xs text-brand-cyan hover:text-brand-cyan/80 transition-colors"
-            >
-              See full interactive chart →
-            </Link>
-          </div>
-          <FranchiseTrajectoryTab
-            userId={trajectoryUserId}
-            analysis={trajectoryAnalysis.data}
-          />
+      {/* Franchise Analytics */}
+      <Link
+        href={`/league/${leagueId}/franchise`}
+        className="flex items-center gap-4 bg-card-bg border border-card-border rounded-2xl p-4 hover:border-brand-cyan/40 transition-colors group"
+      >
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-lg">
+          📈
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Value</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Track how each franchise has grown over time and explore contender windows.</div>
+        </div>
+        <ChevronRight size={16} className="text-muted-foreground group-hover:text-brand-cyan transition-colors flex-shrink-0" />
+      </Link>
 
       {/* Standings & Stats */}
       <div>
