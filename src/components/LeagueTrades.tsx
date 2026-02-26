@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
@@ -235,10 +235,10 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'all-trades'>('leaderboard');
   const [leaderboardSeason, setLeaderboardSeason] = useState<string>('all');
-  const [seasonFilter, setSeasonFilter] = useState<string>('all');
+  // '' means "auto-default to most recent season"; any other value is an explicit user selection
+  const [seasonFilter, setSeasonFilter] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [currentPage, setCurrentPage] = useState(1);
-  const seasonFilterInitialized = useRef(false);
 
   const availableSeasons = useMemo(() => {
     if (!analysis) return [];
@@ -246,13 +246,8 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
     return seasons.sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
   }, [analysis]);
 
-  // Default All Trades filter to most recent season on first load
-  useEffect(() => {
-    if (!seasonFilterInitialized.current && availableSeasons.length > 0) {
-      seasonFilterInitialized.current = true;
-      setSeasonFilter(availableSeasons[0]);
-    }
-  }, [availableSeasons]);
+  // Defaults to most recent season; respects explicit user selections including 'all'
+  const effectiveSeasonFilter = seasonFilter !== '' ? seasonFilter : (availableSeasons[0] ?? 'all');
 
   const leaderboardSeasonTrades = useMemo(() => {
     if (!analysis) return [];
@@ -343,9 +338,9 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
 
   const filteredTrades = useMemo(() => {
     if (!analysis) return [];
-    const trades = seasonFilter === 'all'
+    const trades = effectiveSeasonFilter === 'all'
       ? analysis.allTrades
-      : analysis.allTrades.filter(t => t.season === seasonFilter);
+      : analysis.allTrades.filter(t => t.season === effectiveSeasonFilter);
     if (sortOption === 'most-impactful') {
       return [...trades].sort((a, b) => {
         const aMax = Math.max(...a.sides.map(s => Math.abs(s.netValue)));
@@ -362,7 +357,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
     }
     // 'recent' — preserve original order (already sorted by timestamp desc from the hook)
     return trades;
-  }, [analysis, seasonFilter, sortOption]);
+  }, [analysis, effectiveSeasonFilter, sortOption]);
 
   const handleSelectManager = (userId: string) => {
     router.push(`/league/${leagueId}/managers/${userId}`);
@@ -433,7 +428,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
         {activeTab === 'all-trades' && (
           <div className="flex items-center gap-2">
             {availableSeasons.length > 0 && (
-              <Select value={seasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
+              <Select value={effectiveSeasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
                 <SelectTrigger className="h-8 text-xs w-[120px]">
                   <SelectValue placeholder="Season" />
                 </SelectTrigger>
