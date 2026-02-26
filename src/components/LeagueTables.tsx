@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Shuffle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -61,7 +61,7 @@ function buildStandingsFromHistory(season: NonNullable<ReturnType<typeof useLeag
 }
 
 export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTablesProps) {
-  const [selectedSeason, setSelectedSeason] = useState<string>('alltime');
+  const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
   const [activeLeagueTab, setActiveLeagueTab] = useState<string>('standings');
   const [showDraftDelta, setShowDraftDelta] = useState(false);
   const [draftDeltaSort, setDraftDeltaSort] = useState(false);
@@ -76,13 +76,8 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
 
   const currentSeasonYear = history?.[history.length - 1]?.season;
 
-  const hasInitialized = useRef(false);
-  useEffect(() => {
-    if (!hasInitialized.current && currentSeasonYear) {
-      hasInitialized.current = true;
-      setSelectedSeason(currentSeasonYear);
-    }
-  }, [currentSeasonYear]);
+  // null = "use current season by default"; explicit string = user selection
+  const effectiveSeason = selectedSeason ?? currentSeasonYear ?? 'alltime';
 
   const allTimeStats = useMemo(() => {
     if (!history) return [];
@@ -95,9 +90,9 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
   }, [history]);
 
   const seasonData = useMemo(() => {
-    if (selectedSeason === 'alltime' || !history) return null;
-    return history.find((s) => s.season === selectedSeason) ?? null;
-  }, [history, selectedSeason]);
+    if (effectiveSeason === 'alltime' || !history) return null;
+    return history.find((s) => s.season === effectiveSeason) ?? null;
+  }, [history, effectiveSeason]);
 
   const seasonStandings = useMemo((): TeamStanding[] | null => {
     if (!seasonData) return null;
@@ -117,13 +112,13 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     return calcLuckIndex(regular, seasonStandings);
   }, [seasonData, seasonStandings]);
 
-  const isCurrentSeason = selectedSeason === currentSeasonYear;
+  const isCurrentSeason = effectiveSeason === currentSeasonYear;
 
-  const displayLuck: LuckEntry[] = selectedSeason === 'alltime'
+  const displayLuck: LuckEntry[] = effectiveSeason === 'alltime'
     ? allTimeLuck
     : (isCurrentSeason ? computed.luckIndex : seasonLuck) ?? [];
 
-  const displayStandings = selectedSeason === 'alltime'
+  const displayStandings = effectiveSeason === 'alltime'
     ? null
     : (isCurrentSeason ? computed.standings : seasonStandings) ?? [];
 
@@ -147,16 +142,16 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     }
   }
 
-  const displayRankings = selectedSeason === 'alltime'
+  const displayRankings = effectiveSeason === 'alltime'
     ? null
     : (isCurrentSeason ? computed.powerRankings : seasonRankings) ?? [];
 
-  const selectedLabel = selectedSeason === 'alltime' ? 'All-Time' : selectedSeason;
+  const selectedLabel = effectiveSeason === 'alltime' ? 'All-Time' : effectiveSeason;
 
   return (
     <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden" onValueChange={(value) => {
       setActiveLeagueTab(value);
-      if (value === 'rankings' && selectedSeason === 'alltime' && availableSeasons.length > 0) {
+      if (value === 'rankings' && effectiveSeason === 'alltime' && availableSeasons.length > 0) {
         setSelectedSeason(availableSeasons[0]); // most recent season
       }
     }}>
@@ -190,7 +185,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
         </TabsList>
 
         {/* Draft Delta toggle — only visible on standings tab, non-alltime view */}
-        {activeLeagueTab === 'standings' && selectedSeason !== 'alltime' && (
+        {activeLeagueTab === 'standings' && effectiveSeason !== 'alltime' && (
           <Button
             variant="outline"
             size="sm"
@@ -219,7 +214,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" collisionPadding={8} className="min-w-[120px]">
             <DropdownMenuItem
-              className={selectedSeason === 'alltime' ? 'text-brand-cyan' : ''}
+              className={effectiveSeason === 'alltime' ? 'text-brand-cyan' : ''}
               onClick={() => setSelectedSeason('alltime')}
             >
               All-Time
@@ -227,7 +222,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
             {availableSeasons.map((season) => (
               <DropdownMenuItem
                 key={season}
-                className={selectedSeason === season ? 'text-brand-cyan' : ''}
+                className={effectiveSeason === season ? 'text-brand-cyan' : ''}
                 onClick={() => setSelectedSeason(season)}
               >
                 {season}
@@ -238,7 +233,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
       </div>
 
       <TabsContent value="standings" className="mt-0 pt-4 overflow-x-auto">
-        {selectedSeason === 'alltime' ? (
+        {effectiveSeason === 'alltime' ? (
           allTimeStats.length > 0 ? (
             <AllTimeStandings stats={allTimeStats} onSelectManager={onSelectManager} />
           ) : (
@@ -260,7 +255,7 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
 
       <TabsContent value="rankings" className="mt-0 pt-4">
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          {selectedSeason === 'alltime' ? (
+          {effectiveSeason === 'alltime' ? (
             <div className="py-10 text-center space-y-2 px-4">
               <div className="text-sm text-muted-foreground">Power Rankings are calculated per season.</div>
               <div className="text-xs text-muted-foreground">
