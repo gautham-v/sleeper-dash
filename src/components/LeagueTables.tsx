@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Shuffle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -75,6 +75,14 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
   }, [history]);
 
   const currentSeasonYear = history?.[history.length - 1]?.season;
+
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current && currentSeasonYear) {
+      hasInitialized.current = true;
+      setSelectedSeason(currentSeasonYear);
+    }
+  }, [currentSeasonYear]);
 
   const allTimeStats = useMemo(() => {
     if (!history) return [];
