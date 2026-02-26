@@ -1,12 +1,10 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Avatar } from './Avatar';
-import { useLeagueHistory } from '../hooks/useLeagueData';
-import { calcAllTimeStats } from '../utils/calculations';
 
 interface OverviewProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,21 +16,18 @@ interface OverviewProps {
   onSelectManager?: (userId: string) => void;
 }
 
-export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelectManager }: OverviewProps) {
-  const { data: history } = useLeagueHistory(leagueId);
+export function Overview({ computed, userId, onViewMyProfile, onSelectManager }: OverviewProps) {
   const [statsOpen, setStatsOpen] = useState(false);
 
-  const myStats = useMemo(() => {
-    if (!history) return null;
-    return calcAllTimeStats(history).get(userId) ?? null;
-  }, [history, userId]);
-
-  const champYears = useMemo(() => {
-    if (!history || !myStats) return [];
-    return history.filter((s) => s.championUserId === userId).map((s) => s.season).sort();
-  }, [history, userId, myStats]);
-
-  const allTimePts = myStats?.seasons.reduce((sum, s) => sum + s.pointsFor, 0) ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myStanding = (computed.standings as any[])?.find((s) => s.userId === userId) ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myRank = myStanding ? ((computed.standings as any[]).findIndex((s) => s.userId === userId) + 1) : null;
+  const totalTeams: number = (computed.standings as unknown[])?.length ?? 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myLuck = (computed.luckIndex as any[])?.find((s) => s.userId === userId) ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myPowerRank = (computed.powerRankings as any[])?.find((s) => s.userId === userId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -59,20 +54,18 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
         </div>
       )}
 
-      {/* My Stats — Collapsible */}
-      {myStats && (
+      {/* My Season — Collapsible */}
+      {myStanding && (
         <Collapsible open={statsOpen} onOpenChange={setStatsOpen}>
           <Card className="rounded-2xl bg-card-bg border-card-border overflow-hidden">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <Avatar avatar={myStats.avatar} name={myStats.displayName} size="md" />
+                <Avatar avatar={myStanding.avatar} name={myStanding.displayName} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-white text-base leading-tight">{myStats.displayName}</h3>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {myStats.totalSeasons} season{myStats.totalSeasons !== 1 ? 's' : ''} in the league
-                      </div>
+                      <h3 className="font-bold text-white text-base leading-tight">{myStanding.displayName}</h3>
+                      <div className="text-xs text-muted-foreground mt-0.5">{myStanding.teamName}</div>
                     </div>
                     <Button
                       variant="ghost"
@@ -85,24 +78,20 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
                   </div>
                   <div className="flex flex-wrap gap-3 mt-2.5">
                     <div>
-                      <div className="text-xl font-bold text-brand-cyan tabular-nums">
-                        {(myStats.winPct * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-xs text-muted-foreground">Win Rate</div>
+                      <div className="text-xl font-bold text-brand-cyan tabular-nums">#{myRank}</div>
+                      <div className="text-xs text-muted-foreground">of {totalTeams}</div>
                     </div>
                     <div>
                       <div className="text-xl font-bold text-white tabular-nums">
-                        {myStats.totalWins}–{myStats.totalLosses}
+                        {myStanding.wins}–{myStanding.losses}
                       </div>
-                      <div className="text-xs text-muted-foreground">Career Record</div>
+                      <div className="text-xs text-muted-foreground">Record</div>
                     </div>
                     <div>
-                      <div className="text-xl font-bold text-yellow-500 tabular-nums">
-                        {champYears.length}
+                      <div className="text-xl font-bold text-white tabular-nums">
+                        {myStanding.pointsFor.toFixed(0)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Championship{champYears.length !== 1 ? 's' : ''}
-                      </div>
+                      <div className="text-xs text-muted-foreground">Points For</div>
                     </div>
                   </div>
                 </div>
@@ -110,50 +99,31 @@ export function Overview({ computed, leagueId, userId, onViewMyProfile, onSelect
             </CardContent>
 
             <CollapsibleContent>
-              <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                <div className="flex flex-wrap gap-3">
-                  {(myStats.playoffWins > 0 || myStats.playoffLosses > 0) && (
-                    <div>
-                      <div className="text-base font-bold text-white tabular-nums">
-                        {myStats.playoffWins}–{myStats.playoffLosses}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Playoff Record</div>
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-base font-bold text-white tabular-nums">
-                      {allTimePts.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">All-Time Points</div>
+              <div className="px-4 pb-4 flex flex-wrap gap-3 border-t border-border pt-3">
+                <div>
+                  <div className="text-base font-bold text-white tabular-nums">
+                    {myStanding.pointsAgainst.toFixed(0)}
                   </div>
-                  <div>
-                    <div className="text-base font-bold text-white tabular-nums">
-                      {myStats.avgPointsFor.toFixed(0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Avg Pts / Season</div>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Points Against</div>
                 </div>
-
-                {myStats.seasons.length > 0 && (
+                {myStanding.streak && (
                   <div>
-                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">
-                      Season by Season
+                    <div className="text-base font-bold text-white tabular-nums">{myStanding.streak}</div>
+                    <div className="text-xs text-muted-foreground">Streak</div>
+                  </div>
+                )}
+                {myPowerRank && (
+                  <div>
+                    <div className="text-base font-bold text-white tabular-nums">#{myPowerRank.rank}</div>
+                    <div className="text-xs text-muted-foreground">Power Rank</div>
+                  </div>
+                )}
+                {myLuck && (
+                  <div>
+                    <div className={`text-base font-bold tabular-nums ${myLuck.luckScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {myLuck.luckScore >= 0 ? '+' : ''}{myLuck.luckScore.toFixed(1)}
                     </div>
-                    <div className="space-y-1">
-                      {[...myStats.seasons].reverse().map((s) => (
-                        <div
-                          key={s.season}
-                          className="flex items-center justify-between text-xs py-1.5 px-2 rounded-lg hover:bg-muted/30"
-                        >
-                          <span className="text-muted-foreground font-medium w-12">{s.season}</span>
-                          <span className="text-white tabular-nums">{s.wins}–{s.losses}</span>
-                          <span className="text-muted-foreground tabular-nums">{s.pointsFor.toFixed(0)} pts</span>
-                          <span className="tabular-nums">
-                            {champYears.includes(s.season) ? "🏆" : <span className="text-muted-foreground">#{s.rank}</span>}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    <div className="text-xs text-muted-foreground">Luck Score</div>
                   </div>
                 )}
               </div>
