@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
+import { assignGrade } from '../utils/draftCalculations';
 import { Avatar } from './Avatar';
 import {
   Table,
@@ -88,9 +89,17 @@ function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlight
       <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
         <ArrowLeftRight size={12} />
         <span>{trade.season} Wk{trade.week} · {formatTimestamp(trade.timestamp)}</span>
-        {trade.hasUnresolved && (
+        {trade.hasUnresolved ? (
           <span className="text-yellow-500 ml-auto">Pending</span>
-        )}
+        ) : (() => {
+          const winner = trade.sides.reduce((a, b) => a.netValue > b.netValue ? a : b);
+          return winner.netValue > 0 ? (
+            <span className="ml-auto flex items-center gap-1 text-emerald-400">
+              <Crown size={10} />
+              {winner.displayName}
+            </span>
+          ) : null;
+        })()}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
         <div>
@@ -214,6 +223,8 @@ function ImpactfulTradeCard({
 
 const TRADES_PER_PAGE = 10;
 
+type SortOption = 'recent' | 'most-impactful' | 'least-impactful';
+
 const TAB_ITEMS = [
   { value: 'leaderboard', label: 'Leaderboard' },
   { value: 'all-trades', label: 'All Trades' },
@@ -223,24 +234,103 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const { data: analysis, isLoading } = useLeagueTradeHistory(leagueId);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'all-trades'>('leaderboard');
+  const [leaderboardSeason, setLeaderboardSeason] = useState<string>('all');
   const [seasonFilter, setSeasonFilter] = useState<string>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [currentPage, setCurrentPage] = useState(1);
+  const seasonFilterInitialized = useRef(false);
+
+  const availableSeasons = useMemo(() => {
+    if (!analysis) return [];
+    const seasons = [...new Set(analysis.allTrades.map(t => t.season))];
+    return seasons.sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+  }, [analysis]);
+
+  // Default All Trades filter to most recent season on first load
+  useEffect(() => {
+    if (!seasonFilterInitialized.current && availableSeasons.length > 0) {
+      seasonFilterInitialized.current = true;
+      setSeasonFilter(availableSeasons[0]);
+    }
+  }, [availableSeasons]);
+
+  const leaderboardSeasonTrades = useMemo(() => {
+    if (!analysis) return [];
+    if (leaderboardSeason === 'all') return analysis.allTrades;
+    return analysis.allTrades.filter(t => t.season === leaderboardSeason);
+  }, [analysis, leaderboardSeason]);
 
   const leaderboard = useMemo(() => {
     if (!analysis) return [];
-    return [...analysis.managerSummaries.values()].sort((a, b) => b.totalNetValue - a.totalNetValue);
-  }, [analysis]);
+    if (leaderboardSeason === 'all') {
+      return [...analysis.managerSummaries.values()].sort((a, b) => b.totalNetValue - a.totalNetValue);
+    }
+    // Derive per-manager stats from season-filtered trades
+    const managerMap = new Map<string, {
+      userId: string; displayName: string; avatar: string | null;
+      totalNetValue: number; wins: number; totalTrades: number;
+    }>();
+    for (const trade of leaderboardSeasonTrades) {
+      for (const side of trade.sides) {
+        let entry = managerMap.get(side.userId);
+        if (!entry) {
+          entry = {
+            userId: side.userId,
+            displayName: side.displayName,
+            avatar: analysis.managerSummaries.get(side.userId)?.avatar ?? null,
+            totalNetValue: 0, wins: 0, totalTrades: 0,
+          };
+          managerMap.set(side.userId, entry);
+        }
+        entry.totalNetValue += side.netValue;
+        entry.totalTrades += 1;
+        if (side.netValue > 0) entry.wins += 1;
+      }
+    }
+    const entries = [...managerMap.values()];
+    const sortedValues = entries.map(e => e.totalNetValue).sort((a, b) => a - b);
+    return entries.map(entry => {
+      const rank = sortedValues.filter(v => v < entry.totalNetValue).length;
+      const netValuePercentile = sortedValues.length > 1 ? (rank / (sortedValues.length - 1)) * 100 : 50;
+      const { grade, gradeColor } = assignGrade(netValuePercentile);
+      return {
+        ...entry,
+        tradeWinRate: entry.totalTrades > 0 ? entry.wins / entry.totalTrades : 0,
+        avgValuePerTrade: entry.totalTrades > 0 ? entry.totalNetValue / entry.totalTrades : 0,
+        grade,
+        gradeColor,
+      };
+    }).sort((a, b) => b.totalNetValue - a.totalNetValue);
+  }, [analysis, leaderboardSeason, leaderboardSeasonTrades]);
 
   const top3ActiveTraders = useMemo(() => {
     if (!analysis) return [];
-    return [...analysis.managerSummaries.values()]
+    if (leaderboardSeason === 'all') {
+      return [...analysis.managerSummaries.values()]
+        .sort((a, b) => b.totalTrades - a.totalTrades)
+        .slice(0, 3);
+    }
+    const tradeCountMap = new Map<string, { userId: string; displayName: string; avatar: string | null; totalTrades: number }>();
+    for (const trade of leaderboardSeasonTrades) {
+      for (const side of trade.sides) {
+        const entry = tradeCountMap.get(side.userId) ?? {
+          userId: side.userId,
+          displayName: side.displayName,
+          avatar: analysis.managerSummaries.get(side.userId)?.avatar ?? null,
+          totalTrades: 0,
+        };
+        entry.totalTrades += 1;
+        tradeCountMap.set(side.userId, entry);
+      }
+    }
+    return [...tradeCountMap.values()]
       .sort((a, b) => b.totalTrades - a.totalTrades)
       .slice(0, 3);
-  }, [analysis]);
+  }, [analysis, leaderboardSeason, leaderboardSeasonTrades]);
 
   const top3ImpactfulTrades = useMemo(() => {
     if (!analysis) return [];
-    return [...analysis.allTrades]
+    return [...leaderboardSeasonTrades]
       .map(trade => {
         const maxVal = Math.max(...trade.sides.map(s => Math.abs(s.netValue)));
         const winnerSide = trade.sides.find(s => s.netValue >= 0) ?? trade.sides[0];
@@ -249,19 +339,30 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
       })
       .sort((a, b) => b.maxVal - a.maxVal)
       .slice(0, 3);
-  }, [analysis]);
-
-  const availableSeasons = useMemo(() => {
-    if (!analysis) return [];
-    const seasons = [...new Set(analysis.allTrades.map(t => t.season))];
-    return seasons.sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
-  }, [analysis]);
+  }, [analysis, leaderboardSeasonTrades]);
 
   const filteredTrades = useMemo(() => {
     if (!analysis) return [];
-    if (seasonFilter === 'all') return analysis.allTrades;
-    return analysis.allTrades.filter(t => t.season === seasonFilter);
-  }, [analysis, seasonFilter]);
+    const trades = seasonFilter === 'all'
+      ? analysis.allTrades
+      : analysis.allTrades.filter(t => t.season === seasonFilter);
+    if (sortOption === 'most-impactful') {
+      return [...trades].sort((a, b) => {
+        const aMax = Math.max(...a.sides.map(s => Math.abs(s.netValue)));
+        const bMax = Math.max(...b.sides.map(s => Math.abs(s.netValue)));
+        return bMax - aMax;
+      });
+    }
+    if (sortOption === 'least-impactful') {
+      return [...trades].sort((a, b) => {
+        const aMax = Math.max(...a.sides.map(s => Math.abs(s.netValue)));
+        const bMax = Math.max(...b.sides.map(s => Math.abs(s.netValue)));
+        return aMax - bMax;
+      });
+    }
+    // 'recent' — preserve original order (already sorted by timestamp desc from the hook)
+    return trades;
+  }, [analysis, seasonFilter, sortOption]);
 
   const handleSelectManager = (userId: string) => {
     router.push(`/league/${leagueId}/managers/${userId}`);
@@ -309,16 +410,16 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Controls row: tab strip + optional season filter */}
+      {/* Controls row: tab strip + optional filters */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <SegmentedControl
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as 'leaderboard' | 'all-trades')}
           items={TAB_ITEMS}
         />
-        {activeTab === 'all-trades' && availableSeasons.length > 0 && (
-          <Select value={seasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
-            <SelectTrigger className="h-8 text-xs w-[130px]">
+        {activeTab === 'leaderboard' && availableSeasons.length > 0 && (
+          <Select value={leaderboardSeason} onValueChange={setLeaderboardSeason}>
+            <SelectTrigger className="h-8 text-xs w-[120px]">
               <SelectValue placeholder="Season" />
             </SelectTrigger>
             <SelectContent>
@@ -328,6 +429,33 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
               ))}
             </SelectContent>
           </Select>
+        )}
+        {activeTab === 'all-trades' && (
+          <div className="flex items-center gap-2">
+            {availableSeasons.length > 0 && (
+              <Select value={seasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-8 text-xs w-[120px]">
+                  <SelectValue placeholder="Season" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All-Time</SelectItem>
+                  {availableSeasons.map(season => (
+                    <SelectItem key={season} value={season}>{season}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={sortOption} onValueChange={(v) => { setSortOption(v as SortOption); setCurrentPage(1); }}>
+              <SelectTrigger className="h-8 text-xs w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Most Recent</SelectItem>
+                <SelectItem value="most-impactful">Most Impactful</SelectItem>
+                <SelectItem value="least-impactful">Least Impactful</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
 
@@ -359,6 +487,28 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
             </div>
           )}
 
+          {/* Top 3 Most Impactful Trades (all-time) */}
+          {top3ImpactfulTrades.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <ArrowLeftRight size={13} className="text-gray-400" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide, maxVal }, idx) => (
+                  <ImpactfulTradeCard
+                    key={trade.transactionId}
+                    trade={trade}
+                    winnerSide={winnerSide}
+                    loserSide={loserSide}
+                    maxVal={maxVal}
+                    rank={idx}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Trade Intelligence Leaderboard */}
           <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
             <div className="px-5 pt-4 pb-3 flex items-center gap-2">
@@ -368,10 +518,10 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
             <Table>
               <TableHeader>
                 <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
-                  <TableHead className="text-left py-2.5 px-5 w-8">#</TableHead>
-                  <TableHead className="text-left py-2.5 px-3">Manager</TableHead>
-                  <TableHead className="text-center py-2.5 px-3"><span className="flex items-center gap-1 justify-center">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
-                  <TableHead className="text-right py-2.5 px-3"><span className="flex items-center gap-1 justify-end">Net Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
+                  <TableHead className="text-left py-2.5 px-2 sm:px-4 w-6 sm:w-8 shrink-0">#</TableHead>
+                  <TableHead className="text-left py-2.5 px-2 sm:px-3 w-full">Manager</TableHead>
+                  <TableHead className="text-center py-2.5 px-2 sm:px-3 shrink-0"><span className="flex items-center gap-1 justify-center">Grade <MetricTooltip metricKey="grade" side="bottom" /></span></TableHead>
+                  <TableHead className="text-right py-2.5 px-2 sm:px-3 shrink-0 whitespace-nowrap"><span className="flex items-center gap-1 justify-end"><span className="hidden xs:inline">Net </span>Value <MetricTooltip metricKey="netValue" side="bottom" /></span></TableHead>
                   <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell"><span className="flex items-center gap-1 justify-center">Win Rate <MetricTooltip metricKey="winRate" side="bottom" /></span></TableHead>
                   <TableHead className="text-center py-2.5 px-3 hidden sm:table-cell">Trades</TableHead>
                   <TableHead className="text-right py-2.5 px-3 hidden md:table-cell">Avg/Trade</TableHead>
@@ -380,24 +530,24 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
               <TableBody>
                 {leaderboard.map((summary, idx) => (
                   <TableRow key={summary.userId} className="border-b border-gray-800/60 hover:bg-gray-800/20">
-                    <TableCell className="py-3 px-5 text-gray-500 tabular-nums">
+                    <TableCell className="py-3 px-2 sm:px-4 text-gray-500 tabular-nums shrink-0">
                       {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
                     </TableCell>
-                    <TableCell className="py-3 px-3">
+                    <TableCell className="py-3 px-2 sm:px-3 w-full min-w-0">
                       <button
-                        className="flex items-center gap-2 text-left group"
+                        className="flex items-center gap-2 text-left group min-w-0 w-full"
                         onClick={() => handleSelectManager(summary.userId)}
                       >
                         <Avatar avatar={summary.avatar} name={summary.displayName} size="sm" />
-                        <span className="font-medium text-white text-sm group-hover:text-brand-cyan transition-colors truncate">
+                        <span className="font-medium text-white text-sm group-hover:text-brand-cyan transition-colors truncate min-w-0">
                           {summary.displayName}
                         </span>
                       </button>
                     </TableCell>
-                    <TableCell className="py-3 px-3 text-center">
+                    <TableCell className="py-3 px-2 sm:px-3 text-center shrink-0">
                       <span className={`text-lg font-black ${summary.gradeColor}`}>{summary.grade}</span>
                     </TableCell>
-                    <TableCell className={`py-3 px-3 text-right font-bold tabular-nums ${valueColor(summary.totalNetValue)}`}>
+                    <TableCell className={`py-3 px-2 sm:px-3 text-right font-bold tabular-nums shrink-0 ${valueColor(summary.totalNetValue)}`}>
                       {valueLabel(summary.totalNetValue)}
                     </TableCell>
                     <TableCell className="py-3 px-3 text-center tabular-nums text-gray-400 hidden sm:table-cell">
@@ -423,28 +573,6 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
       {/* ── All Trades tab ── */}
       {activeTab === 'all-trades' && (
         <div className="space-y-6">
-          {/* Top 3 Most Impactful Trades */}
-          {top3ImpactfulTrades.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <ArrowLeftRight size={13} className="text-gray-400" />
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top 3 Most Impactful Trades</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {top3ImpactfulTrades.map(({ trade, winnerSide, loserSide, maxVal }, idx) => (
-                  <ImpactfulTradeCard
-                    key={trade.transactionId}
-                    trade={trade}
-                    winnerSide={winnerSide}
-                    loserSide={loserSide}
-                    maxVal={maxVal}
-                    rank={idx}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Paginated All Trades list */}
           {filteredTrades.length > 0 && (
             <div>
