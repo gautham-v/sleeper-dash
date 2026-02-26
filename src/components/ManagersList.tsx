@@ -70,7 +70,10 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
                 {mgr.displayName}
               </div>
               <div className="text-xs text-gray-500 mt-0.5 truncate">
-                {mgr.totalWins}–{mgr.totalLosses} · {totalGames} games · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
+                {mgr.totalWins}–{mgr.totalLosses}
+                <span className="hidden sm:inline"> · {totalGames} games</span>
+                {' · '}{mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
+                <span className="hidden sm:inline">{' · '}{mgr.avgPointsFor.toFixed(0)} pts avg</span>
                 {hasPlayoffs && (
                   <span className="hidden sm:inline text-yellow-500/70">
                     {' · '}playoffs {mgr.playoffWins}–{mgr.playoffLosses}
@@ -86,12 +89,12 @@ export function ManagersList({ leagueId, onSelectManager }: Props) {
               </div>
             )}
 
-            <div className="flex flex-col items-end flex-shrink-0">
+            <div className="hidden sm:flex flex-col items-end flex-shrink-0">
               <div className="flex items-center gap-1">
                 <TrendingUp size={12} className="text-brand-cyan" />
                 <span className="font-bold text-brand-cyan text-sm">{winPctDisplay}</span>
               </div>
-              <span className="text-xs text-gray-500 hidden sm:block">win rate</span>
+              <span className="text-xs text-gray-500">win rate</span>
             </div>
 
             <ChevronRight size={16} className="text-gray-600 group-hover:text-brand-cyan transition-colors flex-shrink-0" />

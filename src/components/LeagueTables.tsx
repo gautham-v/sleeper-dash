@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ChevronDown, Trophy, Shuffle } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronDown, Shuffle } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -10,7 +11,6 @@ import { Standings } from './Standings';
 import { AllTimeStandings } from './AllTimeStandings';
 import { PowerRankings } from './PowerRankings';
 import { LuckIndex } from './LuckIndex';
-import { Avatar } from './Avatar';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import {
@@ -86,15 +86,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
     return calcAllTimeLuckIndex(history);
   }, [history]);
 
-  const allTimeRankings = useMemo(() => {
-    if (!history) return [];
-    const stats = calcAllTimeStats(history);
-    return [...stats.values()].sort((a, b) => {
-      if (b.titles !== a.titles) return b.titles - a.titles;
-      return b.winPct - a.winPct;
-    });
-  }, [history]);
-
   const seasonData = useMemo(() => {
     if (selectedSeason === 'alltime' || !history) return null;
     return history.find((s) => s.season === selectedSeason) ?? null;
@@ -155,17 +146,14 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
   const selectedLabel = selectedSeason === 'alltime' ? 'All-Time' : selectedSeason;
 
   return (
-    <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden" onValueChange={setActiveLeagueTab}>
+    <Tabs defaultValue="standings" className="bg-card-bg rounded-xl border border-card-border overflow-hidden" onValueChange={(value) => {
+      setActiveLeagueTab(value);
+      if (value === 'rankings' && selectedSeason === 'alltime' && availableSeasons.length > 0) {
+        setSelectedSeason(availableSeasons[0]); // most recent season
+      }
+    }}>
       <div className="flex items-center gap-2 px-4 sm:px-5 pt-4 sm:pt-5 flex-wrap">
         <TabsList className="bg-muted rounded-lg p-1 h-auto gap-0">
-          <TabsTrigger
-            value="rankings"
-            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
-              data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
-              text-muted-foreground hover:text-foreground"
-          >
-            Rankings
-          </TabsTrigger>
           <TabsTrigger
             value="standings"
             className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
@@ -173,6 +161,14 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
               text-muted-foreground hover:text-foreground"
           >
             Standings
+          </TabsTrigger>
+          <TabsTrigger
+            value="rankings"
+            className="px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium h-auto
+              data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
+              text-muted-foreground hover:text-foreground"
+          >
+            Rankings
           </TabsTrigger>
           <TabsTrigger
             value="luck"
@@ -233,63 +229,6 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
         </DropdownMenu>
       </div>
 
-      <TabsContent value="rankings" className="mt-0 pt-4">
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          {selectedSeason === 'alltime' ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-3">
-                Ranked by championships, then win percentage
-              </p>
-              {allTimeRankings.map((mgr, idx) => {
-                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null;
-                return (
-                  <div key={mgr.userId} className="flex items-center gap-2.5 bg-muted/30 rounded-xl px-3 py-2.5">
-                    <span className="text-sm w-5 text-center flex-shrink-0">
-                      {medal ?? <span className="text-muted-foreground text-xs font-medium">{idx + 1}</span>}
-                    </span>
-                    <Avatar avatar={mgr.avatar} name={mgr.displayName} size="sm" />
-                    <button
-                      className="flex-1 min-w-0 text-left group"
-                      onClick={() => mgr.userId && onSelectManager?.(mgr.userId)}
-                      disabled={!mgr.userId || !onSelectManager}
-                    >
-                      <div className="font-semibold text-white text-sm truncate group-hover:text-brand-cyan transition-colors">
-                        {mgr.displayName}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {mgr.totalWins}–{mgr.totalLosses} · {mgr.totalSeasons} season{mgr.totalSeasons !== 1 ? 's' : ''}
-                      </div>
-                    </button>
-                    {mgr.titles > 0 && (
-                      <div className="flex items-center gap-1 bg-muted border border-border rounded-lg px-2 py-0.5 flex-shrink-0">
-                        <Trophy size={10} className="text-yellow-500" />
-                        <span className="text-foreground font-bold text-xs">{mgr.titles}</span>
-                      </div>
-                    )}
-                    <div className="flex flex-col items-end flex-shrink-0 min-w-[44px]">
-                      <span className="text-brand-cyan font-bold text-sm tabular-nums leading-none">
-                        {(mgr.winPct * 100).toFixed(1)}%
-                      </span>
-                      <span className="text-[10px] text-muted-foreground leading-none mt-0.5">Win%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : displayRankings && displayRankings.length > 0 ? (
-            <PowerRankings
-              rankings={displayRankings}
-              standings={displayStandings ?? []}
-              onSelectManager={onSelectManager}
-            />
-          ) : (
-            <div className="py-8 text-center text-muted-foreground text-sm">
-              No power rankings data available
-            </div>
-          )}
-        </div>
-      </TabsContent>
-
       <TabsContent value="standings" className="mt-0 pt-4 overflow-x-auto">
         {selectedSeason === 'alltime' ? (
           allTimeStats.length > 0 ? (
@@ -309,6 +248,32 @@ export function LeagueTables({ computed, leagueId, onSelectManager }: LeagueTabl
         ) : (
           <div className="p-8 text-center text-muted-foreground text-sm">Loading…</div>
         )}
+      </TabsContent>
+
+      <TabsContent value="rankings" className="mt-0 pt-4">
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+          {selectedSeason === 'alltime' ? (
+            <div className="py-10 text-center space-y-2 px-4">
+              <div className="text-sm text-muted-foreground">Power Rankings are calculated per season.</div>
+              <div className="text-xs text-muted-foreground">
+                Select a season above to see power rankings, or{' '}
+                <Link href={`/league/${leagueId}/managers`} className="text-brand-cyan hover:text-brand-cyan/80 transition-colors">
+                  view all-time standings on the Managers page
+                </Link>.
+              </div>
+            </div>
+          ) : displayRankings && displayRankings.length > 0 ? (
+            <PowerRankings
+              rankings={displayRankings}
+              standings={displayStandings ?? []}
+              onSelectManager={onSelectManager}
+            />
+          ) : (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              No power rankings data available
+            </div>
+          )}
+        </div>
       </TabsContent>
 
       <TabsContent value="luck" className="mt-0 pt-4">
