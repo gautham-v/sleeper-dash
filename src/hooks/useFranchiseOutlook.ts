@@ -121,5 +121,6 @@ export function useFranchiseOutlook(leagueId: string | null) {
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 }
