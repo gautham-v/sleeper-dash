@@ -57,14 +57,14 @@ interface Props {
 export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onViewCareerStats }: Props) {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<'overview' | 'h2h' | 'seasons' | 'drafting' | 'trading' | 'outlook' | 'value' | 'players'>('overview');
-  const [, setDraftingUnlocked] = useState(false);
-  const [, setTradingUnlocked] = useState(false);
-  const [, setFranchiseUnlocked] = useState(false);
+  const [draftingUnlocked, setDraftingUnlocked] = useState(false);
+  const [tradingUnlocked, setTradingUnlocked] = useState(false);
+  const [franchiseUnlocked, setFranchiseUnlocked] = useState(false);
   const [trajectoryUnlocked, setTrajectoryUnlocked] = useState(false);
   const { data: history, isLoading } = useLeagueHistory(leagueId);
-  const draftAnalysis = useLeagueDraftHistory(leagueId);
-  const tradeAnalysis = useLeagueTradeHistory(leagueId);
-  const franchiseOutlook = useFranchiseOutlook(leagueId);
+  const draftAnalysis = useLeagueDraftHistory(draftingUnlocked ? leagueId : null);
+  const tradeAnalysis = useLeagueTradeHistory(tradingUnlocked ? leagueId : null);
+  const franchiseOutlook = useFranchiseOutlook(franchiseUnlocked ? leagueId : null);
   const trajectoryAnalysis = useAllTimeWAR(trajectoryUnlocked ? leagueId : null);
   const rosterStats = useManagerRosterStats(leagueId, userId);
   const PLAYERS_PER_PAGE = 10;
@@ -299,7 +299,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           const section = v as typeof activeSection;
           if (section === 'drafting') setDraftingUnlocked(true);
           if (section === 'trading') setTradingUnlocked(true);
-          if (section === 'outlook') setFranchiseUnlocked(true);
+          if (section === 'outlook' || section === 'value') setFranchiseUnlocked(true);
           if (section === 'value') setTrajectoryUnlocked(true);
           setActiveSection(section);
         }}

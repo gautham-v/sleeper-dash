@@ -137,6 +137,7 @@ export function useLeague(leagueId: string | null) {
     queryKey: ['league', leagueId],
     queryFn: () => sleeperApi.getLeague(leagueId!),
     enabled: !!leagueId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -145,6 +146,7 @@ export function useRosters(leagueId: string | null) {
     queryKey: ['rosters', leagueId],
     queryFn: () => sleeperApi.getRosters(leagueId!),
     enabled: !!leagueId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -153,6 +155,7 @@ export function useLeagueUsers(leagueId: string | null) {
     queryKey: ['league-users', leagueId],
     queryFn: () => sleeperApi.getLeagueUsers(leagueId!),
     enabled: !!leagueId,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -567,6 +570,7 @@ export function useLeagueRecords(leagueId: string | null) {
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -671,6 +675,7 @@ export function useLeagueHistory(leagueId: string | null) {
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
@@ -737,6 +742,7 @@ export function useYearOverYear(leagueId: string | null) {
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
   });
 }
 
