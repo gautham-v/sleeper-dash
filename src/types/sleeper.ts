@@ -439,6 +439,71 @@ export interface FranchiseOutlookResult {
   winsRank: number;
   luckScore: number;
   focusAreas: { signal: string; detail: string; severity: 'positive' | 'warning' | 'info' }[];
+  strategyRecommendation: StrategyRecommendation;
+  rookieDraftTargets: RookieDraftTarget[];
+  tradeTargets: TradeTargetPlayer[];
+  tradePartners: TradePartner[];
+}
+
+// ---- Dynasty Strategy Types ----
+
+/** Raw entry shape from the FantasyCalc /values/current API (fields we use). */
+export interface FCPlayerEntry {
+  player: {
+    sleeperId?: string;
+    name: string;
+    position: string;
+    maybeYoe?: number | null;
+    maybeTeam?: string | null;
+    maybeAge?: number | null;
+  };
+  value: number;
+  overallRank: number;
+  positionRank: number;
+}
+
+export type StrategyMode =
+  | 'Push All-In Now'
+  | 'Win-Now Pivot'
+  | 'Steady State'
+  | 'Asset Accumulation'
+  | 'Full Rebuild';
+
+export interface StrategyRecommendation {
+  mode: StrategyMode;
+  headline: string;
+  rationale: string[];
+  urgencyScore: number;
+}
+
+export interface RookieDraftTarget {
+  name: string;
+  position: string;
+  dynastyValue: number;
+  overallRank: number;
+  positionRank: number;
+  reason: string;
+}
+
+export interface TradeTargetPlayer {
+  name: string;
+  position: string;
+  age: number;
+  war: number;
+  dynastyValue: number | null;
+  ownerUserId: string;
+  ownerDisplayName: string;
+  reason: string;
+}
+
+export interface TradePartner {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
+  compatibilityScore: number;
+  theyCanOffer: { position: string; rank: number; delta: number }[];
+  youCanOffer: { position: string; rank: number; delta: number }[];
+  summary: string;
 }
 
 // ---- All-Time Asset Lifecycle Types ----

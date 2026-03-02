@@ -2,7 +2,7 @@ export type GlossaryKey =
   | 'war' | 'surplus' | 'grade' | 'franchiseScore'
   | 'contenderWindow' | 'rosterAgeRisk' | 'hitRate'
   | 'bustRate' | 'netValue' | 'winRate'
-  | 'luckScore' | 'youngPipeline';
+  | 'luckScore' | 'youngPipeline' | 'dynastyStrategy';
 
 export interface GlossaryEntry { name: string; description: string; }
 
@@ -54,5 +54,9 @@ export const GLOSSARY: Record<GlossaryKey, GlossaryEntry> = {
   youngPipeline: {
     name: 'Young Pipeline',
     description: 'Rostered skill-position players age 24 or under, ranked by age-curve upside (how much room to grow relative to their position\'s peak). Dynasty value shown where available from FantasyCalc.',
+  },
+  dynastyStrategy: {
+    name: 'Recommended Strategy',
+    description: 'Five archetypes derived from tier, contender window, risk score, and roster composition: Steady State (contender, long window), Push All-In Now (short window), Win-Now Pivot (fringe, close to contention), Asset Accumulation (rebuilding with strong pipeline), Full Rebuild (limited assets). Action urgency scores 0–100.',
   },
 };
