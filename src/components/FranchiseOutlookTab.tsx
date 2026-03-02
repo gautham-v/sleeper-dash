@@ -8,11 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
-  BarChart,
-  Bar,
-  Cell,
 } from 'recharts';
-import type { FranchiseOutlookResult, FranchiseTier, RiskCategory } from '../types/sleeper';
+import type { FranchiseOutlookResult, FranchiseTier } from '../types/sleeper';
 import { MetricTooltip } from '@/components/MetricTooltip';
 
 interface FranchiseOutlookTabProps {
@@ -48,28 +45,25 @@ function tierColors(tier: FranchiseTier) {
   }
 }
 
-function riskBarColor(category: RiskCategory): string {
-  switch (category) {
-    case 'Low':      return '#10b981'; // emerald-500
-    case 'Moderate': return '#f59e0b'; // amber-500
-    case 'High':     return '#f97316'; // orange-500
-    case 'Extreme':  return '#ef4444'; // red-500
-  }
-}
-
-function ageBucketColor(bucket: string): string {
-  switch (bucket) {
-    case '22–24': return '#10b981'; // young → green
-    case '25–27': return '#06b6d4'; // prime → cyan
-    case '28–30': return '#f59e0b'; // aging → amber
-    case '31+':   return '#ef4444'; // decline → red
-    default:      return '#6b7280';
-  }
-}
-
 function peakYearLabel(yearOffset: number): string {
   if (yearOffset === 0) return 'This Year';
   return `+${yearOffset} Year${yearOffset > 1 ? 's' : ''}`;
+}
+
+const POSITION_COLORS: Record<string, string> = {
+  QB: 'bg-red-900/50 text-red-300 border-red-800/50',
+  RB: 'bg-green-900/50 text-green-300 border-green-800/50',
+  WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
+  TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
+};
+
+function PosBadge({ pos }: { pos: string }) {
+  const cls = POSITION_COLORS[pos] ?? 'bg-gray-800/50 text-gray-400 border-gray-700/50';
+  return (
+    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} w-8 text-center`}>
+      {pos}
+    </span>
+  );
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -119,18 +113,19 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
     windowLength,
     peakYearOffset,
     peakWAR,
-    warByAgeBucket,
     futurePicks,
+    isSeasonComplete,
+    keyPlayers,
+    youngAssets,
+    warByPosition,
+    wins,
+    losses,
+    warRank,
+    luckScore,
+    focusAreas,
   } = result;
 
-  // Summarize future picks by round for display
-  const picks1st = futurePicks.filter((p) => p.round === 1).length;
-  const picks2nd = futurePicks.filter((p) => p.round === 2).length;
-
-  // Compute rank among all managers by currentWAR (Franchise Score)
   const allEntries = [...data.values()];
-  const sortedByWAR = [...allEntries].sort((a, b) => b.currentWAR - a.currentWAR);
-  const myRank = sortedByWAR.findIndex((r) => r === result) + 1;
   const totalManagers = allEntries.length;
 
   const tc = tierColors(tier);
@@ -150,6 +145,15 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
   const allWARValues = chartData.map((d) => d.totalWAR);
   const yMin = Math.floor(Math.min(...allWARValues, contenderThreshold) - 5);
   const yMax = Math.ceil(Math.max(...allWARValues, contenderThreshold) + 5);
+
+  // Future picks grouped by year
+  const picksByYear = new Map<string, number[]>();
+  for (const pick of futurePicks) {
+    const arr = picksByYear.get(pick.season) ?? [];
+    arr.push(pick.round);
+    picksByYear.set(pick.season, arr);
+  }
+  const sortedPickYears = [...picksByYear.keys()].sort();
 
   return (
     <div className="space-y-4">
@@ -176,12 +180,45 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
             </div>
             {totalManagers > 0 && (
               <div className="text-xs text-gray-500 mt-0.5">
-                Ranked #{myRank} of {totalManagers}
+                Ranked #{warRank} of {totalManagers} &bull; {wins}–{losses}
+                {luckScore >= 2 && <span className="ml-1 text-emerald-400">Running hot</span>}
+                {luckScore <= -2 && <span className="ml-1 text-red-400">Unlucky record</span>}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Focus Areas ── */}
+      {focusAreas.length > 0 && (
+        <div className="bg-card-bg border border-card-border rounded-2xl p-5 space-y-3">
+          <div className="text-sm font-semibold text-white">Focus Areas</div>
+          {focusAreas.map((area, i) => (
+            <div
+              key={i}
+              className={`rounded-lg px-4 py-3 border ${
+                area.severity === 'warning'
+                  ? 'bg-amber-900/15 border-amber-700/30'
+                  : area.severity === 'positive'
+                  ? 'bg-emerald-900/15 border-emerald-700/30'
+                  : 'bg-gray-800/40 border-gray-700/30'
+              }`}
+            >
+              <div className={`text-sm font-medium ${
+                area.severity === 'warning'
+                  ? 'text-amber-300'
+                  : area.severity === 'positive'
+                  ? 'text-emerald-300'
+                  : 'text-gray-300'
+              }`}>
+                {area.severity === 'warning' ? '⚠ ' : area.severity === 'positive' ? '✓ ' : 'ℹ '}
+                {area.signal}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">{area.detail}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Summary cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -233,26 +270,93 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
           <div className="text-xl font-bold text-white tabular-nums">
             {futurePicks.length > 0 ? futurePicks.length : '—'}
           </div>
-          <div className="text-xs text-brand-cyan mt-0.5">
-            {futurePicks.length === 0 ? (
-              <span className="text-gray-600">None traded</span>
+          {futurePicks.length === 0 ? (
+            <div className="text-xs text-gray-600 mt-0.5">None traded</div>
+          ) : (
+            <div className="mt-1 space-y-0.5">
+              {sortedPickYears.map((year) => {
+                const rounds = [...(picksByYear.get(year) ?? [])].sort((a, b) => a - b);
+                return (
+                  <div key={year} className="text-xs text-gray-400 leading-tight">
+                    <span className="text-gray-500">{year}:</span>{' '}
+                    {rounds.map((r) => `Rd ${r}`).join(', ')}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SummaryCard>
+      </div>
+
+      {/* ── Roster Assets ── */}
+      <div className="bg-card-bg border border-card-border rounded-2xl p-5">
+        <div className="text-sm font-semibold text-white mb-4">Roster Assets</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Franchise Pillars */}
+          <div>
+            <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+              Franchise Pillars
+            </div>
+            {keyPlayers.length === 0 ? (
+              <div className="text-xs text-gray-600">No production data available.</div>
             ) : (
-              [
-                picks1st > 0 ? `${picks1st} 1st${picks1st > 1 ? 's' : ''}` : '',
-                picks2nd > 0 ? `${picks2nd} 2nd${picks2nd > 1 ? 's' : ''}` : '',
-              ]
-                .filter(Boolean)
-                .join(', ') || 'Late rounds'
+              <div className="space-y-2">
+                {keyPlayers.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 w-4 text-right tabular-nums">{i + 1}</span>
+                    <PosBadge pos={p.position} />
+                    <span className="text-sm text-gray-200 flex-1 truncate">{p.name}</span>
+                    <span className="text-xs text-gray-500">age {p.age}</span>
+                    <span className={`text-xs font-medium tabular-nums ${p.war >= 0 ? 'text-brand-cyan' : 'text-red-400'}`}>
+                      {p.war >= 0 ? '+' : ''}{p.war.toFixed(1)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </SummaryCard>
+
+          {/* Young Pipeline */}
+          <div>
+            <div className="flex items-center gap-1 text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+              Young Pipeline (≤24)
+              <MetricTooltip metricKey="youngPipeline" side="top" />
+            </div>
+            {youngAssets.length === 0 ? (
+              <div className="text-xs text-gray-600">
+                No players 24 or under — consider acquiring young assets.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {youngAssets.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <PosBadge pos={p.position} />
+                    <span className="text-sm text-gray-200 flex-1 truncate">{p.name}</span>
+                    <span className="text-xs text-gray-500">age {p.age}</span>
+                    {p.dynastyValue != null ? (
+                      <span className="text-xs font-medium text-yellow-400 tabular-nums">
+                        {p.dynastyValue.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-600 tabular-nums">
+                        ×{p.upsideRatio.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Performance Trend (WAR Projection Chart) ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
         <div className="mb-1">
           <span className="text-sm font-semibold text-white">Performance Trend</span>
-          <span className="ml-2 text-xs text-gray-500">3-year age-curve projection</span>
+          <span className="ml-2 text-xs text-gray-500">
+            {isSeasonComplete ? '3-year age-curve projection' : 'Full Season Pace · 3-year projection'}
+          </span>
         </div>
         <div className="text-xs text-gray-500 mb-1">
           Your performance trend shows whether your team is improving or declining based on player age curves.
@@ -310,106 +414,41 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
         </ResponsiveContainer>
       </div>
 
-      {/* ── Roster Age Risk Score ── */}
+      {/* ── Position Breakdown ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <span className="text-sm font-semibold text-white">Roster Age Risk</span>
-            <div className="text-xs text-gray-500 mt-0.5">
-              Roster Age Risk indicates how much your team relies on older players who may be declining.
-            </div>
-          </div>
-          <div className={`text-right`}>
-            <div className="text-2xl font-bold tabular-nums" style={{ color: riskBarColor(riskCategory) }}>
-              {riskScore}
-            </div>
-            <div className="text-xs text-gray-500">/ 100</div>
-          </div>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${riskScore}%`,
-              backgroundColor: riskBarColor(riskCategory),
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-gray-600 mt-1.5">
-          <span>Low Risk</span>
-          <span>Moderate</span>
-          <span>High</span>
-          <span>Extreme</span>
-        </div>
-        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-          {(['Low', 'Moderate', 'High', 'Extreme'] as const).map((cat) => (
-            <div
-              key={cat}
-              className={`text-xs py-1 rounded ${riskCategory === cat ? 'font-semibold' : 'opacity-30'}`}
-              style={{ color: riskBarColor(cat) }}
-            >
-              {cat}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Franchise Score by Age Bucket ── */}
-      <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-        <div className="mb-1">
-          <span className="text-sm font-semibold text-white">Score by Age Group</span>
-          <span className="ml-2 text-xs text-gray-500">Current season production by age range</span>
-        </div>
-        <div className="text-xs text-gray-600 mb-4">
-          Skill positions only (QB / RB / WR / TE)
-        </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={warByAgeBucket} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-            <XAxis
-              dataKey="bucket"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              axisLine={{ stroke: '#4b5563' }}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: '#9ca3af', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              width={40}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: '#1f2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#f9fafb',
-                fontSize: 12,
-              }}
-              formatter={(value: number) => [`${value.toFixed(1)}`, 'Franchise Score']}
-            />
-            <Bar dataKey="war" radius={[4, 4, 0, 0]}>
-              {warByAgeBucket.map((entry) => (
-                <Cell key={entry.bucket} fill={ageBucketColor(entry.bucket)} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-2 justify-center">
-          {warByAgeBucket.map(({ bucket, war }) => (
-            <div key={bucket} className="flex items-center gap-1.5 text-xs">
-              <div
-                className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: ageBucketColor(bucket) }}
-              />
-              <span className="text-gray-400">{bucket}</span>
-              <span className="text-gray-300 font-medium tabular-nums">
-                ({war > 0 ? '+' : ''}{war.toFixed(1)})
-              </span>
-            </div>
-          ))}
+        <div className="text-sm font-semibold text-white mb-1">Position Breakdown</div>
+        <div className="text-xs text-gray-500 mb-4">WAR rank vs league average, with roster age trend</div>
+        <div className="space-y-3">
+          {warByPosition.map((pos) => {
+            const delta = pos.war - pos.leagueAvgWAR;
+            const ageTrend =
+              pos.avgAge === 0
+                ? null
+                : pos.avgAge <= 25
+                ? { label: '↑ Rising', cls: 'text-emerald-400' }
+                : pos.avgAge <= 28
+                ? { label: '→ Prime', cls: 'text-brand-cyan' }
+                : { label: '↓ Aging', cls: 'text-orange-400' };
+            return (
+              <div key={pos.position} className="flex items-center gap-3">
+                <PosBadge pos={pos.position} />
+                <span className="text-xs text-gray-400 w-16 shrink-0">
+                  #{pos.rank} in league
+                </span>
+                <span className={`text-xs font-medium tabular-nums w-14 shrink-0 ${delta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {delta >= 0 ? '+' : ''}{delta.toFixed(1)} vs avg
+                </span>
+                {ageTrend && (
+                  <span className={`text-xs ${ageTrend.cls}`}>
+                    {ageTrend.label} (avg {pos.avgAge})
+                  </span>
+                )}
+                <span className="ml-auto text-xs text-gray-500 tabular-nums">
+                  {pos.war.toFixed(1)} WAR
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -417,8 +456,10 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
       <div className="space-y-1.5 px-1">
         <div className="text-xs text-gray-700">
           Projections use static age-curve multipliers derived from historical fantasy production (PPR era).
-          Franchise Score = current season points minus positional replacement level. Results are deterministic — no ML.
-          Future pick value is discounted by year (85% per year out) and added to projected WAR for the pick&apos;s draft season.
+          Franchise Score = current season points minus positional replacement level (league starter pool × team count).
+          {!isSeasonComplete && ' Mid-season scores are normalized to full-season pace.'}
+          {' '}Future pick value is discounted by year (85% per year out) and added to projected WAR for the pick&apos;s draft season.
+          Dynasty values from FantasyCalc (24h cache).
         </div>
       </div>
     </div>

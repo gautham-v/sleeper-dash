@@ -1,7 +1,8 @@
 export type GlossaryKey =
   | 'war' | 'surplus' | 'grade' | 'franchiseScore'
   | 'contenderWindow' | 'rosterAgeRisk' | 'hitRate'
-  | 'bustRate' | 'netValue' | 'winRate';
+  | 'bustRate' | 'netValue' | 'winRate'
+  | 'luckScore' | 'youngPipeline';
 
 export interface GlossaryEntry { name: string; description: string; }
 
@@ -45,5 +46,13 @@ export const GLOSSARY: Record<GlossaryKey, GlossaryEntry> = {
   winRate: {
     name: 'Trade Win Rate',
     description: 'Percentage of your trades where you received more fantasy value than you gave up. Above 50% indicates consistent value extraction.',
+  },
+  luckScore: {
+    name: 'Luck Score',
+    description: 'Wins rank minus WAR rank. Positive = your record is better than your roster deserves; negative = you\'re underperforming your talent.',
+  },
+  youngPipeline: {
+    name: 'Young Pipeline',
+    description: 'Rostered skill-position players age 24 or under, ranked by age-curve upside (how much room to grow relative to their position\'s peak). Dynasty value shown where available from FantasyCalc.',
   },
 };

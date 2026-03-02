@@ -64,6 +64,13 @@ function getMultiplier(position: string, age: number): number {
   return curve[age] ?? Math.max(curve[maxAge], MULTIPLIER_FLOOR);
 }
 
+/** Get the peak multiplier for a position across all ages. */
+function peakMultiplierFor(position: string): number {
+  const curve = AGE_CURVES[position];
+  if (!curve) return 1.0;
+  return Math.max(...Object.values(curve));
+}
+
 /** Median of a numeric array. Returns 0 for empty arrays. */
 function median(values: number[]): number {
   if (values.length === 0) return 0;
@@ -102,24 +109,10 @@ function riskCategory(riskScore: number): RiskCategory {
   return 'Extreme';
 }
 
-function ageBucket(age: number): string {
-  if (age <= 24) return '22–24';
-  if (age <= 27) return '25–27';
-  if (age <= 30) return '28–30';
-  return '31+';
-}
-
-const AGE_BUCKETS = ['22–24', '25–27', '28–30', '31+'];
+const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
 
 /**
  * Compute the Franchise Outlook for one team.
- *
- * @param roster - Current SleeperRoster for this manager
- * @param allPlayers - Record of all NFL players (with age)
- * @param playerWARMap - Current-season WAR per player id
- * @param allTeamWARs - Array of all teams' current-season total WAR (for league percentiles)
- * @param allTeamWeightedAges - Array of all teams' weighted ages (for age percentile)
- * @param futurePicks - Future draft picks owned by this team (from traded_picks API)
  */
 export function computeFranchiseOutlook(
   roster: SleeperRoster,
@@ -127,7 +120,13 @@ export function computeFranchiseOutlook(
   playerWARMap: Map<string, number>,
   allTeamWARs: number[],
   allTeamWeightedAges: number[],
-  futurePicks: FutureDraftPick[] = [],
+  futurePicks: FutureDraftPick[],
+  isSeasonComplete: boolean,
+  leagueAvgWARByPosition: Map<string, number>,
+  positionRankForRoster: Map<string, number>,
+  warRank: number,
+  winsRank: number,
+  fcMap: Map<string, number>,
 ): FranchiseOutlookResult {
   const playerIds = roster.players ?? [];
 
@@ -226,16 +225,113 @@ export function computeFranchiseOutlook(
   // ── Age Percentile ───────────────────────────────────────────────────────
   const leagueAgePercentile = percentileRank(weightedAge, allTeamWeightedAges);
 
-  // ── WAR by Age Bucket ────────────────────────────────────────────────────
-  const bucketMap = new Map<string, number>(AGE_BUCKETS.map((b) => [b, 0]));
-  for (const p of players) {
-    const b = ageBucket(p.age);
-    bucketMap.set(b, (bucketMap.get(b) ?? 0) + p.currentWAR);
+  // ── Key Players (Franchise Pillars — top 5 by WAR) ──────────────────────
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z ]/g, '').trim();
+  const sortedByWAR = [...players].sort((a, b) => b.currentWAR - a.currentWAR);
+  const keyPlayers = sortedByWAR.slice(0, 5).map((p) => {
+    const sp = allPlayers[p.playerId];
+    return {
+      name: `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim(),
+      position: p.position,
+      age: p.age,
+      war: Math.round(p.currentWAR * 10) / 10,
+    };
+  });
+
+  // ── Young Assets (age ≤ 24) ──────────────────────────────────────────────
+  const youngAssets = players
+    .filter((p) => p.age <= 24)
+    .map((p) => {
+      const sp = allPlayers[p.playerId];
+      const curMult = getMultiplier(p.position, p.age);
+      const peakMult = peakMultiplierFor(p.position);
+      const upsideRatio = curMult > 0 ? peakMult / curMult : 1.0;
+      const name = `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim();
+      const fcKey = `${normalize(name)}:${p.position}`;
+      const dynastyValue = fcMap.get(p.playerId) ?? fcMap.get(fcKey) ?? null;
+      return {
+        name,
+        position: p.position,
+        age: p.age,
+        war: Math.round(p.currentWAR * 10) / 10,
+        upsideRatio: Math.round(upsideRatio * 100) / 100,
+        dynastyValue,
+      };
+    })
+    .sort((a, b) => (b.dynastyValue ?? b.upsideRatio * 1000) - (a.dynastyValue ?? a.upsideRatio * 1000));
+
+  // ── WAR by Position ──────────────────────────────────────────────────────
+  const warByPosition = POSITIONS.map((pos) => {
+    const posPlayers = players.filter((p) => p.position === pos);
+    const posWAR = posPlayers.reduce((s, p) => s + p.currentWAR, 0);
+    const posPosWAR = posPlayers.reduce((s, p) => s + Math.max(p.currentWAR, 0), 0);
+    const avgAge =
+      posPosWAR > 0
+        ? posPlayers.reduce((s, p) => s + p.age * Math.max(p.currentWAR, 0) / posPosWAR, 0)
+        : posPlayers.length > 0
+        ? posPlayers.reduce((s, p) => s + p.age, 0) / posPlayers.length
+        : 0;
+    return {
+      position: pos,
+      war: Math.round(posWAR * 10) / 10,
+      leagueAvgWAR: Math.round((leagueAvgWARByPosition.get(pos) ?? 0) * 10) / 10,
+      rank: positionRankForRoster.get(pos) ?? 0,
+      avgAge: Math.round(avgAge * 10) / 10,
+    };
+  });
+
+  // ── Wins / Losses / Luck Score ───────────────────────────────────────────
+  const wins = roster.settings.wins;
+  const losses = roster.settings.losses;
+  const luckScore = winsRank - warRank; // positive = record better than WAR deserves
+
+  // ── Focus Areas (prescriptive signals) ──────────────────────────────────
+  type FocusArea = { signal: string; detail: string; severity: 'positive' | 'warning' | 'info' };
+  const focusAreas: FocusArea[] = [];
+
+  // Position health: below avg AND aging / above avg AND young
+  for (const pos of warByPosition) {
+    if (pos.war < pos.leagueAvgWAR && pos.avgAge > 28 && pos.avgAge > 0) {
+      focusAreas.push({
+        signal: `${pos.position} needs investment`,
+        detail: `Below-average production (#${pos.rank} in league) with an aging corps (avg ${pos.avgAge.toFixed(0)}). Target younger ${pos.position}s.`,
+        severity: 'warning',
+      });
+    } else if (pos.war > pos.leagueAvgWAR && pos.avgAge > 0 && pos.avgAge <= 25) {
+      focusAreas.push({
+        signal: `${pos.position} is a long-term strength`,
+        detail: `#${pos.rank} in league with a young corps (avg ${pos.avgAge.toFixed(0)}). Set for several years.`,
+        severity: 'positive',
+      });
+    }
   }
-  const warByAgeBucket = AGE_BUCKETS.map((bucket) => ({
-    bucket,
-    war: bucketMap.get(bucket) ?? 0,
-  }));
+
+  // Short window: currently contending but projecting sharp decline
+  const projYear2WAR = projectedWAR.find((p) => p.yearOffset === 2)?.totalWAR ?? currentWAR;
+  if (currentlyContender && currentWAR > 0 && projYear2WAR < currentWAR * 0.85) {
+    focusAreas.push({
+      signal: 'Short window — prioritize now',
+      detail: `Roster projected to drop ~${Math.round((1 - projYear2WAR / currentWAR) * 100)}% by ${new Date().getFullYear() + 2}. Favor proven contributors over developmental players.`,
+      severity: 'warning',
+    });
+  }
+
+  // Rebuild capital: not contending but strong pipeline
+  const futureFirsts = futurePicks.filter((p) => p.round === 1).length;
+  if (!currentlyContender && (futureFirsts >= 2 || youngAssets.length >= 3)) {
+    focusAreas.push({
+      signal: 'Rebuild capital is strong',
+      detail: `${futureFirsts} future first${futureFirsts !== 1 ? 's' : ''} and ${youngAssets.length} player${youngAssets.length !== 1 ? 's' : ''} under 25. Stay patient and accumulate assets.`,
+      severity: 'info',
+    });
+  }
+
+  // Sort: warnings first, then positive, then info; limit to 3
+  const sortedFocusAreas: FocusArea[] = [
+    ...focusAreas.filter((f) => f.severity === 'warning'),
+    ...focusAreas.filter((f) => f.severity === 'positive'),
+    ...focusAreas.filter((f) => f.severity === 'info'),
+  ].slice(0, 3);
 
   return {
     weightedAge: Math.round(weightedAge * 10) / 10,
@@ -255,8 +351,17 @@ export function computeFranchiseOutlook(
     peakYearOffset,
     peakWAR: Math.round(peakWAR * 10) / 10,
     tier,
-    warByAgeBucket,
     futurePicks,
+    isSeasonComplete,
+    keyPlayers,
+    youngAssets,
+    warByPosition,
+    wins,
+    losses,
+    warRank,
+    winsRank,
+    luckScore,
+    focusAreas: sortedFocusAreas,
   };
 }
 

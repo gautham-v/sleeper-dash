@@ -428,8 +428,17 @@ export interface FranchiseOutlookResult {
   peakYearOffset: number;
   peakWAR: number;
   tier: FranchiseTier;
-  warByAgeBucket: { bucket: string; war: number }[];
   futurePicks: FutureDraftPick[];
+  isSeasonComplete: boolean;
+  keyPlayers: { name: string; position: string; age: number; war: number }[];
+  youngAssets: { name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
+  warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge: number }[];
+  wins: number;
+  losses: number;
+  warRank: number;
+  winsRank: number;
+  luckScore: number;
+  focusAreas: { signal: string; detail: string; severity: 'positive' | 'warning' | 'info' }[];
 }
 
 // ---- All-Time Asset Lifecycle Types ----
