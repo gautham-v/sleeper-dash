@@ -70,6 +70,7 @@ const POSITION_COLORS: Record<string, string> = {
   RB: 'bg-green-900/50 text-green-300 border-green-800/50',
   WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
   TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
+  PICK: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
 };
 
 function PosBadge({ pos }: { pos: string }) {
@@ -305,7 +306,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                     <span className="text-xs text-gray-600 w-4 text-right tabular-nums">{i + 1}</span>
                     <PosBadge pos={p.position} />
                     <span className="text-sm text-gray-200 flex-1 truncate">{p.name}</span>
-                    <span className="text-xs text-gray-500">age {p.age}</span>
+                    {p.age != null && <span className="text-xs text-gray-500">age {p.age}</span>}
                     <span className={`text-xs font-medium tabular-nums ${p.war >= 0 ? 'text-brand-cyan' : 'text-red-400'}`}>
                       {p.war >= 0 ? '+' : ''}{p.war.toFixed(1)}
                     </span>
@@ -443,7 +444,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm text-gray-200 truncate">{t.name}</span>
-                    <span className="text-xs text-gray-500">age {t.age}</span>
+                    {t.age > 0 && <span className="text-xs text-gray-500">age {t.age}</span>}
                     {t.dynastyValue != null && (
                       <span className="text-xs font-medium text-yellow-400 tabular-nums ml-auto">
                         {t.dynastyValue.toLocaleString()}
@@ -482,11 +483,14 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                   {p.theyCanOffer.length > 0 && (
                     <div>
                       <div className="text-gray-600 mb-1.5">They offer →</div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {[...p.theyCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                          <div key={o.position} className="flex items-center gap-1.5">
+                          <div key={o.position} className="flex items-start gap-1.5">
                             <PosBadge pos={o.position} />
-                            <span className="text-emerald-400">#{o.rank} · +{o.delta.toFixed(1)}</span>
+                            <div>
+                              {o.topPlayer && <div className="text-emerald-300 font-medium">{o.topPlayer}</div>}
+                              <span className="text-emerald-500">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -495,11 +499,14 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                   {p.youCanOffer.length > 0 && (
                     <div>
                       <div className="text-gray-600 mb-1.5">You offer →</div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {[...p.youCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                          <div key={o.position} className="flex items-center gap-1.5">
+                          <div key={o.position} className="flex items-start gap-1.5">
                             <PosBadge pos={o.position} />
-                            <span className="text-brand-cyan">#{o.rank} · +{o.delta.toFixed(1)}</span>
+                            <div>
+                              {o.topPlayer && <div className="text-brand-cyan font-medium">{o.topPlayer}</div>}
+                              <span className="text-brand-cyan/60">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
+                            </div>
                           </div>
                         ))}
                       </div>

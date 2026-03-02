@@ -430,7 +430,7 @@ export interface FranchiseOutlookResult {
   tier: FranchiseTier;
   futurePicks: FutureDraftPick[];
   isSeasonComplete: boolean;
-  keyPlayers: { name: string; position: string; age: number; war: number }[];
+  keyPlayers: { name: string; position: string; age: number | null; war: number }[];
   youngAssets: { name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
   warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge: number }[];
   wins: number;
@@ -501,8 +501,8 @@ export interface TradePartner {
   displayName: string;
   avatar: string | null;
   compatibilityScore: number;
-  theyCanOffer: { position: string; rank: number; delta: number }[];
-  youCanOffer: { position: string; rank: number; delta: number }[];
+  theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[];
+  youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[];
   summary: string;
 }
 

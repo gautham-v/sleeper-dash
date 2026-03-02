@@ -226,6 +226,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
           userAvatars,
           teamPositionWAR,
           positionRanksByRoster,
+          picksByRosterId,
         );
         results.set(roster.owner_id!, result);
       }

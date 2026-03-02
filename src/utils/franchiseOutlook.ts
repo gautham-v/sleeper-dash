@@ -237,6 +237,8 @@ function computeRookieDraftTargets(
 
 // ── Features 3 & 4: Trade Target Players ─────────────────────────────────────
 
+const PICK_DYNASTY_VALUE: Record<number, number> = { 1: 5000, 2: 2500, 3: 800, 4: 300 };
+
 function computeTradeTargets(
   thisRosterId: number,
   thisRosterPlayerIds: string[],
@@ -246,6 +248,7 @@ function computeTradeTargets(
   playerWARMap: Map<string, number>,
   fcMap: Map<string, number>,
   userDisplayNames: Map<string, string>,
+  allPicksByRosterId: Map<number, FutureDraftPick[]>,
   maxResults = 6,
 ): TradeTargetPlayer[] {
   // Identify weak positions, sorted by deficit severity
@@ -303,11 +306,33 @@ function computeTradeTargets(
         score,
       });
     }
+
+    // Add draft picks owned by other teams as potential acquisition targets
+    const theirPicks = allPicksByRosterId.get(roster.roster_id) ?? [];
+    const sortedPicks = [...theirPicks].sort((a, b) => {
+      if (a.season !== b.season) return Number(a.season) - Number(b.season);
+      return a.round - b.round;
+    });
+    // Include up to 2 picks per team (best by year+round)
+    for (const pick of sortedPicks.slice(0, 2)) {
+      const pickValue = PICK_DYNASTY_VALUE[pick.round] ?? 100;
+      candidates.push({
+        name: `${pick.season} Round ${pick.round} Pick`,
+        position: 'PICK',
+        age: 0,
+        war: 0,
+        dynastyValue: pickValue,
+        ownerUserId,
+        ownerDisplayName: ownerName,
+        reason: `Future draft capital (${pick.season} Rd ${pick.round})`,
+        score: pickValue * 0.6, // slightly lower weight than proven players
+      });
+    }
   }
 
   candidates.sort((a, b) => b.score - a.score);
 
-  // Limit to 2 players per owner for diversity
+  // Limit to 2 assets per owner for diversity
   const ownerCounts = new Map<string, number>();
   const results: TradeTargetPlayer[] = [];
 
@@ -328,8 +353,30 @@ function computeTradeTargets(
 
 // ── Feature 5: Trade Partner Matching ────────────────────────────────────────
 
+/** Find the top player at a given position on a roster, by dynasty value then WAR. */
+function topPlayerAtPosition(
+  rosterPlayerIds: string[],
+  position: string,
+  allPlayers: Record<string, SleeperPlayer>,
+  playerWARMap: Map<string, number>,
+  fcMap: Map<string, number>,
+): string | undefined {
+  let best: { name: string; score: number } | null = null;
+  for (const pid of rosterPlayerIds) {
+    const p = allPlayers[pid];
+    if (!p || p.position !== position) continue;
+    const name = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
+    const war = playerWARMap.get(pid) ?? 0;
+    const fc = fcMap.get(pid) ?? 0;
+    const score = fc > 0 ? fc : Math.max(war, 0) * 500;
+    if (!best || score > best.score) best = { name, score };
+  }
+  return best?.name;
+}
+
 function computeTradePartners(
   thisRosterId: number,
+  thisRosterPlayerIds: string[],
   thisWarByPosition: FranchiseOutlookResult['warByPosition'],
   allRosters: SleeperRoster[],
   allTeamWarByPosition: Map<number, Map<string, number>>,
@@ -337,6 +384,9 @@ function computeTradePartners(
   leagueAvgWARByPosition: Map<string, number>,
   userDisplayNames: Map<string, string>,
   userAvatars: Map<string, string | null>,
+  allPlayers: Record<string, SleeperPlayer>,
+  playerWARMap: Map<string, number>,
+  fcMap: Map<string, number>,
   maxResults = 3,
 ): TradePartner[] {
   type Candidate = TradePartner & { score: number };
@@ -350,9 +400,10 @@ function computeTradePartners(
     const theirWAR = allTeamWarByPosition.get(roster.roster_id);
     if (!theirWAR) continue;
     const theirRanks = positionRanksByRoster.get(roster.roster_id) ?? new Map<string, number>();
+    const theirPlayerIds = roster.players ?? [];
 
-    const theyCanOffer: { position: string; rank: number; delta: number }[] = [];
-    const youCanOffer: { position: string; rank: number; delta: number }[] = [];
+    const theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[] = [];
+    const youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[] = [];
     let score = 0;
 
     for (const pos of POSITIONS) {
@@ -369,19 +420,23 @@ function computeTradePartners(
       const theirDeficit = avgWAR - theirWARVal;
 
       if (myDeficit > 0 && theirSurplus > 0) {
+        const topPlayer = topPlayerAtPosition(theirPlayerIds, pos, allPlayers, playerWARMap, fcMap);
         theyCanOffer.push({
           position: pos,
           rank: theirRank,
           delta: Math.round(theirSurplus * 10) / 10,
+          topPlayer,
         });
         score += myDeficit * theirSurplus;
       }
 
       if (mySurplus > 0 && theirDeficit > 0) {
+        const topPlayer = topPlayerAtPosition(thisRosterPlayerIds, pos, allPlayers, playerWARMap, fcMap);
         youCanOffer.push({
           position: pos,
           rank: myRank,
           delta: Math.round(mySurplus * 10) / 10,
+          topPlayer,
         });
         score += mySurplus * theirDeficit;
       }
@@ -393,11 +448,23 @@ function computeTradePartners(
     const topYouOffer = [...youCanOffer].sort((a, b) => b.delta - a.delta)[0];
     let summary = '';
     if (topTheyOffer && topYouOffer) {
-      summary = `They have surplus ${topTheyOffer.position} (#${topTheyOffer.rank}); you have surplus ${topYouOffer.position} (#${topYouOffer.rank}).`;
+      const theyStr = topTheyOffer.topPlayer
+        ? `${topTheyOffer.topPlayer} (${topTheyOffer.position})`
+        : `${topTheyOffer.position} #${topTheyOffer.rank}`;
+      const youStr = topYouOffer.topPlayer
+        ? `${topYouOffer.topPlayer} (${topYouOffer.position})`
+        : `${topYouOffer.position} #${topYouOffer.rank}`;
+      summary = `They offer ${theyStr}; you offer ${youStr}.`;
     } else if (topTheyOffer) {
-      summary = `They have surplus ${topTheyOffer.position} (#${topTheyOffer.rank}) that addresses your needs.`;
+      const theyStr = topTheyOffer.topPlayer
+        ? `${topTheyOffer.topPlayer} (${topTheyOffer.position})`
+        : `${topTheyOffer.position} #${topTheyOffer.rank}`;
+      summary = `They have surplus ${theyStr} that addresses your needs.`;
     } else if (topYouOffer) {
-      summary = `You have surplus ${topYouOffer.position} (#${topYouOffer.rank}) that they need.`;
+      const youStr = topYouOffer.topPlayer
+        ? `${topYouOffer.topPlayer} (${topYouOffer.position})`
+        : `${topYouOffer.position} #${topYouOffer.rank}`;
+      summary = `You have surplus ${youStr} that they need.`;
     }
 
     candidates.push({
@@ -447,18 +514,26 @@ export function computeFranchiseOutlook(
   userAvatars: Map<string, string | null>,
   allTeamWarByPosition: Map<number, Map<string, number>>,
   positionRanksByRoster: Map<number, Map<string, number>>,
+  allPicksByRosterId: Map<number, FutureDraftPick[]>,
 ): FranchiseOutlookResult {
   const playerIds = roster.players ?? [];
 
+  // age-filtered players (used for WAR projections, weighted age, risk calculations)
   type PlayerRecord = { playerId: string; position: string; age: number; currentWAR: number };
+  // all skill-position players regardless of age (used for display: Franchise Pillars, Young Pipeline, position WAR)
+  type DisplayPlayerRecord = { playerId: string; position: string; age: number | null; currentWAR: number };
+
   const players: PlayerRecord[] = [];
+  const allDisplayPlayers: DisplayPlayerRecord[] = [];
 
   for (const pid of playerIds) {
     const p = allPlayers[pid];
     if (!p) continue;
     const pos = p.position ?? '';
     if (!CURVE_POSITIONS.has(pos)) continue;
-    const age = p.age;
+    const age = p.age ?? null;
+    allDisplayPlayers.push({ playerId: pid, position: pos, age, currentWAR: playerWARMap.get(pid) ?? 0 });
+    // age-filtered subset for projection math
     if (!age || age < 18 || age > 50) continue;
     players.push({ playerId: pid, position: pos, age, currentWAR: playerWARMap.get(pid) ?? 0 });
   }
@@ -477,7 +552,8 @@ export function computeFranchiseOutlook(
     }, 0);
   }
 
-  const currentWAR = players.reduce((sum, p) => sum + p.currentWAR, 0);
+  // currentWAR counts all skill-position players regardless of age (no age curve needed for current year)
+  const currentWAR = allDisplayPlayers.reduce((sum, p) => sum + p.currentWAR, 0);
 
   // ── 2. WAR Projection ────────────────────────────────────────────────────
   const currentYear = new Date().getFullYear();
@@ -532,13 +608,19 @@ export function computeFranchiseOutlook(
   const numTeams = allTeamWARs.length;
 
   // ── Key Players ──────────────────────────────────────────────────────────
+  // Use allDisplayPlayers so players with null age (e.g. Jackson, Purdy) are still shown
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z ]/g, '').trim();
-  const sortedByWAR = [...players].sort((a, b) => {
+  const sortedByWAR = [...allDisplayPlayers].sort((a, b) => {
     const warDiff = b.currentWAR - a.currentWAR;
     if (Math.abs(warDiff) > 0.1) return warDiff;
     // Tiebreaker (offseason / zero-WAR): FantasyCalc dynasty value
-    const aVal = fcMap.get(a.playerId) ?? 0;
-    const bVal = fcMap.get(b.playerId) ?? 0;
+    // Try sleeperId first, then name:position fallback
+    const spA = allPlayers[a.playerId];
+    const spB = allPlayers[b.playerId];
+    const nameA = `${spA?.first_name ?? ''} ${spA?.last_name ?? ''}`.trim();
+    const nameB = `${spB?.first_name ?? ''} ${spB?.last_name ?? ''}`.trim();
+    const aVal = fcMap.get(a.playerId) ?? fcMap.get(`${normalize(nameA)}:${a.position}`) ?? 0;
+    const bVal = fcMap.get(b.playerId) ?? fcMap.get(`${normalize(nameB)}:${b.position}`) ?? 0;
     return bVal - aVal;
   });
   const keyPlayers = sortedByWAR.slice(0, 5).map((p) => {
@@ -552,11 +634,13 @@ export function computeFranchiseOutlook(
   });
 
   // ── Young Assets (age ≤ 24) ──────────────────────────────────────────────
-  const youngAssets = players
-    .filter((p) => p.age <= 24)
+  // Use allDisplayPlayers so players with null age can still appear if FC says they're young
+  const youngAssets = allDisplayPlayers
+    .filter((p) => p.age !== null && p.age <= 24)
     .map((p) => {
+      const age = p.age as number; // guaranteed non-null by filter above
       const sp = allPlayers[p.playerId];
-      const curMult = getMultiplier(p.position, p.age);
+      const curMult = getMultiplier(p.position, age);
       const peakMult = peakMultiplierFor(p.position);
       const upsideRatio = curMult > 0 ? peakMult / curMult : 1.0;
       const name = `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim();
@@ -565,7 +649,7 @@ export function computeFranchiseOutlook(
       return {
         name,
         position: p.position,
-        age: p.age,
+        age,
         war: Math.round(p.currentWAR * 10) / 10,
         upsideRatio: Math.round(upsideRatio * 100) / 100,
         dynastyValue,
@@ -574,14 +658,17 @@ export function computeFranchiseOutlook(
     .sort((a, b) => (b.dynastyValue ?? b.upsideRatio * 1000) - (a.dynastyValue ?? a.upsideRatio * 1000));
 
   // ── WAR by Position ──────────────────────────────────────────────────────
+  // WAR sums use allDisplayPlayers (includes null-age stars like Jackson/Purdy)
+  // avgAge only uses age-valid players to avoid corrupting the average
   const warByPosition = POSITIONS.map((pos) => {
-    const posPlayers = players.filter((p) => p.position === pos);
-    const posWAR = posPlayers.reduce((s, p) => s + p.currentWAR, 0);
-    const posPosWAR = posPlayers.reduce((s, p) => s + Math.max(p.currentWAR, 0), 0);
-    const avgAge = posPosWAR > 0
-      ? posPlayers.reduce((s, p) => s + p.age * Math.max(p.currentWAR, 0) / posPosWAR, 0)
-      : posPlayers.length > 0
-      ? posPlayers.reduce((s, p) => s + p.age, 0) / posPlayers.length
+    const posDisplayPlayers = allDisplayPlayers.filter((p) => p.position === pos);
+    const posAgePlayers = players.filter((p) => p.position === pos);
+    const posWAR = posDisplayPlayers.reduce((s, p) => s + p.currentWAR, 0);
+    const posPositiveWAR = posAgePlayers.reduce((s, p) => s + Math.max(p.currentWAR, 0), 0);
+    const avgAge = posPositiveWAR > 0
+      ? posAgePlayers.reduce((s, p) => s + p.age * Math.max(p.currentWAR, 0) / posPositiveWAR, 0)
+      : posAgePlayers.length > 0
+      ? posAgePlayers.reduce((s, p) => s + p.age, 0) / posAgePlayers.length
       : 0;
     return {
       position: pos,
@@ -652,14 +739,17 @@ export function computeFranchiseOutlook(
     roster.roster_id, playerIds,
     warByPosition, allRosters, allPlayers,
     playerWARMap, fcMap, userDisplayNames,
+    allPicksByRosterId,
   );
 
   // ── Trade Partners ───────────────────────────────────────────────────────
   const tradePartners = computeTradePartners(
-    roster.roster_id, warByPosition,
+    roster.roster_id, playerIds,
+    warByPosition,
     allRosters, allTeamWarByPosition,
     positionRanksByRoster, leagueAvgWARByPosition,
     userDisplayNames, userAvatars,
+    allPlayers, playerWARMap, fcMap,
   );
 
   return {
