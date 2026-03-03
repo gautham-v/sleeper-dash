@@ -294,6 +294,9 @@ function computeTradeTargets(
         ? `Fills your ${pos} weakness (#${posNeed.rank} in league)`
         : `Addresses ${pos} depth`;
 
+      const isBottomThird = posNeed && posNeed.rank > (allRosters.length) * 0.66;
+      const adjustedScore = isBottomThird ? score * 1.3 : score;
+
       candidates.push({
         name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
         position: pos,
@@ -303,7 +306,7 @@ function computeTradeTargets(
         ownerUserId,
         ownerDisplayName: ownerName,
         reason,
-        score,
+        score: adjustedScore,
       });
     }
 
@@ -415,20 +418,19 @@ function computeTradePartners(
       const theirRank = theirRanks.get(pos) ?? 0;
 
       const myDeficit = avgWAR - myWAR;       // positive = I'm below avg
-      const theirSurplus = theirWARVal - avgWAR; // positive = they're above avg
       const mySurplus = myWAR - avgWAR;
       const theirDeficit = avgWAR - theirWARVal;
 
-      if (myDeficit > 0 && theirSurplus > 0) {
+      if (myDeficit > 0 && theirWARVal > myWAR) {
         const top = topPlayerAtPosition(theirPlayerIds, pos, allPlayers, playerWARMap, fcMap);
         theyCanOffer.push({
           position: pos,
           rank: theirRank,
-          delta: Math.round(theirSurplus * 10) / 10,
+          delta: Math.round((theirWARVal - myWAR) * 10) / 10,
           topPlayer: top?.name,
           topPlayerValue: top?.value,
         });
-        score += myDeficit * theirSurplus;
+        score += myDeficit * (theirWARVal - myWAR);
       }
 
       if (mySurplus > 0 && theirDeficit > 0) {
@@ -622,20 +624,22 @@ export function computeFranchiseOutlook(
   // ── Key Players ──────────────────────────────────────────────────────────
   // Use allDisplayPlayers so players with null age (e.g. Jackson, Purdy) are still shown
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z ]/g, '').trim();
-  const sortedByWAR = [...allDisplayPlayers].sort((a, b) => {
-    const warDiff = b.currentWAR - a.currentWAR;
-    if (Math.abs(warDiff) > 0.1) return warDiff;
-    // Tiebreaker (offseason / zero-WAR): FantasyCalc dynasty value
-    // Try sleeperId first, then name:position fallback
+  const sortedByValue = [...allDisplayPlayers].sort((a, b) => {
     const spA = allPlayers[a.playerId];
     const spB = allPlayers[b.playerId];
     const nameA = `${spA?.first_name ?? ''} ${spA?.last_name ?? ''}`.trim();
     const nameB = `${spB?.first_name ?? ''} ${spB?.last_name ?? ''}`.trim();
     const aVal = fcMap.get(a.playerId) ?? fcMap.get(`${normalize(nameA)}:${a.position}`) ?? 0;
     const bVal = fcMap.get(b.playerId) ?? fcMap.get(`${normalize(nameB)}:${b.position}`) ?? 0;
-    return bVal - aVal;
+    // If both have dynasty values, prefer dynasty value
+    if (aVal > 0 && bVal > 0) return bVal - aVal;
+    // If one has dynasty value, that one wins
+    if (aVal > 0) return -1;
+    if (bVal > 0) return 1;
+    // Fallback to WAR
+    return b.currentWAR - a.currentWAR;
   });
-  const keyPlayers = sortedByWAR.slice(0, 5).map((p) => {
+  const keyPlayers = sortedByValue.slice(0, 5).map((p) => {
     const sp = allPlayers[p.playerId];
     return {
       name: `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim(),

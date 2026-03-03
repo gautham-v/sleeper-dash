@@ -145,6 +145,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
       const picksByRosterId = new Map<number, FutureDraftPick[]>();
       for (const pick of tradedPicks) {
         if (pick.owner_id == null) continue;
+        if (parseInt(pick.season) <= parseInt(league.season ?? '0')) continue;
         const arr = picksByRosterId.get(pick.owner_id) ?? [];
         arr.push(pick);
         picksByRosterId.set(pick.owner_id, arr);
