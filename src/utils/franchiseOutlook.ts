@@ -492,28 +492,20 @@ function computeTradePartners(
       if (ratio < FAIRNESS_THRESHOLD) continue;
     }
 
-    const topTheyOffer = [...theyCanOffer].sort((a, b) => b.delta - a.delta)[0];
-    const topYouOffer = [...youCanOffer].sort((a, b) => b.delta - a.delta)[0];
-    let summary = '';
-    if (topTheyOffer && topYouOffer) {
-      const theyStr = topTheyOffer.topPlayer
-        ? `${topTheyOffer.topPlayer} (${topTheyOffer.position})`
-        : `${topTheyOffer.position} #${topTheyOffer.rank}`;
-      const youStr = topYouOffer.topPlayer
-        ? `${topYouOffer.topPlayer} (${topYouOffer.position})`
-        : `${topYouOffer.position} #${topYouOffer.rank}`;
-      summary = `They offer ${theyStr}; you offer ${youStr}.`;
-    } else if (topTheyOffer) {
-      const theyStr = topTheyOffer.topPlayer
-        ? `${topTheyOffer.topPlayer} (${topTheyOffer.position})`
-        : `${topTheyOffer.position} #${topTheyOffer.rank}`;
-      summary = `They have surplus ${theyStr} that addresses your needs.`;
-    } else if (topYouOffer) {
-      const youStr = topYouOffer.topPlayer
-        ? `${topYouOffer.topPlayer} (${topYouOffer.position})`
-        : `${topYouOffer.position} #${topYouOffer.rank}`;
-      summary = `You have surplus ${youStr} that they need.`;
-    }
+    const buildSideStr = (offers: typeof theyCanOffer): string => {
+      const sorted = [...offers].sort((a, b) => b.delta - a.delta);
+      if (sorted.length === 0) return '';
+      const top = sorted[0];
+      const topStr = top.topPlayer
+        ? `${top.topPlayer} (${top.position})`
+        : `${top.position} depth`;
+      if (sorted.length === 1) return topStr;
+      return `${topStr} + ${sorted.length - 1} more`;
+    };
+
+    const theyStr = buildSideStr(theyCanOffer);
+    const youStr = buildSideStr(youCanOffer);
+    const summary = `They offer ${theyStr}; you offer ${youStr}.`;
 
     candidates.push({
       userId: ownerUserId,
