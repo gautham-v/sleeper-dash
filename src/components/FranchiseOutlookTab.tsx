@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -10,7 +9,6 @@ import {
   Tooltip,
   ReferenceLine,
 } from 'recharts';
-import { ArrowLeftRight } from 'lucide-react';
 import type {
   FranchiseOutlookResult,
   FranchiseTier,
@@ -18,8 +16,6 @@ import type {
   FranchiseOutlookRawContext,
 } from '../types/sleeper';
 import { MetricTooltip } from '@/components/MetricTooltip';
-import { useTradeSimulator } from '../hooks/useTradeSimulator';
-import { TradeSimulatorPanel } from './TradeSimulatorPanel';
 
 interface FranchiseOutlookTabProps {
   userId: string;
@@ -100,10 +96,8 @@ function SummaryCard({ label, children }: { label: React.ReactNode; children: Re
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawContext }: FranchiseOutlookTabProps) {
+export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawContext: _rawContext }: FranchiseOutlookTabProps) {
   const result = data.get(userId);
-  const [simulatorOpen, setSimulatorOpen] = useState(false);
-  const simulator = useTradeSimulator(userId, rawContext, result ?? null);
 
   if (!result) {
     return (
@@ -121,7 +115,7 @@ export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawCont
     contenderThreshold, windowLength, peakYearOffset, peakWAR,
     futurePicks, isSeasonComplete, keyPlayers, youngAssets,
     warByPosition, wins, losses, warRank, luckScore, focusAreas,
-    strategyRecommendation, rookieDraftTargets, tradeTargets, tradePartners,
+    strategyRecommendation,
   } = result;
 
   const totalManagers = data.size;
@@ -210,22 +204,6 @@ export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawCont
           </div>
         </div>
       </div>
-
-      {/* ── Test a Trade CTA ── */}
-      {rawContext && (
-        <div className="flex justify-center">
-          <button
-            onClick={() => setSimulatorOpen((o) => !o)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 text-brand-cyan text-sm font-medium hover:bg-brand-cyan/20 transition-colors"
-          >
-            <ArrowLeftRight size={16} />
-            {simulatorOpen ? 'Close Simulator' : 'Test a Trade'}
-          </button>
-        </div>
-      )}
-      {simulatorOpen && rawContext && (
-        <TradeSimulatorPanel simulator={simulator} mode="inline" />
-      )}
 
       {/* ── Focus Areas ── */}
       {focusAreas.length > 0 && (
@@ -427,136 +405,6 @@ export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawCont
           })}
         </div>
       </div>
-
-      {/* ── Rookie Draft Targets ── */}
-      {rookieDraftTargets.length > 0 && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="text-sm font-semibold text-white mb-1">Rookie Draft Targets</div>
-          <div className="text-xs text-gray-500 mb-4">
-            Top incoming prospects at your weakest positions, ranked by dynasty value
-          </div>
-          <div className="space-y-2.5">
-            {rookieDraftTargets.map((t, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <PosBadge pos={t.position} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-200 truncate flex-1">{t.name}</span>
-                    <span className="text-xs text-gray-500 shrink-0">#{t.positionRank} {t.position}</span>
-                    <span className="text-xs font-medium text-yellow-400 tabular-nums shrink-0">
-                      {t.dynastyValue.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">{t.reason}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Trade Targets ── */}
-      {tradeTargets.length > 0 && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="text-sm font-semibold text-white mb-1">Trade Targets</div>
-          <div className="text-xs text-gray-500 mb-4">
-            Players on other rosters that address your position weaknesses
-          </div>
-          <div className="space-y-3">
-            {tradeTargets.map((t, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <PosBadge pos={t.position} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-gray-200 truncate">{t.name}</span>
-                    {t.age > 0 && <span className="text-xs text-gray-500">age {t.age}</span>}
-                    {t.dynastyValue != null && (
-                      <span className="text-xs font-medium text-yellow-400 tabular-nums ml-auto">
-                        {t.dynastyValue.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {t.reason} &bull; owned by{' '}
-                    <span className="text-gray-400">{t.ownerDisplayName}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Trade Partners ── */}
-      {tradePartners.length > 0 && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="text-sm font-semibold text-white mb-1">Best Trade Partners</div>
-          <div className="text-xs text-gray-500 mb-4">
-            Managers whose strengths match your weaknesses — and vice versa
-          </div>
-          <div className="space-y-3">
-            {tradePartners.map((p) => (
-              <div key={p.userId} className="border border-gray-700/50 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-200">{p.displayName}</span>
-                  <span className="text-xs font-bold text-brand-cyan tabular-nums">
-                    {p.compatibilityScore}/100 match
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500 mb-3">{p.summary}</div>
-                <div className="flex gap-6 text-xs">
-                  {p.theyCanOffer.length > 0 && (
-                    <div>
-                      <div className="text-gray-600 mb-1.5">They offer →</div>
-                      <div className="space-y-1.5">
-                        {[...p.theyCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                          <div key={o.position} className="flex items-start gap-1.5">
-                            <PosBadge pos={o.position} />
-                            <div>
-                              {o.topPlayer && (
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-emerald-300 font-medium">{o.topPlayer}</span>
-                                  {o.topPlayerValue != null && o.topPlayerValue > 0 && (
-                                    <span className="text-yellow-400 tabular-nums">{Math.round(o.topPlayerValue).toLocaleString()}</span>
-                                  )}
-                                </div>
-                              )}
-                              <span className="text-emerald-500">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {p.youCanOffer.length > 0 && (
-                    <div>
-                      <div className="text-gray-600 mb-1.5">You offer →</div>
-                      <div className="space-y-1.5">
-                        {[...p.youCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                          <div key={o.position} className="flex items-start gap-1.5">
-                            <PosBadge pos={o.position} />
-                            <div>
-                              {o.topPlayer && (
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-brand-cyan font-medium">{o.topPlayer}</span>
-                                  {o.topPlayerValue != null && o.topPlayerValue > 0 && (
-                                    <span className="text-yellow-400 tabular-nums">{Math.round(o.topPlayerValue).toLocaleString()}</span>
-                                  )}
-                                </div>
-                              )}
-                              <span className="text-brand-cyan/60">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Methodology note ── */}
       <div className="px-1">
