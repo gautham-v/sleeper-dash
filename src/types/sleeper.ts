@@ -110,7 +110,7 @@ export interface SleeperDraft {
     teams: number;
     pick_timer: number;
   };
-  slot_to_roster_id: Record<string, number>;
+  slot_to_roster_id: Record<string, number> | null;
   draft_order: Record<string, number> | null;
 }
 
@@ -431,7 +431,7 @@ export interface FranchiseOutlookResult {
   tier: FranchiseTier;
   futurePicks: FutureDraftPick[];
   isSeasonComplete: boolean;
-  keyPlayers: { name: string; position: string; age: number | null; war: number }[];
+  keyPlayers: { name: string; position: string; age: number | null; war: number; dynastyValue: number | null }[];
   youngAssets: { name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
   warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge: number }[];
   wins: number;

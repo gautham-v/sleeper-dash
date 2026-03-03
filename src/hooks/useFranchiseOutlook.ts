@@ -143,15 +143,30 @@ export function useFranchiseOutlook(leagueId: string | null) {
       const allTeamWeightedAges = computeAllTeamWeightedAges(validRosters, allPlayers, playerWARMap);
 
       // 6. Build pick slot map from upcoming drafts (roster_id → slot number per season)
-      // slot_to_roster_id maps { "1": rosterId, "2": rosterId, ... } — invert it
+      // Primary: slot_to_roster_id maps { "1": rosterId, "2": rosterId, ... } — invert it
+      // Fallback: draft_order maps { userId: slot } — combine with rosters to get rosterId → slot
+      const rosterIdToUserId = new Map<number, string>();
+      for (const roster of rosters) {
+        if (roster.owner_id) rosterIdToUserId.set(roster.roster_id, roster.owner_id);
+      }
+      const userIdToRosterId = new Map<string, number>();
+      for (const [rid, uid] of rosterIdToUserId) userIdToRosterId.set(uid, rid);
+
       const rosterToSlotBySeason = new Map<string, Map<number, number>>();
       for (const draft of drafts) {
-        if (!draft.slot_to_roster_id) continue;
         const slotMap = new Map<number, number>();
-        for (const [slot, rosterId] of Object.entries(draft.slot_to_roster_id)) {
-          slotMap.set(rosterId, parseInt(slot));
+        if (draft.slot_to_roster_id) {
+          for (const [slot, rosterId] of Object.entries(draft.slot_to_roster_id)) {
+            slotMap.set(rosterId as number, parseInt(slot));
+          }
+        } else if (draft.draft_order) {
+          // draft_order: { userId: pickSlot } — map through rosters to get rosterId → slot
+          for (const [userId, slot] of Object.entries(draft.draft_order)) {
+            const rosterId = userIdToRosterId.get(userId);
+            if (rosterId != null) slotMap.set(rosterId, slot as number);
+          }
         }
-        rosterToSlotBySeason.set(draft.season, slotMap);
+        if (slotMap.size > 0) rosterToSlotBySeason.set(draft.season, slotMap);
       }
 
       // 7. Future picks by roster, annotated with slot number when available

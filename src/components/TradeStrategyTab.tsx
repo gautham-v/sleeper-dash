@@ -3,6 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { useFranchiseOutlook } from '@/hooks/useFranchiseOutlook';
 import { useRosters, useLeagueUsers } from '@/hooks/useLeagueData';
+import { useSessionUser } from '@/hooks/useSessionUser';
 import { useState, useMemo } from 'react';
 
 const POSITION_COLORS: Record<string, string> = {
@@ -48,8 +49,11 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
       .filter((m) => !!m.userId);
   }, [rosters, leagueUsers]);
 
+  const sessionUser = useSessionUser();
   const [selectedUserId, setSelectedUserId] = useState('');
-  const effectiveUserId = selectedUserId || managers[0]?.userId || '';
+  // Default to signed-in user if they're in this league, else first manager
+  const defaultUserId = managers.find((m) => m.userId === sessionUser?.userId)?.userId ?? managers[0]?.userId ?? '';
+  const effectiveUserId = selectedUserId || defaultUserId;
 
   const outlookMap = outlookData?.outlookMap;
   const result = outlookMap?.get(effectiveUserId);

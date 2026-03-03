@@ -288,6 +288,15 @@ function computeTradeTargets(
   const weakPositionSet = new Set(weakPositions.map((p) => p.position));
   const ownedSet = new Set(thisRosterPlayerIds);
 
+  // Build per-team "pillar" set: top-2 dynasty value players per roster are unlikely to be traded
+  const teamPillars = new Map<number, Set<string>>();
+  for (const roster of allRosters) {
+    const scored = (roster.players ?? [])
+      .map((id) => ({ id, value: fcMap.get(id) ?? 0 }))
+      .sort((a, b) => b.value - a.value);
+    teamPillars.set(roster.roster_id, new Set(scored.slice(0, 2).map((p) => p.id)));
+  }
+
   type Candidate = TradeTargetPlayer & { score: number };
   const candidates: Candidate[] = [];
 
@@ -319,7 +328,9 @@ function computeTradeTargets(
         : `Addresses ${pos} depth`;
 
       const isBottomThird = posNeed && posNeed.rank > (allRosters.length) * 0.66;
-      const adjustedScore = isBottomThird ? score * 1.3 : score;
+      // Pillar penalty: top-2 dynasty value players on a team are unlikely to be traded
+      const isPillar = teamPillars.get(roster.roster_id)?.has(pid) ?? false;
+      const adjustedScore = (isBottomThird ? score * 1.3 : score) * (isPillar ? 0.4 : 1.0);
 
       candidates.push({
         name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
@@ -470,16 +481,15 @@ function computeTradePartners(
       }
     }
 
-    if (theyCanOffer.length === 0 && youCanOffer.length === 0) continue;
+    // Both sides must have something — a trade with only one side populated isn't actionable
+    if (theyCanOffer.length === 0 || youCanOffer.length === 0) continue;
 
     const FAIRNESS_THRESHOLD = 0.70;
-    if (theyCanOffer.length > 0 && youCanOffer.length > 0) {
-      const topTheyValue = [...theyCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
-      const topYouValue  = [...youCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
-      if (topTheyValue > 0 && topYouValue > 0) {
-        const ratio = Math.min(topTheyValue, topYouValue) / Math.max(topTheyValue, topYouValue);
-        if (ratio < FAIRNESS_THRESHOLD) continue;
-      }
+    const topTheyValue = [...theyCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
+    const topYouValue  = [...youCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
+    if (topTheyValue > 0 && topYouValue > 0) {
+      const ratio = Math.min(topTheyValue, topYouValue) / Math.max(topTheyValue, topYouValue);
+      if (ratio < FAIRNESS_THRESHOLD) continue;
     }
 
     const topTheyOffer = [...theyCanOffer].sort((a, b) => b.delta - a.delta)[0];
@@ -665,11 +675,14 @@ export function computeFranchiseOutlook(
   });
   const keyPlayers = sortedByValue.slice(0, 5).map((p) => {
     const sp = allPlayers[p.playerId];
+    const name = `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim();
+    const dynastyValue = fcMap.get(p.playerId) ?? fcMap.get(`${normalize(name)}:${p.position}`) ?? null;
     return {
-      name: `${sp?.first_name ?? ''} ${sp?.last_name ?? ''}`.trim(),
+      name,
       position: p.position,
       age: p.age,
       war: Math.round(p.currentWAR * 10) / 10,
+      dynastyValue,
     };
   });
 

@@ -317,9 +317,15 @@ export function FranchiseOutlookTab({ userId, data, leagueId: _leagueId, rawCont
                     <PosBadge pos={p.position} />
                     <span className="text-sm text-gray-200 flex-1 truncate">{p.name}</span>
                     {p.age != null && <span className="text-xs text-gray-500">age {p.age}</span>}
-                    <span className={`text-xs font-medium tabular-nums ${p.war >= 0 ? 'text-brand-cyan' : 'text-red-400'}`}>
-                      {p.war >= 0 ? '+' : ''}{p.war.toFixed(1)}
-                    </span>
+                    {p.dynastyValue != null ? (
+                      <span className="text-xs font-medium text-yellow-400 tabular-nums">
+                        {p.dynastyValue.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className={`text-xs font-medium tabular-nums ${p.war >= 0 ? 'text-brand-cyan' : 'text-red-400'}`}>
+                        {p.war >= 0 ? '+' : ''}{p.war.toFixed(1)}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
