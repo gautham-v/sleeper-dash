@@ -484,11 +484,13 @@ function computeTradePartners(
     // Both sides must have something — a trade with only one side populated isn't actionable
     if (theyCanOffer.length === 0 || youCanOffer.length === 0) continue;
 
-    const FAIRNESS_THRESHOLD = 0.70;
-    const topTheyValue = [...theyCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
-    const topYouValue  = [...youCanOffer].sort((a, b) => b.delta - a.delta)[0]?.topPlayerValue ?? 0;
-    if (topTheyValue > 0 && topYouValue > 0) {
-      const ratio = Math.min(topTheyValue, topYouValue) / Math.max(topTheyValue, topYouValue);
+    // Fairness: compare total implied dynasty value on each side.
+    // A trade where one side's assets outweigh the other's by >40% is unlikely to be accepted.
+    const FAIRNESS_THRESHOLD = 0.60;
+    const theyTotalValue = theyCanOffer.reduce((s, o) => s + (o.topPlayerValue ?? 0), 0);
+    const youTotalValue = youCanOffer.reduce((s, o) => s + (o.topPlayerValue ?? 0), 0);
+    if (theyTotalValue > 0 && youTotalValue > 0) {
+      const ratio = Math.min(theyTotalValue, youTotalValue) / Math.max(theyTotalValue, youTotalValue);
       if (ratio < FAIRNESS_THRESHOLD) continue;
     }
 
