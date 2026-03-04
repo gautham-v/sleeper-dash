@@ -74,6 +74,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   const handleChangeLeague = (id: string) => {
+    posthog.capture('league_switched', { from_league_id: leagueId, to_league_id: id });
     router.push(`/league/${id}/overview`);
   };
 
