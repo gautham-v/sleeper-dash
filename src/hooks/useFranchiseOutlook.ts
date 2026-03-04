@@ -171,14 +171,68 @@ export function useFranchiseOutlook(leagueId: string | null) {
 
       // 7. Future picks by roster, annotated with slot number when available
       const picksByRosterId = new Map<number, FutureDraftPick[]>();
+      const currentSeasonNum = parseInt(league.season ?? '0');
       for (const pick of tradedPicks) {
         if (pick.owner_id == null) continue;
-        if (parseInt(pick.season) <= parseInt(league.season ?? '0')) continue;
+        if (parseInt(pick.season) <= currentSeasonNum) continue;
         const slot = rosterToSlotBySeason.get(pick.season)?.get(pick.roster_id);
         const annotatedPick: FutureDraftPick = slot != null ? { ...pick, slot } : pick;
         const arr = picksByRosterId.get(pick.owner_id) ?? [];
         arr.push(annotatedPick);
         picksByRosterId.set(pick.owner_id, arr);
+      }
+
+      // 7b. Add each team's own picks (picks never traded — absent from tradedPicks entirely).
+      // Determine future season × round combos from upcoming drafts and traded pick seasons.
+      const futurePickDimensions = new Map<string, Set<number>>(); // season → rounds
+      for (const pick of tradedPicks) {
+        if (parseInt(pick.season) > currentSeasonNum) {
+          const rounds = futurePickDimensions.get(pick.season) ?? new Set<number>();
+          rounds.add(pick.round);
+          futurePickDimensions.set(pick.season, rounds);
+        }
+      }
+      for (const draft of drafts) {
+        if (parseInt(draft.season) > currentSeasonNum) {
+          const rounds = futurePickDimensions.get(draft.season) ?? new Set<number>();
+          for (let r = 1; r <= (draft.settings.rounds ?? 3); r++) rounds.add(r);
+          futurePickDimensions.set(draft.season, rounds);
+        }
+      }
+      // Fallback: 2 future years × 3 rounds when no picks/drafts found
+      if (futurePickDimensions.size === 0) {
+        for (let yr = 1; yr <= 2; yr++) {
+          const season = String(currentSeasonNum + yr);
+          futurePickDimensions.set(season, new Set([1, 2, 3]));
+        }
+      }
+      // Build set of traded-away pick keys (pick left the originating team)
+      const tradedAwayKeys = new Set<string>();
+      for (const pick of tradedPicks) {
+        if (pick.owner_id !== null && pick.owner_id !== pick.roster_id) {
+          tradedAwayKeys.add(`${pick.season}:${pick.round}:${pick.roster_id}`);
+        }
+      }
+      // Add own picks for every roster × future season × round not traded away
+      for (const [season, rounds] of futurePickDimensions) {
+        for (const round of rounds) {
+          for (const roster of rosters) {
+            if (!roster.owner_id) continue;
+            if (tradedAwayKeys.has(`${season}:${round}:${roster.roster_id}`)) continue;
+            const slot = rosterToSlotBySeason.get(season)?.get(roster.roster_id);
+            const ownPick: FutureDraftPick = {
+              season,
+              round,
+              roster_id: roster.roster_id,
+              previous_owner_id: null,
+              owner_id: roster.roster_id,
+              ...(slot != null ? { slot } : {}),
+            };
+            const arr = picksByRosterId.get(roster.roster_id) ?? [];
+            arr.push(ownPick);
+            picksByRosterId.set(roster.roster_id, arr);
+          }
+        }
       }
 
       // 7. User display names + avatars (previously skipped in destructuring)
