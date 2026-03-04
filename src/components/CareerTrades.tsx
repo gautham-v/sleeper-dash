@@ -15,22 +15,7 @@ import {
 import type { CrossLeagueTradeStats } from '@/hooks/useCrossLeagueAnalytics';
 import type { AnalyzedTrade, TradeDraftPickAsset } from '@/types/trade';
 import { MetricTooltip } from '@/components/MetricTooltip';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'text-red-400',
-  RB: 'text-green-400',
-  WR: 'text-blue-400',
-  TE: 'text-yellow-400',
-  K: 'text-gray-400',
-  DEF: 'text-purple-400',
-  DST: 'text-purple-400',
-};
-
-function valueColor(v: number): string {
-  if (v > 0) return 'text-green-400';
-  if (v < 0) return 'text-red-400';
-  return 'text-gray-400';
-}
+import { valueColor, POSITION_COLORS } from '@/lib/formatters';
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

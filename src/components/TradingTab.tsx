@@ -13,26 +13,7 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'text-red-400',
-  RB: 'text-green-400',
-  WR: 'text-blue-400',
-  TE: 'text-yellow-400',
-  K: 'text-gray-400',
-  DEF: 'text-purple-400',
-  DST: 'text-purple-400',
-};
-
-function valueColor(v: number): string {
-  if (v > 0) return 'text-green-400';
-  if (v < 0) return 'text-red-400';
-  return 'text-gray-400';
-}
-
-function valueLabel(v: number): string {
-  return (v >= 0 ? '+' : '') + v.toFixed(1);
-}
+import { valueColor, valueLabel, POSITION_COLORS } from '@/lib/formatters';
 
 function resultVariant(netValue: number, hasUnresolved: boolean): 'pending' | 'win' | 'loss' | 'even' {
   if (hasUnresolved) return 'pending';

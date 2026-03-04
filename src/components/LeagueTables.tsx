@@ -16,11 +16,10 @@ import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import {
   calcAllTimeStats, calcAllTimeLuckIndex, calcLuckIndex, calcPowerRankings,
 } from '../utils/calculations';
-import type { TeamStanding, LuckEntry } from '../types/sleeper';
+import type { TeamStanding, LuckEntry, DashboardComputed } from '../types/sleeper';
 
 interface LeagueTablesProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  computed: any;
+  computed: DashboardComputed;
   leagueId: string;
   onSelectManager?: (userId: string) => void;
 }

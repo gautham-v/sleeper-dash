@@ -18,9 +18,7 @@ import type {
   SleeperMatchup,
   SleeperRoster,
 } from '../types/sleeper';
-
-const REGULAR_SEASON_WEEKS = 14; // Regular season weeks for matchup calculations
-const TOTAL_SEASON_WEEKS = 18;   // Full season (incl. playoffs) for transactions
+import { REGULAR_SEASON_WEEKS, TOTAL_SEASON_WEEKS } from '@/lib/constants';
 
 /**
  * Derives each team's playoff finish label from the winners bracket.

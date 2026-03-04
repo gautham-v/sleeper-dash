@@ -4,6 +4,7 @@ import type { SleeperMatchup, SleeperTransaction, SleeperDraft } from '../types/
 import type { LeagueTradeAnalysis, ManagerTradeSummary, AnalyzedTrade, TaggedTransaction, SeasonTradeInput } from '../types/trade';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { buildDraftPickResolution, computeLeagueTradeAnalysis } from '../utils/tradeCalculations';
+import { REGULAR_SEASON_WEEKS, TOTAL_SEASON_WEEKS } from '@/lib/constants';
 
 // ---------- localStorage cache ----------
 
@@ -60,9 +61,6 @@ function saveToCache(leagueId: string, data: LeagueTradeAnalysis): void {
 }
 
 // ---------- Core fetch function (exported for use with useQueries) ----------
-
-const TOTAL_SEASON_WEEKS = 18;
-const REGULAR_SEASON_WEEKS = 14;
 
 export async function fetchLeagueTradeAnalysis(leagueId: string): Promise<LeagueTradeAnalysis> {
   // 1. Check localStorage

@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { POSITION_COLORS } from '@/lib/formatters';
 
 interface Props {
   leagueId: string;
@@ -447,10 +448,6 @@ export function TeamComparison({ leagueId }: Props) {
                 {h2hTrades.map((trade) => {
                   const sideA = trade.sides.find((s) => s.userId === teamAId);
                   const sideB = trade.sides.find((s) => s.userId === teamBId);
-                  const POSITION_COLORS: Record<string, string> = {
-                    QB: 'text-red-400', RB: 'text-green-400', WR: 'text-blue-400',
-                    TE: 'text-yellow-400', K: 'text-gray-400', DEF: 'text-purple-400', DST: 'text-purple-400',
-                  };
                   return (
                     <div key={trade.transactionId} className="bg-muted/20 rounded-lg px-3 py-2">
                       <div className="flex items-center justify-between mb-1.5">

@@ -6,6 +6,7 @@ import {
   computeLeagueDraftAnalysis,
   type SeasonDraftInput,
 } from '../utils/draftCalculations';
+import { REGULAR_SEASON_WEEKS } from '@/lib/constants';
 
 // ---------- localStorage cache ----------
 
@@ -53,8 +54,6 @@ function saveToCache(leagueId: string, data: LeagueDraftAnalysis): void {
 }
 
 // ---------- Core fetch function (exported for use with useQueries) ----------
-
-const REGULAR_SEASON_WEEKS = 14;
 
 export async function fetchLeagueDraftAnalysis(leagueId: string): Promise<LeagueDraftAnalysis> {
   // 1. Check localStorage

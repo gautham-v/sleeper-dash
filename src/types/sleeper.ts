@@ -408,6 +408,16 @@ export interface BlowoutGame {
   isPlayoff: boolean;
 }
 
+export interface DashboardComputed {
+  standings: TeamStanding[];
+  powerRankings: PowerRanking[];
+  luckIndex: LuckEntry[];
+  blowouts: BlowoutGame[];
+  closest: BlowoutGame[];
+  rosterMap: Map<number, { teamName: string; displayName: string; userId: string }>;
+  champion: { teamName: string; displayName: string; avatar: string | null; userId: string } | null;
+}
+
 // ---- Franchise Outlook Types ----
 
 export type FranchiseTier = 'Contender' | 'Fringe' | 'Rebuilding';

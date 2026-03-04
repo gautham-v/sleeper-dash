@@ -33,26 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'text-red-400',
-  RB: 'text-green-400',
-  WR: 'text-blue-400',
-  TE: 'text-yellow-400',
-  K: 'text-gray-400',
-  DEF: 'text-purple-400',
-  DST: 'text-purple-400',
-};
-
-function valueColor(v: number): string {
-  if (v > 0) return 'text-green-400';
-  if (v < 0) return 'text-red-400';
-  return 'text-gray-400';
-}
-
-function valueLabel(v: number): string {
-  return (v >= 0 ? '+' : '') + v.toFixed(1);
-}
+import { valueColor, valueLabel, POSITION_COLORS } from '@/lib/formatters';
 
 function formatTimestamp(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

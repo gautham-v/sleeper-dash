@@ -22,16 +22,7 @@ import {
 } from '@/components/ui/select';
 import { assignGrade } from '../utils/draftCalculations';
 import { PosBadge } from '@/components/ui/badges';
-
-function surplusColor(surplus: number): string {
-  if (surplus > 1)  return 'text-green-400';
-  if (surplus < -1) return 'text-red-400';
-  return 'text-gray-400';
-}
-
-function surplusLabel(surplus: number): string {
-  return (surplus >= 0 ? '+' : '') + surplus.toFixed(1);
-}
+import { surplusColor, surplusLabel } from '@/lib/formatters';
 
 // ── Section A ─────────────────────────────────────────────────────────────────
 

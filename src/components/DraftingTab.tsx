@@ -18,20 +18,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { PosBadge } from '@/components/ui/badges';
+import { surplusColor, surplusLabel } from '@/lib/formatters';
 
 interface DraftingTabProps {
   userId: string;
   analysis: LeagueDraftAnalysis;
-}
-
-function surplusColor(surplus: number): string {
-  if (surplus > 1) return 'text-green-400';
-  if (surplus < -1) return 'text-red-400';
-  return 'text-gray-400';
-}
-
-function surplusLabel(surplus: number): string {
-  return (surplus >= 0 ? '+' : '') + surplus.toFixed(1);
 }
 
 function draftClassGrade(avgSurplus: number): { grade: string; color: string } {

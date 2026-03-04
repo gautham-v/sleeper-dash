@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Avatar } from './Avatar';
+import type { DashboardComputed } from '../types/sleeper';
 
 interface OverviewProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  computed: any;
+  computed: DashboardComputed;
   leagueId: string;
   userId: string;
   onNavigate: (tabId: "standings" | "power" | "trades" | "games" | "overview" | "luck" | "draft" | "records" | "compare") => void;
@@ -19,38 +19,35 @@ interface OverviewProps {
 export function Overview({ computed, userId, onViewMyProfile, onSelectManager }: OverviewProps) {
   const [statsOpen, setStatsOpen] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const myStanding = (computed.standings as any[])?.find((s) => s.userId === userId) ?? null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const myRank = myStanding ? ((computed.standings as any[]).findIndex((s) => s.userId === userId) + 1) : null;
-  const totalTeams: number = (computed.standings as unknown[])?.length ?? 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const myLuck = (computed.luckIndex as any[])?.find((s) => s.userId === userId) ?? null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const myPowerRank = (computed.powerRankings as any[])?.find((s) => s.userId === userId) ?? null;
+  const { standings, luckIndex, powerRankings, champion } = computed;
+  const myStanding = standings.find((s) => s.userId === userId) ?? null;
+  const myRank = myStanding ? (standings.findIndex((s) => s.userId === userId) + 1) : null;
+  const totalTeams = standings.length;
+  const myLuck = luckIndex.find((s) => s.userId === userId) ?? null;
+  const myPowerRank = powerRankings.find((s) => s.userId === userId) ?? null;
 
   return (
     <div className="space-y-6">
       {/* Champion Hero */}
-      {computed.champion && (
+      {champion && (
         <div className="flex items-center gap-4 bg-card-bg rounded-2xl border border-card-border p-4 sm:p-6">
           <div className="flex-shrink-0 w-12 h-12 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
             <Trophy size={22} className="text-yellow-500" />
           </div>
           <button
             className="flex-1 min-w-0 text-left group"
-            onClick={() => computed.champion.userId && onSelectManager?.(computed.champion.userId)}
-            disabled={!computed.champion.userId || !onSelectManager}
+            onClick={() => champion.userId && onSelectManager?.(champion.userId)}
+            disabled={!champion.userId || !onSelectManager}
           >
             <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">
               Reigning Champion
             </div>
-            <div className={`text-xl sm:text-2xl font-bold text-white leading-tight truncate ${computed.champion.userId && onSelectManager ? 'group-hover:text-muted-foreground transition-colors' : ''}`}>
-              {computed.champion.teamName}
+            <div className={`text-xl sm:text-2xl font-bold text-white leading-tight truncate ${champion.userId && onSelectManager ? 'group-hover:text-muted-foreground transition-colors' : ''}`}>
+              {champion.teamName}
             </div>
-            <div className="text-muted-foreground text-sm mt-0.5">{computed.champion.displayName}</div>
+            <div className="text-muted-foreground text-sm mt-0.5">{champion.displayName}</div>
           </button>
-          <Avatar avatar={computed.champion.avatar} name={computed.champion.displayName} size="lg" />
+          <Avatar avatar={champion.avatar} name={champion.displayName} size="lg" />
         </div>
       )}
 
