@@ -139,7 +139,6 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                         {p.compatibilityScore}/100 match
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 mb-3">{p.summary}</div>
                     <div className="flex gap-6 text-xs">
                       {p.theyCanOffer.length > 0 && (
                         <div>
