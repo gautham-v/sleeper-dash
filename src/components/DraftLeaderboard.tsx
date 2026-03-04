@@ -446,7 +446,7 @@ function Top3ClassCards({
             {row.topPicks.length > 0 && (
               <div className="ml-7 flex flex-wrap gap-1">
                 {row.topPicks.map((pick) => (
-                  <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-100 border border-gray-300 text-gray-700 dark:bg-gray-800/60 dark:border-gray-700/50 dark:text-gray-300 rounded px-1.5 py-0.5">
+                  <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-800/60 border border-gray-700/50 text-gray-300 rounded px-1.5 py-0.5">
                     {pick.playerName}
                     <span className={`ml-1 text-[10px] font-semibold ${surplusColor(pick.surplus)}`}>
                       ({surplusLabel(pick.surplus)})

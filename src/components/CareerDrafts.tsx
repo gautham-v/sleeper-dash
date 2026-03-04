@@ -152,7 +152,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
               leagueName={stats.bestPickAllTime.leagueName}
               label="Best Pick All-Time"
               icon={TrendingUp}
-              accent="border-green-800/30 bg-green-950/20 text-green-300"
+              accent="border-green-700/40 bg-green-900/20 text-green-400"
             />
           )}
           {stats.worstPickAllTime && (
@@ -161,7 +161,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
               leagueName={stats.worstPickAllTime.leagueName}
               label="Worst Pick All-Time"
               icon={TrendingDown}
-              accent="border-red-800/30 bg-red-950/20 text-red-300"
+              accent="border-red-700/40 bg-red-900/20 text-red-400"
             />
           )}
         </div>

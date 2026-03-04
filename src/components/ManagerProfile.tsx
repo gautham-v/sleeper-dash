@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trophy, Skull, ChevronLeft, ChevronDown, ChevronRight, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2, Users } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
@@ -835,9 +835,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                             : `${player.firstSeason}–${player.lastSeason}`;
                           const isExpanded = expandedPlayerId === player.playerId;
                           return (
-                            <>
+                            <React.Fragment key={`${player.playerId}-${idx}`}>
                               <TableRow
-                                key={`${player.playerId}-${idx}`}
                                 className="border-b border-gray-800/60 hover:bg-gray-800/20 cursor-pointer"
                                 onClick={() => setExpandedPlayerId(isExpanded ? null : player.playerId)}
                               >
@@ -876,7 +875,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                   </TableCell>
                                 </TableRow>
                               )}
-                            </>
+                            </React.Fragment>
                           );
                         })}
                       </TableBody>
