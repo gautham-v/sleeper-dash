@@ -21,13 +21,13 @@ export default function AppleIcon() {
         <span
           style={{
             color: '#fafafa',
-            fontSize: 110,
+            fontSize: 72,
             fontWeight: 800,
             fontFamily: 'sans-serif',
             lineHeight: 1,
           }}
         >
-          L
+          lm
         </span>
       </div>
     ),

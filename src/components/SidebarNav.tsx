@@ -49,8 +49,7 @@ export function SidebarNav({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 sm:p-5 flex items-center shrink-0">
         <Link href={`/league/${leagueId}/overview`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <span className="text-2xl leading-none">🏈</span>
-          <span className="font-bold text-xl tracking-tight text-white">leaguemate.fyi</span>
+          <span className="font-bold text-xl tracking-tight"><span className="text-white">leaguemate</span><span className="text-muted-foreground">.fyi</span></span>
         </Link>
       </div>
 

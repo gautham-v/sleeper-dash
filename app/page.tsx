@@ -122,8 +122,8 @@ export default function HomePage() {
         <CardHeader className="flex flex-col items-center text-center gap-3 pt-8 pb-6">
           <span className="text-5xl leading-none">🏈</span>
           <div className="space-y-1.5">
-            <CardTitle className="text-2xl font-bold tracking-tight text-white">
-              leaguemate.fyi
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              <span className="text-white">leaguemate</span><span className="text-muted-foreground">.fyi</span>
             </CardTitle>
             <CardDescription>
               Fantasy football analytics for your Sleeper leagues

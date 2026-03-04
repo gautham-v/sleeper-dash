@@ -22,13 +22,13 @@ export default function Icon() {
         <span
           style={{
             color: '#fafafa',
-            fontSize: 19,
+            fontSize: 13,
             fontWeight: 800,
             fontFamily: 'sans-serif',
             lineHeight: 1,
           }}
         >
-          L
+          lm
         </span>
       </div>
     ),
