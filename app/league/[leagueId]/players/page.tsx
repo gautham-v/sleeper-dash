@@ -20,8 +20,8 @@ const POSITION_COLORS: Record<string, string> = {
   DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
 };
 
-const POSITIONS = ['All', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF'] as const;
-type PositionFilter = typeof POSITIONS[number];
+const POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DST'];
+type PositionFilter = 'All' | string;
 
 export default function PlayersPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -55,6 +55,14 @@ export default function PlayersPage() {
 
   const selectedManager = rostersData.data?.managers.find(m => m.userId === effectiveUserId);
 
+  // Positions that actually appear on this manager's roster
+  const availablePositions = useMemo((): PositionFilter[] => {
+    if (!selectedManager) return ['All'];
+    const posSet = new Set(selectedManager.players.map(p => p.position === 'DST' ? 'DEF' : p.position));
+    const sorted = POSITION_ORDER.filter(pos => posSet.has(pos));
+    return ['All', ...sorted];
+  }, [selectedManager]);
+
   const filteredPlayers = useMemo(() => {
     if (!selectedManager) return [];
     if (positionFilter === 'All') return selectedManager.players;
@@ -77,7 +85,7 @@ export default function PlayersPage() {
       {/* Filters row */}
       <div className="flex gap-3 flex-wrap">
         {/* Team selector */}
-        <Select value={effectiveUserId} onValueChange={setSelectedUserId}>
+        <Select value={effectiveUserId} onValueChange={v => { setSelectedUserId(v); setPositionFilter('All'); }}>
           <SelectTrigger className="bg-card-bg border-card-border text-white w-52">
             <SelectValue placeholder="Select a team" />
           </SelectTrigger>
@@ -116,22 +124,24 @@ export default function PlayersPage() {
         )}
       </div>
 
-      {/* Position filter chips */}
-      <div className="flex gap-2 flex-wrap">
-        {POSITIONS.map(pos => (
-          <button
-            key={pos}
-            onClick={() => setPositionFilter(pos)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-              positionFilter === pos
-                ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40'
-                : 'bg-card-bg text-gray-400 border-card-border hover:text-gray-200'
-            }`}
-          >
-            {pos}
-          </button>
-        ))}
-      </div>
+      {/* Position filter chips — only positions present on the selected roster */}
+      {availablePositions.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          {availablePositions.map(pos => (
+            <button
+              key={pos}
+              onClick={() => setPositionFilter(pos)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                positionFilter === pos
+                  ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40'
+                  : 'bg-card-bg text-gray-400 border-card-border hover:text-gray-200'
+              }`}
+            >
+              {pos}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Roster table */}
       {rostersData.isLoading ? (
@@ -172,6 +182,9 @@ export default function PlayersPage() {
                       <span className="text-sm text-white font-medium flex-1 truncate">{player.playerName}</span>
                       {player.nflTeam && (
                         <span className="text-xs text-gray-500 shrink-0">{player.nflTeam}</span>
+                      )}
+                      {player.dynastyValue != null && (
+                        <span className="text-xs text-gray-400 tabular-nums shrink-0">{player.dynastyValue.toLocaleString()}</span>
                       )}
                       {isExpanded
                         ? <ChevronDown size={14} className="text-gray-500 shrink-0" />

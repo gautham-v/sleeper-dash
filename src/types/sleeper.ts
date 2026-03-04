@@ -590,6 +590,7 @@ export interface LeagueRosterPlayer {
   playerName: string;
   position: string;
   nflTeam?: string;
+  dynastyValue: number | null;
 }
 
 export interface LeagueRostersData {
