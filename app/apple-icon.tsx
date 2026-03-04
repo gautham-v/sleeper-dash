@@ -11,7 +11,7 @@ export default function AppleIcon() {
         style={{
           width: 180,
           height: 180,
-          background: 'linear-gradient(135deg, #080c17 0%, #0d1424 100%)',
+          background: '#09090b',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -20,7 +20,7 @@ export default function AppleIcon() {
       >
         <span
           style={{
-            color: '#06b6d4',
+            color: '#fafafa',
             fontSize: 110,
             fontWeight: 800,
             fontFamily: 'sans-serif',

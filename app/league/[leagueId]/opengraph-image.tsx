@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { sleeperApi } from '@/api/sleeper';
 
-export const runtime = 'edge';
 export const alt = 'League Analytics on leaguemate.fyi';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -14,8 +13,10 @@ export default async function Image({ params }: { params: Promise<{ leagueId: st
 
   try {
     const league = await sleeperApi.getLeague(leagueId);
-    leagueName = league.name;
-    season = league.season;
+    if (league) {
+      leagueName = league.name;
+      season = league.season;
+    }
   } catch {
     // use fallback values
   }
@@ -26,69 +27,53 @@ export default async function Image({ params }: { params: Promise<{ leagueId: st
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #080c17 0%, #0d1424 60%, #091220 100%)',
+          background: '#09090b',
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          padding: '56px 80px',
+          paddingTop: 56,
+          paddingBottom: 56,
+          paddingLeft: 80,
+          paddingRight: 80,
           fontFamily: 'sans-serif',
-          position: 'relative',
         }}
       >
-        {/* Top accent bar */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 5,
-            background: 'linear-gradient(90deg, #06b6d4 0%, #0891b2 100%)',
-          }}
-        />
-
-        {/* Season badge */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: 36,
-          }}
-        >
+        <div style={{ display: 'flex', marginBottom: 36 }}>
           <div
             style={{
-              background: 'rgba(6, 182, 212, 0.12)',
-              border: '1px solid rgba(6, 182, 212, 0.35)',
+              background: '#18181b',
+              borderWidth: 1,
+              borderStyle: 'solid',
+              borderColor: '#27272a',
               borderRadius: 6,
-              padding: '6px 18px',
-              color: '#06b6d4',
+              paddingTop: 6,
+              paddingBottom: 6,
+              paddingLeft: 18,
+              paddingRight: 18,
+              color: '#a1a1aa',
               fontSize: 18,
               fontWeight: 600,
-              letterSpacing: '3px',
               textTransform: 'uppercase',
             }}
           >
-            {season} Season
+            {season + ' Season'}
           </div>
         </div>
 
-        {/* League name */}
         <div
           style={{
             fontSize: nameFontSize,
             fontWeight: 800,
-            color: '#ffffff',
+            color: '#fafafa',
             lineHeight: 1.1,
             maxWidth: 1000,
-            letterSpacing: '-2px',
-            flex: 1,
+            flexGrow: 1,
           }}
         >
           {leagueName}
         </div>
 
-        {/* Footer row */}
         <div
           style={{
             display: 'flex',
@@ -96,10 +81,10 @@ export default async function Image({ params }: { params: Promise<{ leagueId: st
             alignItems: 'flex-end',
           }}
         >
-          <div style={{ color: '#64748b', fontSize: 22 }}>Fantasy Football Analytics</div>
-          <div style={{ display: 'flex', alignItems: 'baseline' }}>
-            <span style={{ color: '#ffffff', fontSize: 28, fontWeight: 700 }}>leaguemate</span>
-            <span style={{ color: '#06b6d4', fontSize: 28, fontWeight: 700 }}>.fyi</span>
+          <div style={{ color: '#52525b', fontSize: 22 }}>Fantasy Football Analytics</div>
+          <div style={{ display: 'flex' }}>
+            <div style={{ color: '#fafafa', fontSize: 28, fontWeight: 700 }}>leaguemate</div>
+            <div style={{ color: '#a1a1aa', fontSize: 28, fontWeight: 700 }}>.fyi</div>
           </div>
         </div>
       </div>

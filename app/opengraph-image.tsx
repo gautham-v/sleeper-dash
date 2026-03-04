@@ -10,7 +10,7 @@ export default function Image() {
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #080c17 0%, #0d1424 60%, #091220 100%)',
+          background: '#09090b',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -21,24 +21,24 @@ export default function Image() {
           position: 'relative',
         }}
       >
-        {/* Top accent bar */}
+        {/* Subtle border at top */}
         <div
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            height: 5,
-            background: 'linear-gradient(90deg, #06b6d4 0%, #0891b2 100%)',
+            height: 1,
+            background: '#27272a',
           }}
         />
 
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 20 }}>
-          <span style={{ color: '#ffffff', fontSize: 64, fontWeight: 800, letterSpacing: '-3px' }}>
+          <span style={{ color: '#fafafa', fontSize: 64, fontWeight: 800, letterSpacing: '-3px' }}>
             leaguemate
           </span>
-          <span style={{ color: '#06b6d4', fontSize: 64, fontWeight: 800, letterSpacing: '-3px' }}>
+          <span style={{ color: '#a1a1aa', fontSize: 64, fontWeight: 800, letterSpacing: '-3px' }}>
             .fyi
           </span>
         </div>
@@ -46,7 +46,7 @@ export default function Image() {
         {/* Tagline */}
         <div
           style={{
-            color: '#94a3b8',
+            color: '#a1a1aa',
             fontSize: 26,
             textAlign: 'center',
             maxWidth: 680,
@@ -57,17 +57,17 @@ export default function Image() {
         </div>
 
         {/* Feature pills */}
-        <div style={{ display: 'flex', gap: 14, marginTop: 52 }}>
+        <div style={{ display: 'flex', gap: 12, marginTop: 52 }}>
           {['WAR Analytics', 'Trade Intelligence', 'Franchise Outlook', 'Draft Grades'].map(
             (label) => (
               <div
                 key={label}
                 style={{
-                  background: 'rgba(6, 182, 212, 0.1)',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  background: '#18181b',
+                  border: '1px solid #27272a',
                   borderRadius: 8,
                   padding: '8px 20px',
-                  color: '#06b6d4',
+                  color: '#a1a1aa',
                   fontSize: 17,
                   fontWeight: 500,
                 }}

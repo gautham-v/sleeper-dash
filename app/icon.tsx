@@ -11,17 +11,17 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          background: '#0d1424',
+          background: '#09090b',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 7,
-          border: '2px solid #06b6d4',
+          border: '1px solid #27272a',
         }}
       >
         <span
           style={{
-            color: '#06b6d4',
+            color: '#fafafa',
             fontSize: 19,
             fontWeight: 800,
             fontFamily: 'sans-serif',
