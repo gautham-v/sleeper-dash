@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
-import { PostHogProvider } from '@/src/components/PostHogProvider';
+import { PostHogProvider } from '@/components/PostHogProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // useState ensures each browser session gets its own QueryClient instance

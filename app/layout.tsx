@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { PostHogPageView } from '@/src/components/PostHogPageView';
+import { PostHogPageView } from '@/components/PostHogPageView';
 import { Providers } from './providers';
 import './globals.css';
 
