@@ -21,11 +21,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title: `${league.name} | leaguemate.fyi`,
         description,
+        images: [{ url: '/opengraph-image.png', width: 1200, height: 630 }],
       },
       twitter: {
         card: 'summary_large_image',
         title: `${league.name} | leaguemate.fyi`,
         description,
+        images: ['/opengraph-image.png'],
       },
     };
   } catch {
