@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import type { ManagerRosterStatsResult, PlayerRosterStat, SleeperPlayer } from '../types/sleeper';
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYERS_CACHE_KEY = 'sleeper-all-players-v1';
 const PLAYERS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for player DB

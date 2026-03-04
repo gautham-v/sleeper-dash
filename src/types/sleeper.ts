@@ -582,3 +582,34 @@ export interface FranchiseOutlookRawContext {
   /** rosterId → wins rank (1 = most wins) */
   winsRankByRoster: Map<number, number>;
 }
+
+// ---- Players Page Types ----
+
+export interface LeagueRosterPlayer {
+  playerId: string;
+  playerName: string;
+  position: string;
+  nflTeam?: string;
+}
+
+export interface LeagueRostersData {
+  seasons: { leagueId: string; season: string }[];
+  managers: { userId: string; displayName: string; avatar: string | null; players: LeagueRosterPlayer[] }[];
+  currentSeason: string;
+}
+
+export interface PlayerCareerSeason {
+  season: string;
+  ownerId: string;
+  ownerName: string;
+  starterPoints: number;
+  starts: number;
+  weeksOnRoster: number;
+}
+
+export interface PlayerCareerHistoryResult {
+  playerName: string;
+  position: string;
+  seasons: PlayerCareerSeason[];
+  draftedBy?: { ownerName: string; season: string; round: number; pick: number };
+}

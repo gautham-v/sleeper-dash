@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  ArrowLeftRight,
   BookOpen,
   Trophy,
   ChevronLeft,
@@ -247,7 +248,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Mobile Bottom Tab Bar */}
           <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-card-border bg-base-bg/95 backdrop-blur-md">
             <div className="flex h-16">
-              {TABS.filter(({ id }) => !['h2h', 'records', 'draft'].includes(id)).map(({ id, label, icon: Icon }) => (
+              {TABS.filter(({ id }) => !['h2h', 'records', 'draft', 'trades'].includes(id)).map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => handleTabChange(id)}
@@ -262,7 +263,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setLeagueSheetOpen(true)}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
-                  ['h2h', 'records', 'draft'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
+                  ['h2h', 'records', 'draft', 'trades'].includes(activeTab) ? 'text-brand-cyan' : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
                 <Layers size={20} />
@@ -292,6 +293,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 More Pages
               </div>
               <div className="flex flex-col divide-y divide-card-border/40 border border-card-border rounded-xl overflow-hidden bg-card-bg">
+                <button
+                  onClick={() => { handleTabChange('trades'); setLeagueSheetOpen(false); }}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
+                    activeTab === 'trades'
+                      ? 'text-brand-cyan bg-brand-cyan/10'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <ArrowLeftRight size={17} className={`flex-shrink-0 ${activeTab === 'trades' ? 'text-brand-cyan' : 'text-gray-500'}`} />
+                  <span className="flex-1">Trades</span>
+                  <ChevronLeft size={15} className="text-gray-600 flex-shrink-0 rotate-180" />
+                </button>
                 <button
                   onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
                   className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${

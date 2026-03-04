@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Trophy, Skull, ChevronLeft, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2, Users } from 'lucide-react';
+import { Loader2, Trophy, Skull, ChevronLeft, ChevronDown, ChevronRight, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2, Users } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -19,6 +19,7 @@ import { DraftingTab } from './DraftingTab';
 import { TradingTab } from './TradingTab';
 import { FranchiseOutlookTab } from './FranchiseOutlookTab';
 import { FranchiseTrajectoryTab } from './FranchiseTrajectoryTab';
+import { PlayerCareerPanel } from './PlayerCareerPanel';
 import {
   Table,
   TableHeader,
@@ -70,6 +71,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const PLAYERS_PER_PAGE = 10;
   const [playersPage, setPlayersPage] = useState(1);
   const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -799,17 +801,33 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             </div>
           ) : rosterStats.data?.hasData ? (
             <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2 flex-wrap">
                 <Users size={15} className="text-gray-400" />
-                <span className="font-semibold text-white text-sm">All Players</span>
-                <span className="text-xs text-gray-600">({rosterStats.data.players.length})</span>
+                <span className="font-semibold text-white text-sm">Players</span>
+                <div className="ml-auto flex rounded-lg border border-card-border overflow-hidden text-xs">
+                  <button
+                    onClick={() => { setPlayersView('current'); setPlayersPage(1); }}
+                    className={`px-3 py-1.5 font-medium transition-colors ${playersView === 'current' ? 'bg-brand-cyan/20 text-brand-cyan' : 'text-gray-400 hover:text-gray-200'}`}
+                  >
+                    Current Roster
+                  </button>
+                  <button
+                    onClick={() => { setPlayersView('all'); setPlayersPage(1); }}
+                    className={`px-3 py-1.5 font-medium transition-colors border-l border-card-border ${playersView === 'all' ? 'bg-brand-cyan/20 text-brand-cyan' : 'text-gray-400 hover:text-gray-200'}`}
+                  >
+                    All Time
+                  </button>
+                </div>
               </div>
               {(() => {
-                const pagedPlayers = rosterStats.data.players.slice(
+                const filteredPlayers = playersView === 'current'
+                  ? rosterStats.data.players.filter(p => rosterStats.data!.currentRosterIds.includes(p.playerId))
+                  : rosterStats.data.players;
+                const pagedPlayers = filteredPlayers.slice(
                   (playersPage - 1) * PLAYERS_PER_PAGE,
                   playersPage * PLAYERS_PER_PAGE
                 );
-                const totalPlayerPages = Math.ceil(rosterStats.data.players.length / PLAYERS_PER_PAGE);
+                const totalPlayerPages = Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE);
                 return (
                   <>
                     <Table>
@@ -828,29 +846,52 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                           const tenure = player.firstSeason === player.lastSeason
                             ? player.firstSeason
                             : `${player.firstSeason}–${player.lastSeason}`;
+                          const isExpanded = expandedPlayerId === player.playerId;
                           return (
-                            <TableRow key={`${player.playerId}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
-                              <TableCell className="py-3 px-5">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                                    {player.position}
-                                  </span>
-                                  <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
-                                {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
-                              </TableCell>
-                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
-                                {player.totalTDs > 0 ? player.totalTDs : '—'}
-                              </TableCell>
-                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
-                                {player.totalStarts}
-                              </TableCell>
-                              <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
-                                {tenure}
-                              </TableCell>
-                            </TableRow>
+                            <>
+                              <TableRow
+                                key={`${player.playerId}-${idx}`}
+                                className="border-b border-gray-800/60 hover:bg-gray-800/20 cursor-pointer"
+                                onClick={() => setExpandedPlayerId(isExpanded ? null : player.playerId)}
+                              >
+                                <TableCell className="py-3 px-5">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
+                                      {player.position}
+                                    </span>
+                                    <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
+                                    {isExpanded
+                                      ? <ChevronDown size={12} className="text-gray-500 shrink-0" />
+                                      : <ChevronRight size={12} className="text-gray-500 shrink-0" />
+                                    }
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
+                                  {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
+                                </TableCell>
+                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                  {player.totalTDs > 0 ? player.totalTDs : '—'}
+                                </TableCell>
+                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                  {player.totalStarts}
+                                </TableCell>
+                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
+                                  {tenure}
+                                </TableCell>
+                              </TableRow>
+                              {isExpanded && (
+                                <TableRow key={`${player.playerId}-expanded`} className="border-b border-gray-800/60">
+                                  <TableCell colSpan={5} className="px-5 pb-4 pt-0">
+                                    <PlayerCareerPanel
+                                      leagueId={leagueId}
+                                      playerId={player.playerId}
+                                      playerName={player.playerName}
+                                      position={player.position}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </>
                           );
                         })}
                       </TableBody>
