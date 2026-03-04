@@ -110,11 +110,15 @@ function computeStrategyRecommendation(
   peakYearOffset: number,
   projectedWAR: { yearOffset: number; totalWAR: number }[],
   currentWAR: number,
-  focusAreas: FranchiseOutlookResult['focusAreas'],
+  _focusAreas: FranchiseOutlookResult['focusAreas'],
   futurePicks: FutureDraftPick[],
   youngAssetsCount: number,
   warRank: number,
   numTeams: number,
+  keyPlayers: FranchiseOutlookResult['keyPlayers'],
+  youngAssets: FranchiseOutlookResult['youngAssets'],
+  warByPosition: FranchiseOutlookResult['warByPosition'],
+  contenderThreshold: number,
 ): StrategyRecommendation {
   const futureFirsts = futurePicks.filter((p) => p.round === 1).length;
   const projYear2 = projectedWAR.find((p) => p.yearOffset === 2)?.totalWAR ?? currentWAR;
@@ -147,36 +151,94 @@ function computeStrategyRecommendation(
   }
 
   const rationale: string[] = [];
+  const currentYear = new Date().getFullYear();
 
-  // Pull from existing focus areas (most data-driven signals)
-  for (const fa of focusAreas.slice(0, 2)) {
-    rationale.push(fa.detail);
-  }
+  if (mode === 'Push All-In Now') {
+    if (currentWAR > 0) {
+      const dropPct = Math.round((1 - projYear2 / currentWAR) * 100);
+      if (dropPct > 0) {
+        rationale.push(`Roster projected to drop ~${dropPct}% by ${currentYear + 2} — the window is closing fast.`);
+      }
+    }
+    const topPlayer = keyPlayers[0];
+    if (topPlayer?.age != null && topPlayer.age >= 27) {
+      rationale.push(`Your top asset ${topPlayer.name} (age ${topPlayer.age}) is approaching decline — maximize value while they're at peak.`);
+    }
+    if (luckScore <= -2) {
+      rationale.push(`Unlucky record masks true talent — sellers may underestimate you. Strike now.`);
+    } else {
+      const topPos = warByPosition.find((p) => p.rank === 1);
+      if (topPos) {
+        rationale.push(`Your ${topPos.position} group is the best in the league — use that as trade leverage.`);
+      } else {
+        rationale.push(`Prioritize proven contributors over developmental players this offseason.`);
+      }
+    }
 
-  // Add projection / peak insight
-  if (peakYearOffset === 0) {
-    rationale.push('Roster is at peak strength right now — timing is critical.');
-  } else if (peakYearOffset >= 2) {
-    rationale.push(
-      `Roster is projected to peak in ${peakYearOffset} year${peakYearOffset > 1 ? 's' : ''} — runway exists to build before the window opens.`,
-    );
-  }
+  } else if (mode === 'Steady State') {
+    rationale.push(`Ranked #${warRank} of ${numTeams} in WAR with a ${windowLength}-year contender window.`);
+    const youngStrength = warByPosition.find((p) => p.rank === 1 && p.avgAge > 0 && p.avgAge <= 26);
+    if (youngStrength) {
+      rationale.push(`Your ${youngStrength.position} group is #1 in the league (avg age ${youngStrength.avgAge.toFixed(0)}) — a long-term foundation.`);
+    } else {
+      rationale.push(`Roster is balanced with no glaring positional weakness.`);
+    }
+    if (riskScore > 20) {
+      const oldestKey = [...keyPlayers].filter((p) => p.age !== null).sort((a, b) => (b.age ?? 0) - (a.age ?? 0))[0];
+      if (oldestKey?.age != null) {
+        rationale.push(`Watch ${oldestKey.name} (age ${oldestKey.age}) — aging veterans carry moderate decline risk.`);
+      } else {
+        rationale.push(`Moderate age risk — monitor key contributors heading into next season.`);
+      }
+    } else {
+      rationale.push(`Low age risk — no significant decline signals in the next 2 years.`);
+    }
 
-  // Add luck indicator if meaningful
-  if (luckScore >= 3) {
-    rationale.push(
-      `Record is outpacing true talent (+${luckScore} luck) — may regress; prioritize roster improvement over record-chasing.`,
-    );
-  } else if (luckScore <= -3) {
-    rationale.push(
-      `Unlucky record (${luckScore} vs WAR rank) — talent is better than standings suggest; stay the course.`,
-    );
+  } else if (mode === 'Win-Now Pivot') {
+    const gap = (contenderThreshold - currentWAR).toFixed(1);
+    rationale.push(`You're ${gap} WAR behind the contender threshold — one targeted upgrade could push you over.`);
+    const weakest = [...warByPosition].sort((a, b) => (a.war - a.leagueAvgWAR) - (b.war - b.leagueAvgWAR))[0];
+    if (weakest) {
+      rationale.push(`Your weakest position is ${weakest.position} (#${weakest.rank} of ${numTeams}) — the clearest upgrade target.`);
+    }
+    if (youngAssets.length >= 2) {
+      rationale.push(`You have ${youngAssets.length} players under 25 — potential chips to move for proven contributors.`);
+    } else {
+      rationale.push(`Target players ages 24–27 for the best balance of upside and proven production.`);
+    }
+
+  } else if (mode === 'Asset Accumulation') {
+    const youngCount = youngAssets.length;
+    rationale.push(`${futureFirsts} future first${futureFirsts !== 1 ? 's' : ''} and ${youngCount} player${youngCount !== 1 ? 's' : ''} under 25 — real rebuild capital.`);
+    if (youngAssets[0]) {
+      const ya = youngAssets[0];
+      const valStr = ya.dynastyValue != null ? `, value ${ya.dynastyValue.toLocaleString()}` : '';
+      rationale.push(`Your best young asset is ${ya.name} (age ${ya.age}${valStr}) — don't sell cheap.`);
+    } else {
+      rationale.push(`Focus on acquiring skill players in the 21–24 age range before rookie prices rise.`);
+    }
+    rationale.push(`Roster is projected to peak in ${peakYearOffset} year${peakYearOffset !== 1 ? 's' : ''} — patience is your edge right now.`);
+
+  } else {
+    // Full Rebuild
+    rationale.push(`Ranked #${warRank} of ${numTeams} in WAR — this is a full reset situation.`);
+    rationale.push(`Accumulate first-round picks aggressively. Two early picks can restart a roster within 2 years.`);
+    if (luckScore >= 2) {
+      rationale.push(`Your record is better than your talent — don't let a fortunate W-L delay the rebuild.`);
+    } else {
+      const chipPlayer = keyPlayers.find((p) => p.age !== null && (p.age ?? 0) >= 28);
+      if (chipPlayer?.age != null) {
+        rationale.push(`${chipPlayer.name} (age ${chipPlayer.age}) is your best trade chip — consider selling at peak value.`);
+      } else {
+        rationale.push(`Be aggressive in moving any veterans for draft capital while their value is high.`);
+      }
+    }
   }
 
   return {
     mode,
     headline,
-    rationale: rationale.slice(0, 3),
+    rationale: rationale.filter(Boolean).slice(0, 3),
     urgencyScore: Math.round(urgencyScore),
   };
 }
@@ -264,6 +326,33 @@ function computeRookieDraftTargets(
 }
 
 // ── Features 3 & 4: Trade Target Players ─────────────────────────────────────
+
+function buildSellerContext(
+  ownerName: string,
+  sellerTier: FranchiseTier,
+  warRank: number,
+  numTeams: number,
+  futureFirsts: number,
+  luckMult: number,
+  playerAge: number,
+): string {
+  if (sellerTier === 'Rebuilding') {
+    const picksStr = futureFirsts > 0
+      ? `, ${futureFirsts} future 1st${futureFirsts > 1 ? 's' : ''}`
+      : '';
+    return `${ownerName} is rebuilding (#${warRank}/${numTeams} WAR${picksStr}) — likely values picks over veterans`;
+  }
+  if (sellerTier === 'Contender' && playerAge <= 24) {
+    return `${ownerName} is a contender — may sell youth to win now`;
+  }
+  if (sellerTier === 'Fringe' && luckMult >= 1.3) {
+    return `${ownerName} is overperforming their talent — regression likely, may become a seller`;
+  }
+  if (sellerTier === 'Fringe') {
+    return `${ownerName} is Fringe tier — may be open to restructuring`;
+  }
+  return `${ownerName} is a contender — expect to pay full value`;
+}
 
 function computeTradeTargets(
   thisRosterId: number,
@@ -397,7 +486,7 @@ function computeTradeTargets(
   };
 
   // ── Candidate collection ──────────────────────────────────────────────────
-  type PlayerCandidate = TradeTargetPlayer & { finalScore: number; availabilityMult: number };
+  type PlayerCandidate = TradeTargetPlayer & { finalScore: number; availabilityMult: number; sellerContext: string };
   type PickCandidate = { pick: FutureDraftPick; pickScore: number; estimatedValue: number; ownerUserId: string; ownerName: string; sellerTier: FranchiseTier; slotLabel: string; reason: string };
 
   const playerCandidates: PlayerCandidate[] = [];
@@ -474,6 +563,10 @@ function computeTradeTargets(
         urgency === 'closing-window' ? `Value declining — act soon` : '';
       const reason = [needPart, availPart, urgencyPart].filter(Boolean).join('. ');
 
+      const sellerFutureFirsts = (allPicksByRosterId.get(roster.roster_id) ?? [])
+        .filter((p) => p.round === 1).length;
+      const sellerWarRank = warRankByRosterId.get(roster.roster_id) ?? numTeams;
+
       playerCandidates.push({
         name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
         position: pos,
@@ -487,6 +580,7 @@ function computeTradeTargets(
         timelineMatch,
         urgencyFlag: urgency,
         sellerTierLabel: sellerTier,
+        sellerContext: buildSellerContext(ownerName, sellerTier, sellerWarRank, numTeams, sellerFutureFirsts, luckMult, age),
         finalScore,
         availabilityMult,
       });
@@ -559,7 +653,7 @@ function computeTradeTargets(
       name: c.name, position: c.position, age: c.age, war: c.war,
       dynastyValue: c.dynastyValue, ownerUserId: c.ownerUserId, ownerDisplayName: c.ownerDisplayName,
       reason: c.reason, availabilityScore: c.availabilityScore, timelineMatch: c.timelineMatch,
-      urgencyFlag: c.urgencyFlag, sellerTierLabel: c.sellerTierLabel,
+      urgencyFlag: c.urgencyFlag, sellerTierLabel: c.sellerTierLabel, sellerContext: c.sellerContext,
     });
     ownerCounts.set(c.ownerUserId, oCount + 1);
     posCounts.set(c.position, pCount + 1);
@@ -1104,6 +1198,7 @@ export function computeFranchiseOutlook(
     peakYearOffset, projectedWAR, currentWAR,
     focusAreas, futurePicks, youngAssets.length,
     warRank, numTeams,
+    keyPlayers, youngAssets, warByPosition, contenderThreshold,
   );
 
   // ── Rookie Draft Targets ─────────────────────────────────────────────────

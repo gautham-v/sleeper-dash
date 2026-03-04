@@ -127,6 +127,25 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                               <> &bull; <span className="text-gray-400">{t.ownerDisplayName}</span></>
                             )}
                           </div>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {t.urgencyFlag && (
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                t.urgencyFlag === 'buy-low'
+                                  ? 'bg-amber-900/40 text-amber-400'
+                                  : 'bg-orange-900/40 text-orange-400'
+                              }`}>
+                                {t.urgencyFlag === 'buy-low' ? '⬇ Buy Low' : '⏱ Act Soon'}
+                              </span>
+                            )}
+                            {t.sellerContext && (
+                              <span className={`text-[11px] ${
+                                t.availabilityScore >= 0.5 ? 'text-green-400' :
+                                t.availabilityScore >= 0.3 ? 'text-yellow-400' : 'text-gray-500'
+                              }`}>
+                                {t.sellerContext}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

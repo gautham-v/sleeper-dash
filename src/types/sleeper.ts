@@ -511,6 +511,7 @@ export interface TradeTargetPlayer {
   timelineMatch: 'ideal' | 'good' | 'marginal';
   urgencyFlag: 'buy-low' | 'closing-window' | null;
   sellerTierLabel: string;          // 'Rebuilding' | 'Fringe' | 'Contender'
+  sellerContext: string;
 }
 
 export interface TradeTargetPick {
