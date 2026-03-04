@@ -21,7 +21,7 @@ export default async function Image({ params }: { params: Promise<{ leagueId: st
     // use fallback values
   }
 
-  const nameFontSize = leagueName.length > 35 ? 52 : leagueName.length > 22 ? 64 : 76;
+  const nameFontSize = leagueName.length > 35 ? 64 : leagueName.length > 22 ? 80 : 96;
 
   return new ImageResponse(
     (
@@ -32,60 +32,79 @@ export default async function Image({ params }: { params: Promise<{ leagueId: st
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          paddingTop: 56,
-          paddingBottom: 56,
-          paddingLeft: 80,
-          paddingRight: 80,
+          alignItems: 'center',
+          justifyContent: 'center',
           fontFamily: 'sans-serif',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', marginBottom: 36 }}>
-          <div
-            style={{
-              background: '#18181b',
-              borderWidth: 1,
-              borderStyle: 'solid',
-              borderColor: '#27272a',
-              borderRadius: 6,
-              paddingTop: 6,
-              paddingBottom: 6,
-              paddingLeft: 18,
-              paddingRight: 18,
-              color: '#a1a1aa',
-              fontSize: 18,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-            }}
-          >
-            {season + ' Season'}
-          </div>
+        {/* Purple glow */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: -80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 800,
+            height: 500,
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse at center, #7c3aed 0%, #4c1d95 40%, transparent 70%)',
+            opacity: 0.5,
+          }}
+        />
+
+        {/* Season badge */}
+        <div
+          style={{
+            display: 'flex',
+            background: '#18181b',
+            border: '1px solid #27272a',
+            borderRadius: 6,
+            padding: '6px 18px',
+            color: '#a1a1aa',
+            fontSize: 18,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: 28,
+          }}
+        >
+          {season} Season
         </div>
 
+        {/* League name */}
         <div
           style={{
             fontSize: nameFontSize,
             fontWeight: 800,
             color: '#fafafa',
             lineHeight: 1.1,
+            textAlign: 'center',
             maxWidth: 1000,
-            flexGrow: 1,
+            letterSpacing: '-2px',
+            marginBottom: 28,
           }}
         >
           {leagueName}
         </div>
 
+        {/* Tagline */}
+        <div style={{ color: '#a1a1aa', fontSize: 22, marginBottom: 0 }}>
+          Talk trash. Back it up.
+        </div>
+
+        {/* Brand */}
         <div
           style={{
+            position: 'absolute',
+            bottom: 48,
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
+            alignItems: 'baseline',
           }}
         >
-          <div style={{ color: '#52525b', fontSize: 22 }}>Fantasy Football Analytics</div>
-          <div style={{ display: 'flex' }}>
-            <div style={{ color: '#fafafa', fontSize: 28, fontWeight: 700 }}>leaguemate</div>
-            <div style={{ color: '#a1a1aa', fontSize: 28, fontWeight: 700 }}>.fyi</div>
-          </div>
+          <span style={{ color: '#fafafa', fontSize: 28, fontWeight: 700 }}>leaguemate</span>
+          <span style={{ color: '#a1a1aa', fontSize: 28, fontWeight: 700 }}>.fyi</span>
         </div>
       </div>
     ),
