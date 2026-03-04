@@ -109,6 +109,8 @@ export default function HomePage() {
         display_name: user.display_name,
       });
 
+      posthog.capture('username_searched', { success: true, league_count: allLeagues.length });
+
       // Navigate to the most recent season of the longest-tenured league
       const [, longestGroup] = byTenure[0];
       const latestLeague = [...longestGroup].sort(
@@ -117,7 +119,9 @@ export default function HomePage() {
 
       router.push(`/league/${latestLeague.league_id}/overview`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      posthog.capture('username_searched', { success: false, error: message });
+      setError(message);
       setLoading(false);
     }
   };
