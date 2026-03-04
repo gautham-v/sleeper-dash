@@ -119,7 +119,12 @@ export default function FranchisePage() {
               <span className="text-gray-400 text-sm">Computing franchise outlook…</span>
             </div>
           ) : franchiseOutlook.data ? (
-            <FranchiseOutlookTab userId={effectiveUserId} data={franchiseOutlook.data} />
+            <FranchiseOutlookTab
+              userId={effectiveUserId}
+              leagueId={leagueId}
+              data={franchiseOutlook.data.outlookMap}
+              rawContext={franchiseOutlook.data.rawContext}
+            />
           ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
               <div className="text-2xl mb-3">🔭</div>

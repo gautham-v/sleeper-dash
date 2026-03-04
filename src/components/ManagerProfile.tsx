@@ -69,6 +69,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const rosterStats = useManagerRosterStats(leagueId, userId);
   const PLAYERS_PER_PAGE = 10;
   const [playersPage, setPlayersPage] = useState(1);
+  const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -203,7 +204,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const draftGradeColor = draftAnalysis.data?.managerSummaries.get(userId)?.gradeColor ?? null;
   const tradeGrade = tradeAnalysis.data?.managerSummaries.get(userId)?.grade ?? null;
   const tradeGradeColor = tradeAnalysis.data?.managerSummaries.get(userId)?.gradeColor ?? null;
-  const rosterAge = franchiseOutlook.data?.get(userId)?.weightedAge ?? null;
+  const rosterAge = franchiseOutlook.data?.outlookMap.get(userId)?.weightedAge ?? null;
 
   return (
     <div className="space-y-6 pb-24">
@@ -323,12 +324,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             <SelectContent className="bg-card-bg border-card-border text-white">
               <SelectItem value="overview">Overview</SelectItem>
               <SelectItem value="value">Value</SelectItem>
+              <SelectItem value="outlook">Outlook</SelectItem>
               <SelectItem value="drafting">Drafting</SelectItem>
               <SelectItem value="trading">Trades</SelectItem>
+              <SelectItem value="players">Players</SelectItem>
               <SelectItem value="h2h">Head-to-Head</SelectItem>
               <SelectItem value="seasons">Season Log</SelectItem>
-              <SelectItem value="outlook">Outlook</SelectItem>
-              <SelectItem value="players">Players</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -336,12 +337,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
         <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="value">Value</TabsTrigger>
+          <TabsTrigger value="outlook">Outlook</TabsTrigger>
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
           <TabsTrigger value="trading">Trades</TabsTrigger>
+          <TabsTrigger value="players">Players</TabsTrigger>
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>
-          <TabsTrigger value="outlook">Outlook</TabsTrigger>
-          <TabsTrigger value="players">Players</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}
@@ -739,7 +740,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               Computing franchise outlook…
             </div>
           ) : franchiseOutlook.data ? (
-            <FranchiseOutlookTab userId={userId} data={franchiseOutlook.data} />
+            <FranchiseOutlookTab
+              userId={userId}
+              leagueId={leagueId}
+              data={franchiseOutlook.data.outlookMap}
+              rawContext={franchiseOutlook.data.rawContext}
+            />
           ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
               <div className="text-2xl mb-3">🔭</div>

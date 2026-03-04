@@ -1,11 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { LeagueTrades } from '@/components/LeagueTrades';
+import { TradeStrategyTab } from '@/components/TradeStrategyTab';
 import { ShareButton } from '@/components/ShareButton';
+
+type TradesPageTab = 'trades' | 'strategy';
 
 export default function TradesPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
+  const [activeTab, setActiveTab] = useState<TradesPageTab>('trades');
 
   return (
     <div>
@@ -18,7 +23,32 @@ export default function TradesPage() {
         </div>
         <ShareButton className="mt-1" />
       </div>
-      <LeagueTrades leagueId={leagueId} />
+
+      <div className="flex border-b border-card-border mb-6">
+        <button
+          onClick={() => setActiveTab('trades')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'trades'
+              ? 'border-brand-cyan text-white'
+              : 'border-transparent text-muted-foreground hover:text-white'
+          }`}
+        >
+          League Trades
+        </button>
+        <button
+          onClick={() => setActiveTab('strategy')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === 'strategy'
+              ? 'border-brand-cyan text-white'
+              : 'border-transparent text-muted-foreground hover:text-white'
+          }`}
+        >
+          Trade Strategy
+        </button>
+      </div>
+
+      {activeTab === 'trades' && <LeagueTrades leagueId={leagueId} />}
+      {activeTab === 'strategy' && <TradeStrategyTab leagueId={leagueId} />}
     </div>
   );
 }

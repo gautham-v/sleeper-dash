@@ -5,6 +5,7 @@ import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { computeFranchiseOutlook, computeAllTeamWeightedAges } from '../utils/franchiseOutlook';
 import type {
   FranchiseOutlookResult,
+  FranchiseOutlookRawContext,
   FutureDraftPick,
   SleeperPlayer,
   FCPlayerEntry,
@@ -54,17 +55,23 @@ function computeLeagueAwareReplacementLevel(
   return result;
 }
 
+export interface FranchiseOutlookData {
+  outlookMap: Map<string, FranchiseOutlookResult>;
+  rawContext: FranchiseOutlookRawContext;
+}
+
 export function useFranchiseOutlook(leagueId: string | null) {
   return useQuery({
     queryKey: ['franchise-outlook', leagueId],
-    queryFn: async (): Promise<Map<string, FranchiseOutlookResult>> => {
-      // 1. Fetch league metadata, rosters, users, all players, traded picks in parallel
-      const [league, rosters, leagueUsers, allPlayers, tradedPicks] = await Promise.all([
+    queryFn: async (): Promise<FranchiseOutlookData> => {
+      // 1. Fetch league metadata, rosters, users, all players, traded picks, drafts in parallel
+      const [league, rosters, leagueUsers, allPlayers, tradedPicks, drafts] = await Promise.all([
         sleeperApi.getLeague(leagueId!),
         sleeperApi.getRosters(leagueId!),
         sleeperApi.getLeagueUsers(leagueId!),
         sleeperApi.getAllPlayers(),
         sleeperApi.getTradedPicks(leagueId!),
+        sleeperApi.getDrafts(leagueId!),
       ]);
 
       const playoffStart = league.settings.playoff_week_start || 15;
@@ -135,12 +142,42 @@ export function useFranchiseOutlook(leagueId: string | null) {
       );
       const allTeamWeightedAges = computeAllTeamWeightedAges(validRosters, allPlayers, playerWARMap);
 
-      // 6. Future picks by roster
+      // 6. Build pick slot map from upcoming drafts (roster_id → slot number per season)
+      // Primary: slot_to_roster_id maps { "1": rosterId, "2": rosterId, ... } — invert it
+      // Fallback: draft_order maps { userId: slot } — combine with rosters to get rosterId → slot
+      const rosterIdToUserId = new Map<number, string>();
+      for (const roster of rosters) {
+        if (roster.owner_id) rosterIdToUserId.set(roster.roster_id, roster.owner_id);
+      }
+      const userIdToRosterId = new Map<string, number>();
+      for (const [rid, uid] of rosterIdToUserId) userIdToRosterId.set(uid, rid);
+
+      const rosterToSlotBySeason = new Map<string, Map<number, number>>();
+      for (const draft of drafts) {
+        const slotMap = new Map<number, number>();
+        if (draft.slot_to_roster_id) {
+          for (const [slot, rosterId] of Object.entries(draft.slot_to_roster_id)) {
+            slotMap.set(rosterId as number, parseInt(slot));
+          }
+        } else if (draft.draft_order) {
+          // draft_order: { userId: pickSlot } — map through rosters to get rosterId → slot
+          for (const [userId, slot] of Object.entries(draft.draft_order)) {
+            const rosterId = userIdToRosterId.get(userId);
+            if (rosterId != null) slotMap.set(rosterId, slot as number);
+          }
+        }
+        if (slotMap.size > 0) rosterToSlotBySeason.set(draft.season, slotMap);
+      }
+
+      // 7. Future picks by roster, annotated with slot number when available
       const picksByRosterId = new Map<number, FutureDraftPick[]>();
       for (const pick of tradedPicks) {
         if (pick.owner_id == null) continue;
+        if (parseInt(pick.season) <= parseInt(league.season ?? '0')) continue;
+        const slot = rosterToSlotBySeason.get(pick.season)?.get(pick.roster_id);
+        const annotatedPick: FutureDraftPick = slot != null ? { ...pick, slot } : pick;
         const arr = picksByRosterId.get(pick.owner_id) ?? [];
-        arr.push(pick);
+        arr.push(annotatedPick);
         picksByRosterId.set(pick.owner_id, arr);
       }
 
@@ -205,7 +242,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
       );
 
       // 10. Compute per-manager outlook
-      const results = new Map<string, FranchiseOutlookResult>();
+      const outlookMap = new Map<string, FranchiseOutlookResult>();
       for (const roster of validRosters) {
         const result = computeFranchiseOutlook(
           roster,
@@ -228,10 +265,29 @@ export function useFranchiseOutlook(leagueId: string | null) {
           positionRanksByRoster,
           picksByRosterId,
         );
-        results.set(roster.owner_id!, result);
+        outlookMap.set(roster.owner_id!, result);
       }
 
-      return results;
+      const rawContext: FranchiseOutlookRawContext = {
+        allPlayers,
+        playerWARMap,
+        allTeamWARs,
+        allTeamWeightedAges,
+        isSeasonComplete,
+        leagueAvgWARByPosition,
+        allRosters: validRosters,
+        userDisplayNames,
+        userAvatars,
+        teamPositionWAR,
+        positionRanksByRoster,
+        picksByRosterId,
+        fcMap,
+        rookiePool,
+        warRankByRoster,
+        winsRankByRoster,
+      };
+
+      return { outlookMap, rawContext };
     },
     enabled: !!leagueId,
     staleTime: 1000 * 60 * 30,

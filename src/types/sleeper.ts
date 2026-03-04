@@ -52,6 +52,7 @@ export interface FutureDraftPick {
   roster_id: number;
   previous_owner_id: number | null;
   owner_id: number | null;
+  slot?: number; // pick slot within the round (1 = first overall), populated when draft order is known
 }
 
 export interface SleeperLeagueUser {
@@ -109,7 +110,7 @@ export interface SleeperDraft {
     teams: number;
     pick_timer: number;
   };
-  slot_to_roster_id: Record<string, number>;
+  slot_to_roster_id: Record<string, number> | null;
   draft_order: Record<string, number> | null;
 }
 
@@ -430,7 +431,7 @@ export interface FranchiseOutlookResult {
   tier: FranchiseTier;
   futurePicks: FutureDraftPick[];
   isSeasonComplete: boolean;
-  keyPlayers: { name: string; position: string; age: number | null; war: number }[];
+  keyPlayers: { name: string; position: string; age: number | null; war: number; dynastyValue: number | null }[];
   youngAssets: { name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
   warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge: number }[];
   wins: number;
@@ -483,6 +484,8 @@ export interface RookieDraftTarget {
   overallRank: number;
   positionRank: number;
   reason: string;
+  estimatedPeakWAR: number;  // approximate peak-year WAR from dynasty value
+  impactSummary: string;     // projected effect on position room and contender window
 }
 
 export interface TradeTargetPlayer {
@@ -501,8 +504,8 @@ export interface TradePartner {
   displayName: string;
   avatar: string | null;
   compatibilityScore: number;
-  theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[];
-  youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string }[];
+  theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
+  youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
   summary: string;
 }
 
@@ -547,4 +550,35 @@ export interface PlayerRosterStat {
 export interface ManagerRosterStatsResult {
   players: PlayerRosterStat[];
   hasData: boolean;
+  currentRosterIds: string[];
+}
+
+// ---- Trade Simulator Types ----
+
+/** All league-wide computed context needed to re-run per-roster franchise outlook. */
+export interface FranchiseOutlookRawContext {
+  allPlayers: Record<string, SleeperPlayer>;
+  playerWARMap: Map<string, number>;
+  /** Total WAR per roster, indexed parallel to allRosters */
+  allTeamWARs: number[];
+  /** Weighted age per roster, indexed parallel to allRosters */
+  allTeamWeightedAges: number[];
+  isSeasonComplete: boolean;
+  leagueAvgWARByPosition: Map<string, number>;
+  /** Valid rosters only (roster.owner_id !== null), same order as allTeamWARs */
+  allRosters: SleeperRoster[];
+  userDisplayNames: Map<string, string>;
+  userAvatars: Map<string, string | null>;
+  /** rosterId → position → WAR */
+  teamPositionWAR: Map<number, Map<string, number>>;
+  /** rosterId → position → rank (1-based) */
+  positionRanksByRoster: Map<number, Map<string, number>>;
+  /** rosterId → future picks owned */
+  picksByRosterId: Map<number, FutureDraftPick[]>;
+  fcMap: Map<string, number>;
+  rookiePool: FCPlayerEntry[];
+  /** rosterId → war rank (1 = best) */
+  warRankByRoster: Map<number, number>;
+  /** rosterId → wins rank (1 = most wins) */
+  winsRankByRoster: Map<number, number>;
 }
