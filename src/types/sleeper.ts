@@ -550,6 +550,7 @@ export interface PlayerRosterStat {
 export interface ManagerRosterStatsResult {
   players: PlayerRosterStat[];
   hasData: boolean;
+  currentRosterIds: string[];
 }
 
 // ---- Trade Simulator Types ----

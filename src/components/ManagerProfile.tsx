@@ -69,6 +69,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const rosterStats = useManagerRosterStats(leagueId, userId);
   const PLAYERS_PER_PAGE = 10;
   const [playersPage, setPlayersPage] = useState(1);
+  const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -323,12 +324,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
             <SelectContent className="bg-card-bg border-card-border text-white">
               <SelectItem value="overview">Overview</SelectItem>
               <SelectItem value="value">Value</SelectItem>
+              <SelectItem value="outlook">Outlook</SelectItem>
               <SelectItem value="drafting">Drafting</SelectItem>
               <SelectItem value="trading">Trades</SelectItem>
+              <SelectItem value="players">Players</SelectItem>
               <SelectItem value="h2h">Head-to-Head</SelectItem>
               <SelectItem value="seasons">Season Log</SelectItem>
-              <SelectItem value="outlook">Outlook</SelectItem>
-              <SelectItem value="players">Players</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -336,12 +337,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
         <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="value">Value</TabsTrigger>
+          <TabsTrigger value="outlook">Outlook</TabsTrigger>
           <TabsTrigger value="drafting">Drafting</TabsTrigger>
           <TabsTrigger value="trading">Trades</TabsTrigger>
+          <TabsTrigger value="players">Players</TabsTrigger>
           <TabsTrigger value="h2h">Head-to-Head</TabsTrigger>
           <TabsTrigger value="seasons">Season Log</TabsTrigger>
-          <TabsTrigger value="outlook">Outlook</TabsTrigger>
-          <TabsTrigger value="players">Players</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW SECTION */}

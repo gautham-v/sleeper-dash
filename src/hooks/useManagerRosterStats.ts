@@ -14,7 +14,7 @@ function loadRosterCache(leagueId: string, userId: string): ManagerRosterStatsRe
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (Date.now() - parsed.cachedAt > CACHE_TTL_MS) return null;
-    return { players: parsed.players, hasData: parsed.hasData };
+    return { players: parsed.players, hasData: parsed.hasData, currentRosterIds: parsed.currentRosterIds ?? [] };
   } catch { return null; }
 }
 
@@ -157,7 +157,12 @@ export function useManagerRosterStats(leagueId: string, userId: string) {
       // Sort by totalPoints descending
       players.sort((a, b) => b.totalPoints - a.totalPoints);
 
-      const result: ManagerRosterStatsResult = { players, hasData: players.length > 0 };
+      // Fetch current roster for the most recent league
+      const currentRosters = await sleeperApi.getRosters(leagueId);
+      const currentUserRoster = currentRosters.find(r => r.owner_id === userId);
+      const currentRosterIds = currentUserRoster?.players ?? [];
+
+      const result: ManagerRosterStatsResult = { players, hasData: players.length > 0, currentRosterIds };
       saveRosterCache(leagueId, userId, result);
       return result;
     },
