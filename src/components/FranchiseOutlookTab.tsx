@@ -16,6 +16,7 @@ import type {
   FranchiseOutlookRawContext,
 } from '../types/sleeper';
 import { MetricTooltip } from '@/components/MetricTooltip';
+import { PosBadge, TierBadge } from '@/components/ui/badges';
 
 interface FranchiseOutlookTabProps {
   userId: string;
@@ -29,20 +30,11 @@ interface FranchiseOutlookTabProps {
 function tierColors(tier: FranchiseTier) {
   switch (tier) {
     case 'Contender':
-      return {
-        bg: 'bg-emerald-900/20', border: 'border-emerald-700/40',
-        text: 'text-emerald-400', badge: 'bg-emerald-900/40 border-emerald-700/40 text-emerald-300',
-      };
+      return { bg: 'bg-emerald-900/20', border: 'border-emerald-700/40', text: 'text-emerald-400' };
     case 'Fringe':
-      return {
-        bg: 'bg-yellow-900/20', border: 'border-yellow-700/40',
-        text: 'text-yellow-400', badge: 'bg-yellow-900/40 border-yellow-700/40 text-yellow-300',
-      };
+      return { bg: 'bg-yellow-900/20', border: 'border-yellow-700/40', text: 'text-yellow-400' };
     case 'Rebuilding':
-      return {
-        bg: 'bg-red-900/20', border: 'border-red-700/40',
-        text: 'text-red-400', badge: 'bg-red-900/40 border-red-700/40 text-red-300',
-      };
+      return { bg: 'bg-red-900/20', border: 'border-red-700/40', text: 'text-red-400' };
   }
 }
 
@@ -68,22 +60,6 @@ function peakYearLabel(yearOffset: number): string {
   return `+${yearOffset} Year${yearOffset > 1 ? 's' : ''}`;
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'bg-red-900/50 text-red-300 border-red-800/50',
-  RB: 'bg-green-900/50 text-green-300 border-green-800/50',
-  WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  PICK: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
-
-function PosBadge({ pos }: { pos: string }) {
-  const cls = POSITION_COLORS[pos] ?? 'bg-gray-800/50 text-gray-400 border-gray-700/50';
-  return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} w-8 text-center shrink-0`}>
-      {pos}
-    </span>
-  );
-}
 
 function SummaryCard({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -146,9 +122,7 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
       <div className={`${tc.bg} ${tc.border} border rounded-2xl p-5`}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <span className={`inline-block px-3 py-1 rounded-lg text-sm font-bold border ${tc.badge}`}>
-              {tier === 'Contender' ? '🏆' : tier === 'Fringe' ? '⚡' : '🔨'} {tier}
-            </span>
+            <TierBadge tier={tier} size="md" label={`${tier === 'Contender' ? '🏆' : tier === 'Fringe' ? '⚡' : '🔨'} ${tier}`} />
             <div className={`text-xs mt-1.5 ${tc.text}`}>
               {tier === 'Contender' && `Contender window: ${windowLength} year${windowLength !== 1 ? 's' : ''}`}
               {tier === 'Fringe' && 'Above league median — on the cusp'}

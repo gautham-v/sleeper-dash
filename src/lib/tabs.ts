@@ -1,10 +1,10 @@
-import { ArrowLeftRight, BookOpen, ClipboardList, LayoutDashboard, Scale, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeftRight, BookOpen, ClipboardList, LayoutDashboard, Scale, Shirt, TrendingUp, Users } from 'lucide-react';
 
 export const TABS = [
   { id: 'overview',   label: 'Overview',   icon: LayoutDashboard },
   { id: 'managers',   label: 'Managers',   icon: Users },
   { id: 'franchise',  label: 'Franchise',  icon: TrendingUp },
-  { id: 'players',    label: 'Players',    icon: Users },
+  { id: 'players',    label: 'Players',    icon: Shirt },
   { id: 'trades',     label: 'Trades',     icon: ArrowLeftRight },
   { id: 'draft',      label: 'Draft',      icon: ClipboardList },
   { id: 'h2h',        label: 'H2H',        icon: Scale },

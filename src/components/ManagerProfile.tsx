@@ -36,16 +36,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB:  'bg-red-900/50 text-red-300 border-red-800/50',
-  RB:  'bg-green-900/50 text-green-300 border-green-800/50',
-  WR:  'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE:  'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  K:   'bg-gray-700 text-gray-300 border-gray-600',
-  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
+import { PosBadge } from '@/components/ui/badges';
 
 interface Props {
   leagueId: string;
@@ -771,16 +762,13 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               </div>
               <div className="space-y-2">
                 {ringOfHonor.map((player, i) => {
-                  const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                   const tenure = player.firstSeason === player.lastSeason
                     ? player.firstSeason
                     : `${player.firstSeason}–${player.lastSeason}`;
                   return (
                     <div key={player.playerId} className="flex items-center gap-3 py-1">
                       <span className="text-sm text-yellow-600 w-4 shrink-0 font-bold">{i + 1}.</span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                        {player.position}
-                      </span>
+                      <PosBadge pos={player.position} />
                       <span className="text-sm font-semibold text-white flex-1 truncate">{player.playerName}</span>
                       <span className="text-xs text-gray-500 shrink-0">{tenure}</span>
                       <span className="text-sm font-bold text-emerald-400 tabular-nums shrink-0">
@@ -842,7 +830,6 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                       </TableHeader>
                       <TableBody>
                         {pagedPlayers.map((player, idx) => {
-                          const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                           const tenure = player.firstSeason === player.lastSeason
                             ? player.firstSeason
                             : `${player.firstSeason}–${player.lastSeason}`;
@@ -856,9 +843,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                               >
                                 <TableCell className="py-3 px-5">
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                                      {player.position}
-                                    </span>
+                                    <PosBadge pos={player.position} />
                                     <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
                                     {isExpanded
                                       ? <ChevronDown size={12} className="text-gray-500 shrink-0" />

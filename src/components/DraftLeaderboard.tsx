@@ -21,18 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { assignGrade } from '../utils/draftCalculations';
-
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
-const POSITION_COLORS: Record<string, string> = {
-  QB:  'bg-red-900/50 text-red-300 border-red-800/50',
-  RB:  'bg-green-900/50 text-green-300 border-green-800/50',
-  WR:  'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE:  'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  K:   'bg-gray-700 text-gray-300 border-gray-600',
-  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
+import { PosBadge } from '@/components/ui/badges';
 
 function surplusColor(surplus: number): string {
   if (surplus > 1)  return 'text-green-400';
@@ -386,15 +375,12 @@ function PickTable({
             </TableHeader>
             <TableBody>
               {pagedRows.map((pick, i) => {
-                const posColor = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                 return (
                   <TableRow key={`${pick.managerId}-${pick.season}-${pick.pickNo}`} className="border-card-border hover:bg-muted/30">
                     <TableCell className="py-3 px-2 pl-4 text-gray-400 text-sm w-8">{offset + i + 1}</TableCell>
                     <TableCell className="py-3 px-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${posColor} shrink-0`}>
-                          {pick.position}
-                        </span>
+                        <PosBadge pos={pick.position} />
                         <span className="text-sm font-medium text-white">{pick.playerName}</span>
                         {pick.isKeeper && (
                           <span className="text-[10px] text-yellow-500 font-medium">K</span>
@@ -460,7 +446,7 @@ function Top3ClassCards({
             {row.topPicks.length > 0 && (
               <div className="ml-7 flex flex-wrap gap-1">
                 {row.topPicks.map((pick) => (
-                  <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-800/60 border border-gray-700/50 rounded px-1.5 py-0.5 text-gray-300">
+                  <span key={`${pick.playerId}-${pick.season}`} className="text-xs bg-gray-100 border border-gray-300 text-gray-700 dark:bg-gray-800/60 dark:border-gray-700/50 dark:text-gray-300 rounded px-1.5 py-0.5">
                     {pick.playerName}
                     <span className={`ml-1 text-[10px] font-semibold ${surplusColor(pick.surplus)}`}>
                       ({surplusLabel(pick.surplus)})

@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeftRight, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import type { LeagueTradeAnalysis, AnalyzedTrade, TradeSide } from '../types/trade';
+import { StatusBadge } from '@/components/ui/badges';
 import {
   Table,
   TableHeader,
@@ -33,11 +34,11 @@ function valueLabel(v: number): string {
   return (v >= 0 ? '+' : '') + v.toFixed(1);
 }
 
-function resultBadge(netValue: number, hasUnresolved: boolean): { text: string; className: string } {
-  if (hasUnresolved) return { text: 'Pending', className: 'bg-yellow-900/30 text-yellow-400 border-yellow-700/40' };
-  if (netValue > 0) return { text: 'Win', className: 'bg-green-900/30 text-green-400 border-green-700/40' };
-  if (netValue < 0) return { text: 'Loss', className: 'bg-red-900/30 text-red-400 border-red-700/40' };
-  return { text: 'Even', className: 'bg-gray-800/50 text-gray-400 border-gray-700/40' };
+function resultVariant(netValue: number, hasUnresolved: boolean): 'pending' | 'win' | 'loss' | 'even' {
+  if (hasUnresolved) return 'pending';
+  if (netValue > 0) return 'win';
+  if (netValue < 0) return 'loss';
+  return 'even';
 }
 
 function PickDisplay({ p, size = 'sm' }: { p: import('../types/trade').TradeDraftPickAsset; size?: 'xs' | 'sm' }) {
@@ -278,7 +279,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
               </TableHeader>
               <TableBody>
                 {paginatedRows.map(({ trade, side }) => {
-                  const badge = resultBadge(side.netValue, trade.hasUnresolved);
+                  const variant = resultVariant(side.netValue, trade.hasUnresolved);
                   return (
                     <TableRow key={trade.transactionId} className="border-b border-gray-800/60 hover:bg-gray-800/20">
                       <TableCell className="py-3 px-5 font-medium text-white whitespace-nowrap">
@@ -314,9 +315,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                         {valueLabel(side.netValue)}
                       </TableCell>
                       <TableCell className="py-3 px-3 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${badge.className}`}>
-                          {badge.text}
-                        </span>
+                        <StatusBadge variant={variant} />
                       </TableCell>
                     </TableRow>
                   );
@@ -328,7 +327,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
           {/* Mobile cards */}
           <div className="sm:hidden divide-y divide-gray-800">
             {paginatedRows.map(({ trade, side }) => {
-              const badge = resultBadge(side.netValue, trade.hasUnresolved);
+              const variant = resultVariant(side.netValue, trade.hasUnresolved);
               const otherSide = trade.sides.find((s) => s.userId !== userId);
               return (
                 <div key={trade.transactionId} className="px-5 py-4">
@@ -336,9 +335,7 @@ export function TradingTab({ userId, analysis }: TradingTabProps) {
                     <span className="text-sm font-medium text-white">
                       {trade.season} Wk{trade.week}
                     </span>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border ${badge.className}`}>
-                      {badge.text}
-                    </span>
+                    <StatusBadge variant={variant} />
                   </div>
                   <div className="text-xs text-gray-500 mb-2">vs {otherSide?.displayName ?? '?'}</div>
                   <div className="grid grid-cols-2 gap-2 mb-2">

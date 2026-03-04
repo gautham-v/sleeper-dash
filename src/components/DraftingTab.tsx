@@ -17,21 +17,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { PosBadge } from '@/components/ui/badges';
 
 interface DraftingTabProps {
   userId: string;
   analysis: LeagueDraftAnalysis;
 }
-
-const POSITION_COLORS: Record<string, string> = {
-  QB:  'bg-red-900/50 text-red-300 border-red-800/50',
-  RB:  'bg-green-900/50 text-green-300 border-green-800/50',
-  WR:  'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE:  'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  K:   'bg-gray-700 text-gray-300 border-gray-600',
-  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
 
 function surplusColor(surplus: number): string {
   if (surplus > 1) return 'text-green-400';
@@ -65,7 +56,6 @@ function PickCard({ pick, label, icon: Icon, borderClass }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   borderClass: string;
 }) {
-  const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
   return (
     <div className={`rounded-2xl p-4 border ${borderClass}`}>
       <div className="flex items-center gap-1.5 mb-2">
@@ -73,9 +63,7 @@ function PickCard({ pick, label, icon: Icon, borderClass }: {
         <span className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className={`mt-0.5 px-1.5 py-0.5 rounded text-xs font-bold border ${posClass}`}>
-          {pick.position}
-        </span>
+        <PosBadge pos={pick.position} />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-white text-sm leading-tight truncate">{pick.playerName}</div>
           <div className="text-xs text-gray-500 mt-0.5">
@@ -267,14 +255,11 @@ export function DraftingTab({ userId, analysis }: DraftingTabProps) {
             <TableBody>
               {pagedPicks.map((pick, idx) => {
                 const { label, className } = hitOrBustLabel(pick.surplus);
-                const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                 return (
                   <TableRow key={`${pick.season}-${pick.pickNo}-${idx}`} className="border-b border-gray-800/60 hover:bg-gray-800/20">
                     <TableCell className="py-3 px-5">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                          {pick.position}
-                        </span>
+                        <PosBadge pos={pick.position} />
                         <span className="text-sm text-white font-medium truncate">{pick.playerName}</span>
                         {pick.isKeeper && <span className="text-[10px] text-brand-cyan font-medium ml-1">(K)</span>}
                       </div>

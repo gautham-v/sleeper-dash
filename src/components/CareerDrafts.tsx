@@ -14,16 +14,7 @@ import {
 import type { CrossLeagueDraftStats } from '@/hooks/useCrossLeagueAnalytics';
 import type { AnalyzedPick } from '@/types/sleeper';
 import { MetricTooltip } from '@/components/MetricTooltip';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB:  'bg-red-900/50 text-red-300 border-red-800/50',
-  RB:  'bg-green-900/50 text-green-300 border-green-800/50',
-  WR:  'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE:  'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  K:   'bg-gray-700 text-gray-300 border-gray-600',
-  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
+import { PosBadge } from '@/components/ui/badges';
 
 function surplusColor(surplus: number): string {
   if (surplus > 1) return 'text-green-400';
@@ -48,7 +39,6 @@ function PickCard({
   icon: React.ElementType;
   accent: string;
 }) {
-  const posClass = POSITION_COLORS[pick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
   return (
     <div className={`rounded-xl border p-4 space-y-2 ${accent}`}>
       <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider opacity-70">
@@ -56,9 +46,7 @@ function PickCard({
         {label}
       </div>
       <div className="flex items-start gap-2">
-        <span className={`mt-0.5 px-1.5 py-0.5 rounded text-xs font-bold border ${posClass}`}>
-          {pick.position}
-        </span>
+        <PosBadge pos={pick.position} />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-white text-sm leading-tight truncate">{pick.playerName}</div>
           <div className="text-xs text-gray-500 mt-0.5">
@@ -225,9 +213,7 @@ export function CareerDrafts({ stats }: CareerDraftsProps) {
                       <TableCell className="text-center py-3 pr-4">
                         {league.bestPick ? (
                           <div className="flex items-center justify-center gap-1.5">
-                            <span className={`text-[10px] font-bold px-1 py-0.5 rounded border ${POSITION_COLORS[league.bestPick.position] ?? 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                              {league.bestPick.position}
-                            </span>
+                            <PosBadge pos={league.bestPick.position} />
                             <span className="text-xs text-gray-300 truncate max-w-[80px]">{league.bestPick.playerName}</span>
                           </div>
                         ) : (

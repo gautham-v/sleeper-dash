@@ -5,23 +5,7 @@ import { useFranchiseOutlook } from '@/hooks/useFranchiseOutlook';
 import { useRosters, useLeagueUsers } from '@/hooks/useLeagueData';
 import { useSessionUser } from '@/hooks/useSessionUser';
 import { useState, useMemo } from 'react';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'bg-red-900/50 text-red-300 border-red-800/50',
-  RB: 'bg-green-900/50 text-green-300 border-green-800/50',
-  WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  PICK: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
-
-function PosBadge({ pos }: { pos: string }) {
-  const cls = POSITION_COLORS[pos] ?? 'bg-gray-800/50 text-gray-400 border-gray-700/50';
-  return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} w-8 text-center shrink-0`}>
-      {pos}
-    </span>
-  );
-}
+import { PosBadge } from '@/components/ui/badges';
 
 interface RookieTargetsTabProps {
   leagueId: string;

@@ -9,16 +9,7 @@ import { useSessionUser } from '@/hooks/useSessionUser';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlayerCareerPanel } from '@/components/PlayerCareerPanel';
 import { avatarUrl } from '@/utils/calculations';
-
-const POSITION_COLORS: Record<string, string> = {
-  QB:  'bg-red-900/50 text-red-300 border-red-800/50',
-  RB:  'bg-green-900/50 text-green-300 border-green-800/50',
-  WR:  'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE:  'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  K:   'bg-gray-700 text-gray-300 border-gray-600',
-  DEF: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-  DST: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
+import { PosBadge } from '@/components/ui/badges';
 
 const POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DST'];
 type PositionFilter = 'All' | string;
@@ -168,7 +159,6 @@ export default function PlayersPage() {
           ) : (
             <div className="divide-y divide-card-border/40">
               {filteredPlayers.map(player => {
-                const posClass = POSITION_COLORS[player.position] ?? 'bg-gray-700 text-gray-300 border-gray-600';
                 const isExpanded = expandedPlayerId === player.playerId;
                 return (
                   <div key={player.playerId}>
@@ -176,9 +166,7 @@ export default function PlayersPage() {
                       onClick={() => setExpandedPlayerId(isExpanded ? null : player.playerId)}
                       className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors text-left"
                     >
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${posClass}`}>
-                        {player.position}
-                      </span>
+                      <PosBadge pos={player.position} />
                       <span className="text-sm text-white font-medium flex-1 truncate">{player.playerName}</span>
                       {player.nflTeam && (
                         <span className="text-xs text-gray-500 shrink-0">{player.nflTeam}</span>

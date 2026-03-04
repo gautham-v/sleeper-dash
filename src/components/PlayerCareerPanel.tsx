@@ -1,6 +1,7 @@
 'use client';
 import { Loader2 } from 'lucide-react';
 import { usePlayerCareerHistory } from '@/hooks/usePlayerCareerHistory';
+import { StatusBadge } from '@/components/ui/badges';
 
 interface Props {
   leagueId: string;
@@ -66,11 +67,7 @@ export function PlayerCareerPanel({ leagueId, playerId }: Props) {
                       current
                     </span>
                   )}
-                  {isDraftSeason && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-900/40 text-yellow-400 border border-yellow-700/40">
-                      drafted
-                    </span>
-                  )}
+                  {isDraftSeason && <StatusBadge variant="drafted" />}
                 </div>
                 <span className="text-xs font-medium text-white tabular-nums">
                   {s.starterPoints > 0 ? `${s.starterPoints.toFixed(1)} pts` : '—'}

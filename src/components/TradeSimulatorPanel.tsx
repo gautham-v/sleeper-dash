@@ -12,7 +12,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { TradeSimulatorResult, SimulatorPickAsset, TradeDelta } from '../types/simulator';
-import type { FranchiseOutlookResult, FranchiseTier } from '../types/sleeper';
+import type { FranchiseOutlookResult } from '../types/sleeper';
+import { PosBadge, TierBadge } from '@/components/ui/badges';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,37 +22,10 @@ interface TradeSimulatorPanelProps {
   mode?: 'inline' | 'fullpage';
 }
 
-// ── Color helpers ─────────────────────────────────────────────────────────────
-
-const POSITION_COLORS: Record<string, string> = {
-  QB: 'bg-red-900/50 text-red-300 border-red-800/50',
-  RB: 'bg-green-900/50 text-green-300 border-green-800/50',
-  WR: 'bg-blue-900/50 text-blue-300 border-blue-800/50',
-  TE: 'bg-yellow-900/50 text-yellow-300 border-yellow-800/50',
-  PICK: 'bg-purple-900/50 text-purple-300 border-purple-800/50',
-};
-
-function tierBadgeClass(tier: FranchiseTier): string {
-  switch (tier) {
-    case 'Contender': return 'bg-emerald-900/40 border-emerald-700/40 text-emerald-300';
-    case 'Fringe':    return 'bg-yellow-900/40 border-yellow-700/40 text-yellow-300';
-    case 'Rebuilding': return 'bg-red-900/40 border-red-700/40 text-red-300';
-  }
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function pickKey(pick: SimulatorPickAsset): string {
   return `${pick.season}:${pick.round}:${pick.rosterId}`;
-}
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function PosBadge({ pos }: { pos: string }) {
-  const cls = POSITION_COLORS[pos] ?? 'bg-gray-800/50 text-gray-400 border-gray-700/50';
-  return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} min-w-[2rem] text-center shrink-0`}>
-      {pos}
-    </span>
-  );
 }
 
 function DeltaRow({
@@ -263,20 +237,14 @@ function DeltaSummary({
       {delta.tierChange ? (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-gray-500 w-32 shrink-0 text-xs">Tier</span>
-          <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold ${tierBadgeClass(delta.tierChange.from)}`}>
-            {delta.tierChange.from}
-          </span>
+          <TierBadge tier={delta.tierChange.from} size="sm" />
           <span className="text-gray-500 text-xs">→</span>
-          <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold ${tierBadgeClass(delta.tierChange.to)}`}>
-            {delta.tierChange.to}
-          </span>
+          <TierBadge tier={delta.tierChange.to} size="sm" />
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-gray-500 w-32 shrink-0 text-xs">Tier</span>
-          <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold ${tierBadgeClass(before.tier)}`}>
-            {before.tier}
-          </span>
+          <TierBadge tier={before.tier} size="sm" />
           <span className="text-xs text-gray-600">unchanged</span>
         </div>
       )}
@@ -363,9 +331,9 @@ function AssetColumn({
               <X size={10} className="shrink-0 opacity-70" />
             </button>
           ))}
-          {selectedPicks.map((pick) => (
+          {selectedPicks.map((pick, idx) => (
             <button
-              key={pickKey(pick)}
+              key={`${pickKey(pick)}-selected-${idx}`}
               onClick={() => onTogglePick(pick)}
               className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-900/30 border border-purple-700/50 text-purple-300 text-xs font-medium hover:bg-purple-900/50 transition-colors"
             >
@@ -420,9 +388,9 @@ function AssetColumn({
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 rounded-lg border border-gray-700/40 bg-gray-800/30 max-h-36 overflow-y-auto">
-            {unselectedPicks.map((pick) => (
+            {unselectedPicks.map((pick, idx) => (
               <button
-                key={pickKey(pick)}
+                key={`${pickKey(pick)}-${idx}`}
                 onClick={() => onTogglePick(pick)}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-gray-700/40 transition-colors text-left"
               >
