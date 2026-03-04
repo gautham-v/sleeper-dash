@@ -11,6 +11,7 @@ import type {
   StrategyMode,
   RookieDraftTarget,
   TradeTargetPlayer,
+  TradeTargetPick,
   TradePartner,
 } from '../types/sleeper';
 
@@ -41,6 +42,9 @@ const CURVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const MULTIPLIER_FLOOR = 0.4;
 const PICK_WAR_BY_ROUND: Record<number, number> = { 1: 4.0, 2: 2.0, 3: 0.8, 4: 0.3 };
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
+
+const POSITION_LIQUIDITY: Record<string, number> = { QB: 0.5, RB: 1.0, WR: 0.9, TE: 0.7 };
+const DECLINE_AGE: Record<string, number> = { QB: 33, RB: 27, WR: 30, TE: 30 };
 
 function pickWARValue(round: number): number {
   return PICK_WAR_BY_ROUND[round] ?? 0.1;
@@ -261,8 +265,6 @@ function computeRookieDraftTargets(
 
 // ── Features 3 & 4: Trade Target Players ─────────────────────────────────────
 
-const PICK_DYNASTY_VALUE: Record<number, number> = { 1: 5000, 2: 2500, 3: 800, 4: 300 };
-
 function computeTradeTargets(
   thisRosterId: number,
   thisRosterPlayerIds: string[],
@@ -273,143 +275,354 @@ function computeTradeTargets(
   fcMap: Map<string, number>,
   userDisplayNames: Map<string, string>,
   allPicksByRosterId: Map<number, FutureDraftPick[]>,
-  maxResults = 6,
-): TradeTargetPlayer[] {
-  // Identify weak positions, sorted by deficit severity
+  allTeamWarByPosition: Map<number, Map<string, number>>,
+  leagueAvgWARByPosition: Map<string, number>,
+  myTier: FranchiseTier,
+  myPeakYearOffset: number,
+  maxResults = 8,
+): { players: TradeTargetPlayer[]; picks: TradeTargetPick[] } {
+  const ownedSet = new Set(thisRosterPlayerIds);
+  const numTeams = allRosters.length;
+  const currentYear = new Date().getFullYear();
+
+  // ── Buyer stance ──────────────────────────────────────────────────────────
+  type BuyerStance = 'win-now' | 'building' | 'flexible';
+  const buyerStance: BuyerStance =
+    myTier === 'Contender' && myPeakYearOffset <= 1 ? 'win-now' :
+    myTier === 'Rebuilding' || myPeakYearOffset >= 3 ? 'building' : 'flexible';
+
+  // ── Per-roster tier (from total positional WAR) ───────────────────────────
+  const rosterTotalWAR = new Map<number, number>();
+  for (const [rId, posMap] of allTeamWarByPosition) {
+    rosterTotalWAR.set(rId, [...posMap.values()].reduce((s, v) => s + v, 0));
+  }
+  const allWARValues = [...rosterTotalWAR.values()];
+  const p75WAR = percentile75(allWARValues);
+  const medWAR = median(allWARValues);
+  const rosterTierFn = (rosterId: number): FranchiseTier => {
+    const w = rosterTotalWAR.get(rosterId) ?? 0;
+    if (w >= p75WAR) return 'Contender';
+    if (w >= medWAR) return 'Fringe';
+    return 'Rebuilding';
+  };
+
+  // ── Dynasty value rank per roster (for pillar detection) ──────────────────
+  const rosterValueRanks = new Map<number, Map<string, number>>();
+  for (const r of allRosters) {
+    const sorted = (r.players ?? [])
+      .map((id) => ({ id, value: fcMap.get(id) ?? 0 }))
+      .sort((a, b) => b.value - a.value);
+    const rankMap = new Map<string, number>();
+    sorted.forEach(({ id }, i) => rankMap.set(id, i + 1));
+    rosterValueRanks.set(r.roster_id, rankMap);
+  }
+
+  // ── Luck multiplier (wins rank vs WAR rank) ───────────────────────────────
+  const rosterWinsSorted = [...allRosters]
+    .map((r) => ({ id: r.roster_id, wins: r.settings?.wins ?? 0 }))
+    .sort((a, b) => b.wins - a.wins);
+  const winsRankByRosterId = new Map(rosterWinsSorted.map(({ id }, i) => [id, i + 1]));
+
+  const rosterWARSorted = [...rosterTotalWAR.entries()].sort((a, b) => b[1] - a[1]);
+  const warRankByRosterId = new Map(rosterWARSorted.map(([id], i) => [id, i + 1]));
+
+  const luckMultFn = (rosterId: number): number => {
+    const wRank = winsRankByRosterId.get(rosterId) ?? numTeams;
+    const warRank = warRankByRosterId.get(rosterId) ?? numTeams;
+    if (wRank <= numTeams * 0.25 && warRank >= numTeams * 0.6) return 1.3;
+    if (warRank <= numTeams * 0.25 && wRank >= numTeams * 0.6) return 0.7;
+    return 1.0;
+  };
+
+  // ── Need signals ──────────────────────────────────────────────────────────
   let weakPositions = warByPosition
     .filter((p) => p.war < p.leagueAvgWAR)
     .sort((a, b) => (a.war - a.leagueAvgWAR) - (b.war - b.leagueAvgWAR));
-
-  // Fallback: show bottom 2 positions if no clear weakness
   if (weakPositions.length === 0) {
     weakPositions = [...warByPosition].sort((a, b) => a.war - b.war).slice(0, 2);
   }
-
   const weakPositionSet = new Set(weakPositions.map((p) => p.position));
-  const ownedSet = new Set(thisRosterPlayerIds);
 
-  // Build per-team "pillar" set: top-2 dynasty value players per roster are unlikely to be traded
-  const teamPillars = new Map<number, Set<string>>();
-  for (const roster of allRosters) {
-    const scored = (roster.players ?? [])
-      .map((id) => ({ id, value: fcMap.get(id) ?? 0 }))
-      .sort((a, b) => b.value - a.value);
-    teamPillars.set(roster.roster_id, new Set(scored.slice(0, 2).map((p) => p.id)));
-  }
+  const needMultFn = (pos: string): number => {
+    const posNeed = warByPosition.find((p) => p.position === pos);
+    if (!posNeed) return 0.6;
+    const deficit = posNeed.leagueAvgWAR - posNeed.war;
+    const deficitPct = deficit / (posNeed.leagueAvgWAR || 1);
+    const rankNeed = posNeed.rank / numTeams;
+    return 0.6 + Math.min(deficitPct * 0.6 + rankNeed * 0.4, 1.0) * 1.4;
+  };
 
-  type Candidate = TradeTargetPlayer & { score: number };
-  const candidates: Candidate[] = [];
+  // ── Timeline penalty ──────────────────────────────────────────────────────
+  const timelinePenaltyFn = (age: number, pos: string): number => {
+    const declineAge = DECLINE_AGE[pos] ?? 30;
+    if (buyerStance === 'win-now') {
+      if (pos === 'RB' && age <= 23) return 0.2;
+      if (age <= 21) return 0.3;
+      if (age >= declineAge + 2) return 0.5;
+      return 1.0;
+    }
+    if (buyerStance === 'building') {
+      if (age >= 30) return 0.1;
+      if (age >= 28 && pos === 'RB') return 0.2;
+      if (age >= 29) return 0.4;
+      if (age <= 24) return 1.2;
+      return 0.85;
+    }
+    // flexible
+    if (age >= 31 && pos === 'RB') return 0.5;
+    if (age >= 32) return 0.6;
+    return 1.0;
+  };
+
+  // ── Urgency flag ──────────────────────────────────────────────────────────
+  const urgencyFlagFn = (age: number, pos: string, dynastyValue: number): 'buy-low' | 'closing-window' | null => {
+    const ageMult = getMultiplier(pos, age);
+    const twoYrMult = getMultiplier(pos, age + 2);
+    const drop = ageMult > 0 ? (ageMult - twoYrMult) / ageMult : 0;
+    if (dynastyValue > 3000 && drop > 0.15) return 'buy-low';
+    if (drop > 0.07) return 'closing-window';
+    return null;
+  };
+
+  // ── Seller tier multiplier ────────────────────────────────────────────────
+  const sellerTierMultFn = (tier: FranchiseTier, age: number): number => {
+    const isVet = age >= 28;
+    const isYoung = age <= 24;
+    if (tier === 'Rebuilding' && isVet) return 0.85;
+    if (tier === 'Rebuilding' && !isYoung) return 0.65;
+    if (tier === 'Contender' && isYoung) return 0.80;
+    if (tier === 'Rebuilding' && isYoung) return 0.25;
+    if (tier === 'Contender' && isVet) return 0.30;
+    return 0.50;
+  };
+
+  // ── Candidate collection ──────────────────────────────────────────────────
+  type PlayerCandidate = TradeTargetPlayer & { finalScore: number; availabilityMult: number };
+  type PickCandidate = { pick: FutureDraftPick; pickScore: number; estimatedValue: number; ownerUserId: string; ownerName: string; sellerTier: FranchiseTier; slotLabel: string; reason: string };
+
+  const playerCandidates: PlayerCandidate[] = [];
+  const pickCandidates: PickCandidate[] = [];
 
   for (const roster of allRosters) {
     if (roster.roster_id === thisRosterId) continue;
     const ownerUserId = roster.owner_id;
     if (!ownerUserId) continue;
     const ownerName = userDisplayNames.get(ownerUserId) ?? 'Unknown';
+    const sellerTier = rosterTierFn(roster.roster_id);
+    const luckMult = luckMultFn(roster.roster_id);
+    const rankMap = rosterValueRanks.get(roster.roster_id) ?? new Map<string, number>();
 
+    // Player candidates
     for (const pid of roster.players ?? []) {
       if (ownedSet.has(pid)) continue;
       const player = allPlayers[pid];
       if (!player) continue;
       const pos = player.position ?? '';
+      if (!CURVE_POSITIONS.has(pos)) continue;
       if (!weakPositionSet.has(pos)) continue;
 
+      const rankOnTeam = rankMap.get(pid) ?? 99;
+      if (rankOnTeam <= 2) continue; // hard pillar skip
+
+      const age = player.age ?? 26;
       const war = playerWARMap.get(pid) ?? 0;
       const dynastyValue = fcMap.get(pid) ?? null;
+      const baseValue = dynastyValue ?? (Math.max(war, 0) * 450);
+      if (baseValue < 200) continue;
 
-      // Skip players with no signal
-      if (dynastyValue === null && war <= 0 && (player.age ?? 99) > 30) continue;
+      const timelinePenalty = timelinePenaltyFn(age, pos);
+      if (timelinePenalty < 0.1) continue;
 
-      // Score: dynasty value is primary; fall back to WAR+age
-      const score = dynastyValue ?? (Math.max(war, 0) * 500 + ((30 - (player.age ?? 30)) * 60));
+      // Depth multiplier
+      const theirWARAtPos = allTeamWarByPosition.get(roster.roster_id)?.get(pos) ?? 0;
+      const playerWAR = Math.max(war, 0);
+      const playerShare = theirWARAtPos > 0 ? playerWAR / theirWARAtPos : 1.0;
+      const leagueAvgAtPos = leagueAvgWARByPosition.get(pos) ?? 0;
+      const surplusWAR = Math.max(theirWARAtPos - leagueAvgAtPos, 0);
+      const surplusFrac = surplusWAR / (leagueAvgAtPos || 1);
+      const depthMult =
+        playerShare > 0.7 ? 0.15 :
+        playerShare > 0.5 ? 0.40 :
+        surplusFrac > 0.5 && playerShare < 0.3 ? 1.0 :
+        surplusFrac > 0.25 ? 0.75 : 0.50;
 
+      const pillarMult = rankOnTeam === 3 ? 0.55 : rankOnTeam === 4 ? 0.80 : 1.0;
+      const liquidityMult = POSITION_LIQUIDITY[pos] ?? 1.0;
+      const sellerMult = sellerTierMultFn(sellerTier, age);
+      const availabilityMult = Math.max(0.05, Math.min(1.0,
+        sellerMult * depthMult * pillarMult * liquidityMult * luckMult,
+      ));
+
+      const needMult = needMultFn(pos);
+      const finalScore = baseValue * needMult * availabilityMult * timelinePenalty;
+
+      const urgency = urgencyFlagFn(age, pos, dynastyValue ?? 0);
       const posNeed = warByPosition.find((p) => p.position === pos);
-      const reason = posNeed
-        ? `Fills your ${pos} weakness (#${posNeed.rank} in league)`
+      const timelineMatch: TradeTargetPlayer['timelineMatch'] =
+        timelinePenalty >= 0.9 ? 'ideal' : timelinePenalty >= 0.6 ? 'good' : 'marginal';
+
+      // Build reason text
+      const needPart = posNeed
+        ? `Your ${pos} is #${posNeed.rank}/${numTeams} in the league`
         : `Addresses ${pos} depth`;
+      const availPart =
+        sellerTier === 'Rebuilding' && age >= 26 ? `${ownerName} is rebuilding — may move veterans` :
+        sellerTier === 'Contender' && age <= 24 ? `${ownerName} (contender) may sell youth for wins now` :
+        depthMult >= 0.75 ? `${ownerName} has ${pos} depth to spare` : '';
+      const urgencyPart =
+        urgency === 'buy-low' ? `Buy before dynasty value drops` :
+        urgency === 'closing-window' ? `Value declining — act soon` : '';
+      const reason = [needPart, availPart, urgencyPart].filter(Boolean).join('. ');
 
-      const isBottomThird = posNeed && posNeed.rank > (allRosters.length) * 0.66;
-      // Pillar penalty: top-2 dynasty value players on a team are unlikely to be traded
-      const isPillar = teamPillars.get(roster.roster_id)?.has(pid) ?? false;
-      const adjustedScore = (isBottomThird ? score * 1.3 : score) * (isPillar ? 0.4 : 1.0);
-
-      candidates.push({
+      playerCandidates.push({
         name: `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
         position: pos,
-        age: player.age ?? 0,
+        age,
         war: Math.round(war * 10) / 10,
         dynastyValue,
         ownerUserId,
         ownerDisplayName: ownerName,
         reason,
-        score: adjustedScore,
+        availabilityScore: Math.round(availabilityMult * 100) / 100,
+        timelineMatch,
+        urgencyFlag: urgency,
+        sellerTierLabel: sellerTier,
+        finalScore,
+        availabilityMult,
       });
     }
 
-    // Add draft picks owned by other teams as potential acquisition targets
-    const theirPicks = allPicksByRosterId.get(roster.roster_id) ?? [];
-    const sortedPicks = [...theirPicks].sort((a, b) => {
-      if (a.season !== b.season) return Number(a.season) - Number(b.season);
-      return a.round - b.round;
-    });
-    // Include up to 2 picks per team (best by year+round)
-    for (const pick of sortedPicks.slice(0, 2)) {
-      const pickValue = PICK_DYNASTY_VALUE[pick.round] ?? 100;
-      candidates.push({
-        name: `${pick.season} Round ${pick.round} Pick`,
-        position: 'PICK',
-        age: 0,
-        war: 0,
-        dynastyValue: pickValue,
-        ownerUserId,
-        ownerDisplayName: ownerName,
-        reason: `Future draft capital (${pick.season} Rd ${pick.round})`,
-        score: pickValue * 0.6, // slightly lower weight than proven players
-      });
+    // Pick candidates
+    const theirPicks = (allPicksByRosterId.get(roster.roster_id) ?? [])
+      .filter((p) => p.round <= 2)
+      .sort((a, b) => Number(a.season) - Number(b.season) || a.round - b.round);
+    const bestPick = theirPicks[0];
+    if (bestPick) {
+      const originalRosterId = bestPick.roster_id;
+      const originalTeamWAR = rosterTotalWAR.get(originalRosterId) ?? median(allWARValues);
+      const sortedWARsAsc = [...allWARValues].sort((a, b) => a - b);
+      const projectedPickSlot = sortedWARsAsc.findIndex((w) => w >= originalTeamWAR) + 1;
+      const slotFraction = projectedPickSlot / numTeams;
+      const r1Base = slotFraction <= 0.25 ? 7500 : slotFraction <= 0.5 ? 5500 : slotFraction <= 0.75 ? 3500 : 2200;
+      const r2Base = slotFraction <= 0.25 ? 3000 : slotFraction <= 0.5 ? 2000 : slotFraction <= 0.75 ? 1300 : 800;
+      const basePickValue = bestPick.round === 1 ? r1Base : r2Base;
+      const yearOffset = Number(bestPick.season) - currentYear;
+      const yearDiscount = Math.pow(0.85, Math.max(0, yearOffset - 1));
+      const estimatedValue = Math.round(basePickValue * yearDiscount);
+
+      if (estimatedValue >= 1000) {
+        const slotLabel =
+          slotFraction <= 0.25 ? `Top-${Math.ceil(numTeams * 0.25)} pick likely` :
+          slotFraction <= 0.5 ? `Mid-first likely` : `Late first likely`;
+        const pickSellerMult =
+          sellerTier === 'Contender' ? 0.90 :
+          sellerTier === 'Fringe' ? 0.65 : 0.25;
+        const pickAvailability = Math.max(0.05, Math.min(1.0, pickSellerMult * luckMult));
+        const pickScore = estimatedValue * pickAvailability;
+        const pickReason =
+          slotFraction <= 0.25 ? `Top draft pick from a weak team — high rookie upside` :
+          slotFraction <= 0.5 ? `Solid mid-first from ${ownerName}` :
+          `Late first from ${ownerName} — limited upside`;
+
+        pickCandidates.push({
+          pick: bestPick,
+          pickScore,
+          estimatedValue,
+          ownerUserId,
+          ownerName,
+          sellerTier,
+          slotLabel,
+          reason: pickReason,
+        });
+      }
     }
   }
 
-  candidates.sort((a, b) => b.score - a.score);
+  // ── Sort and deduplicate players ──────────────────────────────────────────
+  playerCandidates.sort((a, b) => {
+    const diff = b.finalScore - a.finalScore;
+    if (Math.abs(diff) > 200) return diff;
+    return b.availabilityMult - a.availabilityMult;
+  });
 
-  // Limit to 2 assets per owner for diversity
   const ownerCounts = new Map<string, number>();
-  const results: TradeTargetPlayer[] = [];
+  const posCounts = new Map<string, number>();
+  const players: TradeTargetPlayer[] = [];
 
-  for (const c of candidates) {
-    if (results.length >= maxResults) break;
-    const count = ownerCounts.get(c.ownerUserId) ?? 0;
-    if (count >= 2) continue;
-    results.push({
+  for (const c of playerCandidates) {
+    if (players.length >= maxResults) break;
+    const oCount = ownerCounts.get(c.ownerUserId) ?? 0;
+    if (oCount >= 2) continue;
+    const pCount = posCounts.get(c.position) ?? 0;
+    if (pCount >= 2) continue;
+    players.push({
       name: c.name, position: c.position, age: c.age, war: c.war,
-      dynastyValue: c.dynastyValue, ownerUserId: c.ownerUserId,
-      ownerDisplayName: c.ownerDisplayName, reason: c.reason,
+      dynastyValue: c.dynastyValue, ownerUserId: c.ownerUserId, ownerDisplayName: c.ownerDisplayName,
+      reason: c.reason, availabilityScore: c.availabilityScore, timelineMatch: c.timelineMatch,
+      urgencyFlag: c.urgencyFlag, sellerTierLabel: c.sellerTierLabel,
     });
-    ownerCounts.set(c.ownerUserId, count + 1);
+    ownerCounts.set(c.ownerUserId, oCount + 1);
+    posCounts.set(c.position, pCount + 1);
   }
 
-  return results;
+  // ── Sort and deduplicate picks ────────────────────────────────────────────
+  pickCandidates.sort((a, b) => b.pickScore - a.pickScore);
+  const pickOwnerSeen = new Set<string>();
+  const picks: TradeTargetPick[] = [];
+
+  for (const c of pickCandidates) {
+    if (picks.length >= 3) break;
+    if (pickOwnerSeen.has(c.ownerUserId)) continue;
+    pickOwnerSeen.add(c.ownerUserId);
+    picks.push({
+      season: c.pick.season,
+      round: c.pick.round,
+      estimatedValue: c.estimatedValue,
+      projectedSlotLabel: c.slotLabel,
+      originalTeamName: c.ownerName,
+      ownerUserId: c.ownerUserId,
+      ownerDisplayName: c.ownerName,
+      reason: c.reason,
+      availabilityScore: Math.round(Math.max(0.05, c.pickScore / (c.estimatedValue || 1)) * 100) / 100,
+    });
+  }
+
+  return { players, picks };
 }
 
 // ── Feature 5: Trade Partner Matching ────────────────────────────────────────
 
-/** Find the top player at a given position on a roster, by dynasty value then WAR. */
+/** Find the top player at a given position on a roster, by dynasty value then WAR.
+ *  Excludes pillar players (franchise cornerstones unlikely to be traded) and
+ *  applies an age-curve bonus to prefer assets that match the receiver's timeline.
+ */
 function topPlayerAtPosition(
   rosterPlayerIds: string[],
   position: string,
   allPlayers: Record<string, SleeperPlayer>,
   playerWARMap: Map<string, number>,
   fcMap: Map<string, number>,
+  excludeIds?: Set<string>,
+  receiverTier?: 'Contender' | 'Fringe' | 'Rebuilding',
 ): { name: string; value: number } | undefined {
-  let best: { name: string; score: number } | null = null;
+  let best: { name: string; score: number; value: number } | null = null;
   for (const pid of rosterPlayerIds) {
+    if (excludeIds?.has(pid)) continue;
     const p = allPlayers[pid];
     if (!p || p.position !== position) continue;
     const name = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
     const war = playerWARMap.get(pid) ?? 0;
     const fc = fcMap.get(pid) ?? 0;
-    const score = fc > 0 ? fc : Math.max(war, 0) * 500;
-    if (!best || score > best.score) best = { name, score };
+    const baseValue = fc > 0 ? fc : Math.max(war, 0) * 500;
+    // Age-curve bonus: prefer assets that match the receiver's timeline
+    const age = p.age ?? 26;
+    let ageBonus = 0;
+    if (receiverTier === 'Rebuilding' && age <= 24) ageBonus = baseValue * 0.1;
+    else if (receiverTier === 'Contender' && age >= 26 && age <= 30) ageBonus = baseValue * 0.05;
+    const score = baseValue + ageBonus;
+    if (!best || score > best.score) best = { name, score, value: baseValue };
   }
-  return best ? { name: best.name, value: best.score } : undefined;
+  return best ? { name: best.name, value: best.value } : undefined;
 }
 
 function computeTradePartners(
@@ -425,10 +638,38 @@ function computeTradePartners(
   allPlayers: Record<string, SleeperPlayer>,
   playerWARMap: Map<string, number>,
   fcMap: Map<string, number>,
+  allPicksByRosterId: Map<number, FutureDraftPick[]>,
   maxResults = 3,
 ): TradePartner[] {
   type Candidate = TradePartner & { score: number };
   const candidates: Candidate[] = [];
+
+  // ── Pillar sets: top-3 dynasty value players per roster are franchise cornerstones ──
+  const rosterPillarIds = new Map<number, Set<string>>();
+  for (const r of allRosters) {
+    const sorted = (r.players ?? [])
+      .map((id) => ({ id, value: fcMap.get(id) ?? 0 }))
+      .sort((a, b) => b.value - a.value);
+    rosterPillarIds.set(r.roster_id, new Set(sorted.slice(0, 3).map((p) => p.id)));
+  }
+  const myPillarIds = rosterPillarIds.get(thisRosterId) ?? new Set<string>();
+
+  // ── Simplified tier per roster (from total positional WAR) ──
+  const rosterTotalWAR = new Map<number, number>();
+  for (const [rId, posMap] of allTeamWarByPosition) {
+    rosterTotalWAR.set(rId, [...posMap.values()].reduce((s, v) => s + v, 0));
+  }
+  const allWARValues = [...rosterTotalWAR.values()];
+  const p75WAR = percentile75(allWARValues);
+  const medWAR = median(allWARValues);
+  const rosterTierFn = (rosterId: number): FranchiseTier => {
+    const w = rosterTotalWAR.get(rosterId) ?? 0;
+    if (w >= p75WAR) return 'Contender';
+    if (w >= medWAR) return 'Fringe';
+    return 'Rebuilding';
+  };
+  const myTier = rosterTierFn(thisRosterId);
+  const myRanks = positionRanksByRoster.get(thisRosterId) ?? new Map<string, number>();
 
   for (const roster of allRosters) {
     if (roster.roster_id === thisRosterId) continue;
@@ -439,6 +680,8 @@ function computeTradePartners(
     if (!theirWAR) continue;
     const theirRanks = positionRanksByRoster.get(roster.roster_id) ?? new Map<string, number>();
     const theirPlayerIds = roster.players ?? [];
+    const theirTier = rosterTierFn(roster.roster_id);
+    const theirPillarIds = rosterPillarIds.get(roster.roster_id) ?? new Set<string>();
 
     const theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[] = [];
     const youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[] = [];
@@ -452,41 +695,64 @@ function computeTradePartners(
       const theirWARVal = theirWAR.get(pos) ?? 0;
       const theirRank = theirRanks.get(pos) ?? 0;
 
-      const myDeficit = avgWAR - myWAR;       // positive = I'm below avg
+      const myDeficit = avgWAR - myWAR;
       const mySurplus = myWAR - avgWAR;
       const theirDeficit = avgWAR - theirWARVal;
 
+      // They can offer at this position: they're stronger than me here AND they have a non-pillar player
       if (myDeficit > 0 && theirWARVal > myWAR) {
-        const top = topPlayerAtPosition(theirPlayerIds, pos, allPlayers, playerWARMap, fcMap);
-        theyCanOffer.push({
-          position: pos,
-          rank: theirRank,
-          delta: Math.round((theirWARVal - myWAR) * 10) / 10,
-          topPlayer: top?.name,
-          topPlayerValue: top?.value,
-        });
-        score += myDeficit * (theirWARVal - myWAR);
+        const top = topPlayerAtPosition(theirPlayerIds, pos, allPlayers, playerWARMap, fcMap, theirPillarIds, myTier);
+        if (top) {
+          theyCanOffer.push({
+            position: pos,
+            rank: theirRank,
+            delta: Math.round((theirWARVal - myWAR) * 10) / 10,
+            topPlayer: top.name,
+            topPlayerValue: top.value,
+          });
+          score += myDeficit * (theirWARVal - myWAR);
+        }
       }
 
+      // I can offer at this position: I have surplus and they need it AND I have a non-pillar player
       if (mySurplus > 0 && theirDeficit > 0) {
-        const top = topPlayerAtPosition(thisRosterPlayerIds, pos, allPlayers, playerWARMap, fcMap);
-        youCanOffer.push({
-          position: pos,
-          rank: myRank,
-          delta: Math.round(mySurplus * 10) / 10,
-          topPlayer: top?.name,
-          topPlayerValue: top?.value,
-        });
-        score += mySurplus * theirDeficit;
+        const top = topPlayerAtPosition(thisRosterPlayerIds, pos, allPlayers, playerWARMap, fcMap, myPillarIds, theirTier);
+        if (top) {
+          youCanOffer.push({
+            position: pos,
+            rank: myRank,
+            delta: Math.round(mySurplus * 10) / 10,
+            topPlayer: top.name,
+            topPlayerValue: top.value,
+          });
+          score += mySurplus * theirDeficit;
+        }
       }
     }
 
-    // Both sides must have something — a trade with only one side populated isn't actionable
+    // Pick-rich detection: if I'm a Contender and they're Rebuilding with future 1st-round picks,
+    // surface those picks as trade assets they can offer
+    if (myTier === 'Contender' && theirTier === 'Rebuilding') {
+      const theirFutureFirsts = (allPicksByRosterId.get(roster.roster_id) ?? [])
+        .filter((p) => p.round === 1)
+        .slice(0, 2);
+      for (const pick of theirFutureFirsts) {
+        theyCanOffer.push({
+          position: 'PICK',
+          rank: 0,
+          delta: 0,
+          topPlayer: `${pick.season} 1st`,
+          topPlayerValue: 2500,
+        });
+        score += 1250;
+      }
+    }
+
+    // Both sides must have something
     if (theyCanOffer.length === 0 || youCanOffer.length === 0) continue;
 
-    // Fairness: compare total implied dynasty value on each side.
-    // A trade where one side's assets outweigh the other's by >40% is unlikely to be accepted.
-    const FAIRNESS_THRESHOLD = 0.60;
+    // Fairness: compare total implied dynasty value. Tighter threshold = more realistic trades.
+    const FAIRNESS_THRESHOLD = 0.72;
     const theyTotalValue = theyCanOffer.reduce((s, o) => s + (o.topPlayerValue ?? 0), 0);
     const youTotalValue = youCanOffer.reduce((s, o) => s + (o.topPlayerValue ?? 0), 0);
     if (theyTotalValue > 0 && youTotalValue > 0) {
@@ -494,19 +760,76 @@ function computeTradePartners(
       if (ratio < FAIRNESS_THRESHOLD) continue;
     }
 
-    const buildSideStr = (offers: typeof theyCanOffer): string => {
+    // Window alignment multiplier: contention window compatibility drives trade motivation
+    const windowMult =
+      (myTier === 'Rebuilding' && theirTier === 'Contender') ||
+      (myTier === 'Contender' && theirTier === 'Rebuilding')
+        ? 1.4   // ideal: natural buy/sell dynamic
+        : myTier !== theirTier
+        ? 1.0   // complementary: different tiers, some motivation
+        : myTier === 'Fringe'
+        ? 0.7   // both fringe: some overlap possible
+        : myTier === 'Contender'
+        ? 0.5   // both contending: competing for same goal, rarely trade
+        : 0.2;  // both rebuilding: almost no reason to trade
+    score *= windowMult;
+
+    // Cap to 2 positions per side (strongest match first)
+    const theyFinal = [...theyCanOffer].sort((a, b) => b.delta - a.delta).slice(0, 2);
+    const youFinal = [...youCanOffer].sort((a, b) => b.delta - a.delta).slice(0, 2);
+
+    // Labels
+    const windowAlignment: TradePartner['windowAlignment'] =
+      (myTier === 'Rebuilding' && theirTier === 'Contender') ||
+      (myTier === 'Contender' && theirTier === 'Rebuilding')
+        ? 'ideal'
+        : myTier !== theirTier
+        ? 'complementary'
+        : myTier === 'Fringe'
+        ? 'neutral'
+        : 'poor';
+
+    const rawRatio =
+      theyTotalValue > 0 && youTotalValue > 0
+        ? Math.min(theyTotalValue, youTotalValue) / Math.max(theyTotalValue, youTotalValue)
+        : 1;
+    const valueBalance: TradePartner['valueBalance'] = rawRatio >= 0.85 ? 'fair' : 'slight-gap';
+
+    // Benefit text
+    const primaryTheyOffer = theyFinal[0];
+    const primaryYouOffer = youFinal[0];
+
+    let myBenefit = '';
+    if (windowAlignment === 'ideal' && myTier === 'Rebuilding') {
+      myBenefit = `Contender offers proven assets that fit your rebuild`;
+    } else if (windowAlignment === 'ideal' && myTier === 'Contender') {
+      myBenefit = `Rebuilder offers future capital that extends your window`;
+    } else if (primaryTheyOffer) {
+      const myRankAtPos = myRanks.get(primaryTheyOffer.position);
+      myBenefit = myRankAtPos
+        ? `Upgrades your ${primaryTheyOffer.position} (currently #${myRankAtPos} in league)`
+        : `Addresses your ${primaryTheyOffer.position} weakness`;
+    }
+
+    let theirBenefit = '';
+    if (primaryYouOffer) {
+      const theirRankAtPos = theirRanks.get(primaryYouOffer.position) ?? 0;
+      theirBenefit = theirRankAtPos > 0
+        ? `Your ${primaryYouOffer.position} depth fills their #${theirRankAtPos} weakness`
+        : `Your ${primaryYouOffer.position} surplus addresses their need`;
+    }
+
+    const buildSideStr = (offers: typeof theyFinal): string => {
       const sorted = [...offers].sort((a, b) => b.delta - a.delta);
       if (sorted.length === 0) return '';
       const top = sorted[0];
-      const topStr = top.topPlayer
-        ? `${top.topPlayer} (${top.position})`
-        : `${top.position} depth`;
+      const topStr = top.topPlayer ? `${top.topPlayer} (${top.position})` : `${top.position} depth`;
       if (sorted.length === 1) return topStr;
       return `${topStr} + ${sorted.length - 1} more`;
     };
 
-    const theyStr = buildSideStr(theyCanOffer);
-    const youStr = buildSideStr(youCanOffer);
+    const theyStr = buildSideStr(theyFinal);
+    const youStr = buildSideStr(youFinal);
     const summary = `They offer ${theyStr}; you offer ${youStr}.`;
 
     candidates.push({
@@ -514,14 +837,17 @@ function computeTradePartners(
       displayName: userDisplayNames.get(ownerUserId) ?? 'Unknown',
       avatar: userAvatars.get(ownerUserId) ?? null,
       compatibilityScore: 0,
-      theyCanOffer,
-      youCanOffer,
+      theyCanOffer: theyFinal,
+      youCanOffer: youFinal,
       summary,
+      windowAlignment,
+      valueBalance,
+      myBenefit,
+      theirBenefit,
       score,
     });
   }
 
-  // Normalize to 0-100
   const maxScore = Math.max(...candidates.map((c) => c.score), 1);
   for (const c of candidates) {
     c.compatibilityScore = Math.round((c.score / maxScore) * 100);
@@ -532,6 +858,8 @@ function computeTradePartners(
     userId: c.userId, displayName: c.displayName, avatar: c.avatar,
     compatibilityScore: c.compatibilityScore, theyCanOffer: c.theyCanOffer,
     youCanOffer: c.youCanOffer, summary: c.summary,
+    windowAlignment: c.windowAlignment, valueBalance: c.valueBalance,
+    myBenefit: c.myBenefit, theirBenefit: c.theirBenefit,
   }));
 }
 
@@ -787,6 +1115,10 @@ export function computeFranchiseOutlook(
     warByPosition, allRosters, allPlayers,
     playerWARMap, fcMap, userDisplayNames,
     allPicksByRosterId,
+    allTeamWarByPosition,
+    leagueAvgWARByPosition,
+    tier,
+    peakYearOffset,
   );
 
   // ── Trade Partners ───────────────────────────────────────────────────────
@@ -797,6 +1129,7 @@ export function computeFranchiseOutlook(
     positionRanksByRoster, leagueAvgWARByPosition,
     userDisplayNames, userAvatars,
     allPlayers, playerWARMap, fcMap,
+    allPicksByRosterId,
   );
 
   return {

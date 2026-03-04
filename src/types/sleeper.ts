@@ -442,7 +442,7 @@ export interface FranchiseOutlookResult {
   focusAreas: { signal: string; detail: string; severity: 'positive' | 'warning' | 'info' }[];
   strategyRecommendation: StrategyRecommendation;
   rookieDraftTargets: RookieDraftTarget[];
-  tradeTargets: TradeTargetPlayer[];
+  tradeTargets: { players: TradeTargetPlayer[]; picks: TradeTargetPick[] };
   tradePartners: TradePartner[];
 }
 
@@ -497,6 +497,22 @@ export interface TradeTargetPlayer {
   ownerUserId: string;
   ownerDisplayName: string;
   reason: string;
+  availabilityScore: number;        // 0–1: how likely this team trades them
+  timelineMatch: 'ideal' | 'good' | 'marginal';
+  urgencyFlag: 'buy-low' | 'closing-window' | null;
+  sellerTierLabel: string;          // 'Rebuilding' | 'Fringe' | 'Contender'
+}
+
+export interface TradeTargetPick {
+  season: string;
+  round: number;
+  estimatedValue: number;
+  projectedSlotLabel: string;
+  originalTeamName: string;
+  ownerUserId: string;
+  ownerDisplayName: string;
+  reason: string;
+  availabilityScore: number;
 }
 
 export interface TradePartner {
@@ -507,6 +523,10 @@ export interface TradePartner {
   theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
   youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
   summary: string;
+  windowAlignment: 'ideal' | 'complementary' | 'neutral' | 'poor';
+  valueBalance: 'fair' | 'slight-gap';
+  myBenefit: string;
+  theirBenefit: string;
 }
 
 // ---- All-Time Asset Lifecycle Types ----
