@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Share2, Check } from 'lucide-react';
+import posthog from 'posthog-js';
 
 interface ShareButtonProps {
   className?: string;
@@ -12,6 +13,7 @@ export function ShareButton({ className }: ShareButtonProps) {
 
   const handleShare = async () => {
     const url = window.location.href;
+    posthog.capture('share_clicked', { url });
 
     if (navigator.share) {
       try {
