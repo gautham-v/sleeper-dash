@@ -48,7 +48,7 @@ function pickKey(pick: SimulatorPickAsset): string {
 function PosBadge({ pos }: { pos: string }) {
   const cls = POSITION_COLORS[pos] ?? 'bg-gray-800/50 text-gray-400 border-gray-700/50';
   return (
-    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} w-8 text-center shrink-0`}>
+    <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${cls} min-w-[2rem] text-center shrink-0`}>
       {pos}
     </span>
   );
@@ -456,6 +456,8 @@ export function TradeSimulatorPanel({ simulator, mode = 'inline' }: TradeSimulat
     clearAll,
   } = simulator;
 
+  const [mobileSide, setMobileSide] = useState<'give' | 'receive'>('give');
+
   const hasCounterparty = counterpartyUserId !== null;
 
   return (
@@ -489,8 +491,64 @@ export function TradeSimulatorPanel({ simulator, mode = 'inline' }: TradeSimulat
           )}
         </div>
 
-        {/* ── Two-column asset selector ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* ── Mobile: tab switcher ── */}
+        <div className="sm:hidden flex border-b border-gray-700/50 mb-4 -mx-1">
+          {(['give', 'receive'] as const).map((side) => (
+            <button
+              key={side}
+              onClick={() => setMobileSide(side)}
+              className={`flex-1 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px ${
+                mobileSide === side
+                  ? 'border-brand-cyan text-white'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {side === 'give' ? (
+                <>You Give{selection.givePlayers.length + selection.givePicks.length > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-cyan/20 text-brand-cyan text-[10px] font-bold">
+                    {selection.givePlayers.length + selection.givePicks.length}
+                  </span>
+                )}</>
+              ) : (
+                <>You Receive{selection.receivePlayers.length + selection.receivePicks.length > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-cyan/20 text-brand-cyan text-[10px] font-bold">
+                    {selection.receivePlayers.length + selection.receivePicks.length}
+                  </span>
+                )}</>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Mobile: single active column ── */}
+        <div className="sm:hidden">
+          {mobileSide === 'give' ? (
+            <AssetColumn
+              title=""
+              disabled={!hasCounterparty}
+              players={myAvailablePlayers}
+              picks={myAvailablePicks}
+              selectedPlayerIds={selection.givePlayers}
+              selectedPicks={selection.givePicks}
+              onTogglePlayer={toggleGivePlayer}
+              onTogglePick={toggleGivePick}
+            />
+          ) : (
+            <AssetColumn
+              title=""
+              disabled={!hasCounterparty}
+              players={counterpartyAvailablePlayers}
+              picks={counterpartyAvailablePicks}
+              selectedPlayerIds={selection.receivePlayers}
+              selectedPicks={selection.receivePicks}
+              onTogglePlayer={toggleReceivePlayer}
+              onTogglePick={toggleReceivePick}
+            />
+          )}
+        </div>
+
+        {/* ── Desktop: two-column asset selector ── */}
+        <div className="hidden sm:grid grid-cols-2 gap-5">
           {/* You Give */}
           <AssetColumn
             title="You Give"
