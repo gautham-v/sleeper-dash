@@ -1,5 +1,6 @@
 'use client';
 import { useQueries, useQuery } from '@tanstack/react-query';
+import { THIRTY_MIN_MS, FIFTEEN_MIN_MS } from '@/lib/constants';
 import { sleeperApi } from '../api/sleeper';
 import { fetchLeagueTradeAnalysis } from './useLeagueTradeHistory';
 import { fetchLeagueDraftAnalysis } from './useLeagueDraftHistory';
@@ -108,7 +109,7 @@ export function useCrossLeagueTradeStats(
       queryKey: ['league-trade-history', leagueId],
       queryFn: () => fetchLeagueTradeAnalysis(leagueId),
       enabled: !!userId && leagues.length > 0,
-      staleTime: 1000 * 60 * 30,
+      staleTime: THIRTY_MIN_MS,
     })),
   });
 
@@ -222,7 +223,7 @@ export function useCrossLeagueDraftStats(
       queryKey: ['league-draft-history', leagueId],
       queryFn: () => fetchLeagueDraftAnalysis(leagueId),
       enabled: !!userId && leagues.length > 0,
-      staleTime: 1000 * 60 * 30,
+      staleTime: THIRTY_MIN_MS,
     })),
   });
 
@@ -384,7 +385,7 @@ export function useCrossLeagueRosters(
       });
     },
     enabled: !!userId && leagues.length > 0,
-    staleTime: 1000 * 60 * 15,
+    staleTime: FIFTEEN_MIN_MS,
   });
 
   return {

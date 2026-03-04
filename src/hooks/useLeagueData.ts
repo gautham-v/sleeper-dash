@@ -18,7 +18,7 @@ import type {
   SleeperMatchup,
   SleeperRoster,
 } from '../types/sleeper';
-import { REGULAR_SEASON_WEEKS, TOTAL_SEASON_WEEKS } from '@/lib/constants';
+import { REGULAR_SEASON_WEEKS, TOTAL_SEASON_WEEKS, FIVE_MIN_MS, TEN_MIN_MS, THIRTY_MIN_MS, ONE_HOUR_MS, ONE_DAY_MS } from '@/lib/constants';
 
 /**
  * Derives each team's playoff finish label from the winners bracket.
@@ -98,7 +98,7 @@ export function useUserById(userId: string | undefined) {
     queryFn: () => sleeperApi.getUser(userId!),
     enabled: !!userId,
     retry: false,
-    staleTime: 1000 * 60 * 60,
+    staleTime: ONE_HOUR_MS,
   });
 }
 
@@ -107,7 +107,7 @@ export function useUserLeagues(userId: string | undefined, season: string) {
     queryKey: ['leagues', userId, season],
     queryFn: () => sleeperApi.getUserLeagues(userId!, season),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 10,
+    staleTime: TEN_MIN_MS,
   });
 }
 
@@ -126,7 +126,7 @@ export function useNFLState() {
   return useQuery({
     queryKey: ['nfl-state'],
     queryFn: sleeperApi.getNFLState,
-    staleTime: 1000 * 60 * 10,
+    staleTime: TEN_MIN_MS,
   });
 }
 
@@ -135,7 +135,7 @@ export function useLeague(leagueId: string | null) {
     queryKey: ['league', leagueId],
     queryFn: () => sleeperApi.getLeague(leagueId!),
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: FIVE_MIN_MS,
   });
 }
 
@@ -144,7 +144,7 @@ export function useRosters(leagueId: string | null) {
     queryKey: ['rosters', leagueId],
     queryFn: () => sleeperApi.getRosters(leagueId!),
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: FIVE_MIN_MS,
   });
 }
 
@@ -153,7 +153,7 @@ export function useLeagueUsers(leagueId: string | null) {
     queryKey: ['league-users', leagueId],
     queryFn: () => sleeperApi.getLeagueUsers(leagueId!),
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: FIVE_MIN_MS,
   });
 }
 
@@ -178,7 +178,7 @@ export function useAllMatchups(leagueId: string | null) {
       return all.filter((m) => m.team1.points > 0 || m.team2.points > 0);
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: FIVE_MIN_MS,
   });
 }
 
@@ -196,7 +196,7 @@ export function useAllTransactions(leagueId: string | null) {
       return results.flat();
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: FIVE_MIN_MS,
   });
 }
 
@@ -208,8 +208,8 @@ export function useAllPlayers() {
   return useQuery({
     queryKey: ['all-players'],
     queryFn: sleeperApi.getAllPlayers,
-    staleTime: 1000 * 60 * 60 * 24,
-    gcTime: 1000 * 60 * 60 * 24,
+    staleTime: ONE_DAY_MS,
+    gcTime: ONE_DAY_MS,
   });
 }
 
@@ -299,7 +299,7 @@ export function useDashboardData(leagueId: string | null) {
     queryKey: ['winners-bracket', leagueId],
     queryFn: () => sleeperApi.getWinnersBracket(leagueId!),
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
+    staleTime: THIRTY_MIN_MS,
   });
 
   const isLoading =
@@ -567,8 +567,8 @@ export function useLeagueRecords(leagueId: string | null) {
       return records.reverse(); // newest season first
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }
 
@@ -672,8 +672,8 @@ export function useLeagueHistory(leagueId: string | null) {
       return seasons;
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }
 
@@ -739,8 +739,8 @@ export function useYearOverYear(leagueId: string | null) {
       return Array.from(result.values()).filter((e) => e.seasons.length >= 2);
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }
 
@@ -997,6 +997,6 @@ export function useCrossLeagueStats(userId: string | undefined, rootLeagueIds: s
       };
     },
     enabled: !!userId && rootLeagueIds.length > 0,
-    staleTime: 1000 * 60 * 30,
+    staleTime: THIRTY_MIN_MS,
   });
 }

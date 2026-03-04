@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import type { LeagueRostersData, LeagueRosterPlayer, FCPlayerEntry } from '../types/sleeper';
+import { THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 
 export function useLeagueRosters(leagueId: string, targetLeagueId?: string) {
   return useQuery({
@@ -88,7 +89,7 @@ export function useLeagueRosters(leagueId: string, targetLeagueId?: string) {
       return { seasons, managers, currentSeason };
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }

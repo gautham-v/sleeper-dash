@@ -1,6 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
+import { THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { computeFranchiseOutlook, computeAllTeamWeightedAges } from '../utils/franchiseOutlook';
 import type {
@@ -344,7 +345,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
       return { outlookMap, rawContext };
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }

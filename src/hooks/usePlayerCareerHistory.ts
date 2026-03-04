@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import type { PlayerCareerHistoryResult, PlayerCareerSeason } from '../types/sleeper';
+import { THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 
 export function usePlayerCareerHistory(leagueId: string, playerId: string | null) {
   return useQuery({
@@ -123,7 +124,7 @@ export function usePlayerCareerHistory(leagueId: string, playerId: string | null
       return { playerName, position, seasons, draftedBy };
     },
     enabled: !!leagueId && !!playerId,
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
+    staleTime: THIRTY_MIN_MS,
+    gcTime: ONE_HOUR_MS,
   });
 }

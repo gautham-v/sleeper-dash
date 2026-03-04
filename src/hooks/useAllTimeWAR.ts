@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import { computeAllTimeWAR, type SeasonWARInput } from '../utils/allTimeWAR';
 import type { AllTimeWARAnalysis, ManagerAllTimeWAR } from '../types/sleeper';
+import { ONE_DAY_MS, THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 
 // ---------- localStorage cache ----------
 
 const CACHE_VERSION = 'v2';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
   cachedAt: number;
@@ -21,7 +21,7 @@ function loadFromCache(leagueId: string): AllTimeWARAnalysis | null {
     const raw = localStorage.getItem(`alltime-war-${CACHE_VERSION}-${leagueId}`);
     if (!raw) return null;
     const parsed: CachedEntry = JSON.parse(raw);
-    if (Date.now() - parsed.cachedAt > CACHE_TTL_MS) return null;
+    if (Date.now() - parsed.cachedAt > ONE_DAY_MS) return null;
     return {
       managerData: new Map(parsed.managerData),
       seasonBoundaries: parsed.seasonBoundaries,
@@ -137,7 +137,7 @@ export function useAllTimeWAR(leagueId: string | null) {
       return result;
     },
     enabled: !!leagueId,
-    staleTime: 1000 * 60 * 30, // 30 min in-memory staleness
-    gcTime: 1000 * 60 * 60,    // 1 hour GC
+    staleTime: THIRTY_MIN_MS, // 30 min in-memory staleness
+    gcTime: ONE_HOUR_MS,      // 1 hour GC
   });
 }
