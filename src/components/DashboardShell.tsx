@@ -6,7 +6,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftRight,
   BookOpen,
-  Trophy,
   ChevronLeft,
   UserCircle,
   Layers,
@@ -187,14 +186,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Desktop Top Header */}
-          <header className="hidden xl:flex h-20 border-b border-card-border px-8 items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-6 text-sm font-medium text-gray-400">
-              <div className="flex items-center gap-2">
-                <Trophy size={16} className="text-yellow-500" /> League Record Book
-              </div>
-              <div className="flex items-center gap-2">
-                <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
-              </div>
+          <header className="hidden xl:flex h-14 border-b border-card-border px-8 items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
+              <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
             </div>
             {sessionUser ? (
               <div className="relative" ref={avatarMenuRef}>

@@ -2,18 +2,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import type { ManagerRosterStatsResult, PlayerRosterStat, SleeperPlayer } from '../types/sleeper';
+import { ONE_DAY_MS, SEVEN_DAYS_MS, THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 
 const CACHE_VERSION = 'v3';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const PLAYERS_CACHE_KEY = 'sleeper-all-players-v1';
-const PLAYERS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for player DB
 
 function loadRosterCache(leagueId: string, userId: string): ManagerRosterStatsResult | null {
   try {
     const raw = localStorage.getItem(`manager-roster-stats-${CACHE_VERSION}-${leagueId}-${userId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.cachedAt > CACHE_TTL_MS) return null;
+    if (Date.now() - parsed.cachedAt > ONE_DAY_MS) return null;
     return { players: parsed.players, hasData: parsed.hasData, currentRosterIds: parsed.currentRosterIds ?? [] };
   } catch { return null; }
 }

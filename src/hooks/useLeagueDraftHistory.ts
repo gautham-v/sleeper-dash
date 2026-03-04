@@ -6,12 +6,11 @@ import {
   computeLeagueDraftAnalysis,
   type SeasonDraftInput,
 } from '../utils/draftCalculations';
-import { REGULAR_SEASON_WEEKS } from '@/lib/constants';
+import { REGULAR_SEASON_WEEKS, ONE_DAY_MS, THIRTY_MIN_MS } from '@/lib/constants';
 
 // ---------- localStorage cache ----------
 
 const CACHE_VERSION = 'v2';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedEntry {
   cachedAt: number;
@@ -25,7 +24,7 @@ function loadFromCache(leagueId: string): LeagueDraftAnalysis | null {
     const raw = localStorage.getItem(`draft-analysis-${CACHE_VERSION}-${leagueId}`);
     if (!raw) return null;
     const parsed: CachedEntry = JSON.parse(raw);
-    if (Date.now() - parsed.cachedAt > CACHE_TTL_MS) return null;
+    if (Date.now() - parsed.cachedAt > ONE_DAY_MS) return null;
     return {
       managerSummaries: new Map(parsed.managerSummaries),
       surplusByUserId: new Map(parsed.surplusByUserId),

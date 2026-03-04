@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description,
       },
       twitter: {
-        card: 'summary',
+        card: 'summary_large_image',
         title: `${league.name} | leaguemate.fyi`,
         description,
       },
