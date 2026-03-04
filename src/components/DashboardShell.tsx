@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import posthog from 'posthog-js';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -68,6 +69,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [avatarMenuOpen]);
 
   const handleTabChange = (id: TabId) => {
+    posthog.capture('tab_viewed', { tab: id, league_id: leagueId, league_name: league?.name });
     router.push(`/league/${leagueId}/${id}`);
   };
 

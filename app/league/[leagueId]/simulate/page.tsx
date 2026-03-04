@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import posthog from 'posthog-js';
 import { Loader2 } from 'lucide-react';
 import { useFranchiseOutlook, type FranchiseOutlookData } from '@/hooks/useFranchiseOutlook';
 import { useTradeSimulator } from '@/hooks/useTradeSimulator';
@@ -26,11 +27,15 @@ interface SimulateContentProps {
   data: FranchiseOutlookData;
 }
 
-function SimulateContent({ userId, data }: SimulateContentProps) {
+function SimulateContent({ leagueId, userId, data }: SimulateContentProps) {
   const beforeOutlook: FranchiseOutlookResult | null = data.outlookMap.get(userId) ?? null;
   const rawContext: FranchiseOutlookRawContext = data.rawContext;
 
   const simulator = useTradeSimulator(userId, rawContext, beforeOutlook);
+
+  useEffect(() => {
+    posthog.capture('trade_simulator_used', { league_id: leagueId, manager_id: userId });
+  }, [leagueId, userId]);
 
   return <TradeSimulatorPanel simulator={simulator} mode="fullpage" />;
 }
