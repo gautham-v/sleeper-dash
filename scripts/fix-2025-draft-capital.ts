@@ -13,11 +13,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ESPN position IDs → fantasy positions
-const ESPN_POS_TO_FANTASY: Record<string, string> = {
-  '1': 'QB', '2': 'RB', '3': 'WR', '4': 'TE',
-};
-
 function normalizeName(n: string) {
   return n.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
 }

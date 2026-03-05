@@ -20,6 +20,7 @@ export interface SleeperLeague {
     playoff_week_start: number;
     leg: number;
     num_teams: number;
+    taxi_slots?: number;
   };
   avatar: string | null;
   previous_league_id: string | null;
@@ -151,6 +152,11 @@ export interface SleeperPlayer {
   position: string | null;
   team: string | null;
   age?: number;
+  injury_status?: string | null;
+  years_exp?: number;
+  depth_chart_order?: number | null;
+  status?: string;
+  search_rank?: number;
 }
 
 // Historical / comparison types
