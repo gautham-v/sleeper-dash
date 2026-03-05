@@ -28,9 +28,9 @@ export default function DraftPage() {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Draft Analysis</h2>
+          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Draft Hub</h2>
           <p className="text-gray-400 text-sm">
-            League-wide draft performance — steals, busts, and who's actually winning the draft.
+            Leaderboard grades past dynasty drafts — Draft Board builds your personalized 2026 rookie targets.
           </p>
         </div>
         <ShareButton className="mt-1" />
@@ -41,7 +41,7 @@ export default function DraftPage() {
           <span className="text-base">🏈</span>
           <span className="text-sm text-amber-400">
             <span className="font-semibold">NFL Draft in {daysUntilDraft} days</span>
-            <span className="opacity-70 ml-2">— check your rookie targets below</span>
+            <span className="opacity-70 ml-2">— check the Draft Board tab</span>
           </span>
         </div>
       )}
@@ -55,7 +55,7 @@ export default function DraftPage() {
               : 'border-transparent text-muted-foreground hover:text-white'
           }`}
         >
-          Draft Analysis
+          Draft Leaderboard
         </button>
         <button
           onClick={() => setActiveTab('rookies')}
