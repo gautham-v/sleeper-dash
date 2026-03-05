@@ -16,6 +16,13 @@ interface ScorerInput {
   warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge?: number }[];
   tier: FranchiseTier;
   peakYearOffset: number;
+  /**
+   * Landing spot opportunity index (0–1). Set post-NFL Draft when nfl_team is known.
+   * 0 = poor opportunity (team has entrenched starter, run-heavy scheme)
+   * 1 = elite opportunity (clear depth chart opening, pass-heavy offense)
+   * null/undefined = unknown (pre-draft or no team data)
+   */
+  landingSpotScore?: number | null;
 }
 
 interface ScoringOutput {
@@ -44,7 +51,7 @@ function expectedValueForClassRank(classRank: number): number {
 }
 
 export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
-  const { position, dynastyValue, overallRank, compResults, warByPosition, tier, peakYearOffset } = input;
+  const { position, dynastyValue, overallRank, compResults, warByPosition, tier, peakYearOffset, landingSpotScore } = input;
 
   // ── 1. Dynasty value score (0–60): primary talent signal ─────────────────
   // Dynasty value IS the market's best estimate of a prospect's long-term worth.
@@ -83,11 +90,19 @@ export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
   const surplusBonus = Math.max(0, Math.min(7, surplusRatio * 7));
   const surplusFlag = dynastyValue > expectedValue * 1.15;
 
-  // ── 6. Final score (practical range 20–100) ───────────────────────────────
-  const rawScore = dynastyScore + talentBonus + needBonus + timelineFit + surplusBonus;
+  // ── 6. Landing spot opportunity bonus (0–5): post-draft signal ────────────
+  // Only meaningful for WR/TE/RB where immediate target share matters.
+  // 0 = no data (pre-draft). 1.0 = elite opportunity (e.g. WR1 void on pass-heavy team).
+  // Capped at 5pts so it can tip tiebreakers but never override talent signal.
+  const landingBonus = (landingSpotScore != null && position !== 'QB')
+    ? landingSpotScore * 5
+    : 0;
+
+  // ── 7. Final score (practical range 20–100) ───────────────────────────────
+  const rawScore = dynastyScore + talentBonus + needBonus + timelineFit + surplusBonus + landingBonus;
   const targetScore = Math.min(100, Math.round(rawScore));
 
-  // ── 7. Badges and labels ──────────────────────────────────────────────────
+  // ── 8. Badges and labels ──────────────────────────────────────────────────
   const prospectPeakOffset = PROSPECT_PEAK_OFFSET[position] ?? 2.5;
   const timelineBadge: 'immediate' | 'year2' | 'year3+' =
     prospectPeakOffset <= 1.5 ? 'immediate' : prospectPeakOffset <= 2.5 ? 'year2' : 'year3+';
@@ -95,7 +110,7 @@ export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
   const needLabel: 'Critical Need' | 'Need' | 'Value' =
     needWeight > 0.7 ? 'Critical Need' : needWeight > 0.3 ? 'Need' : 'Value';
 
-  // ── 8. Human-readable context strings ────────────────────────────────────
+  // ── 9. Human-readable context strings ────────────────────────────────────
   const reason = posNeed
     ? `Your ${position} group is #${posNeed.rank} in the league${posNeed.avgAge != null && posNeed.avgAge > 27 ? ` (avg age ${posNeed.avgAge.toFixed(0)})` : ''}.`
     : `Adds depth at ${position}.`;

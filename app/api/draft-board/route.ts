@@ -192,11 +192,19 @@ export async function POST(req: NextRequest) {
       const estimatedPick = prospect.draft_pick ?? classRank;
       const estimatedRound = prospect.draft_round ?? Math.min(7, Math.ceil(classRank / 12));
 
-      // Extract age and athletic profile from athletic_profile_json if available
+      // Extract signals from stored JSON profiles
       const athleticJson = prospect.athletic_profile_json;
       const breakoutAge = athleticJson?.age_at_draft ?? undefined;
-      // Athletic score is stored after combine results are processed
       const athleticScore = (athleticJson as Record<string, unknown> | null | undefined)?.['athletic_score'] as number | undefined;
+
+      // Dominator rating from college_stats_json (populated by seed:prospects after CFBD lookup)
+      const collegeJson = prospect.college_stats_json as Record<string, unknown> | null | undefined;
+      const dominatorRating = collegeJson?.['dominator_rating'] as number | undefined;
+
+      // Landing spot opportunity score (0–1) from landing_spot_json (populated post-draft)
+      // opportunity_index is set by seed:prospects after NFL Draft picks are assigned.
+      const landingJson = prospect.landing_spot_json as Record<string, unknown> | null | undefined;
+      const landingSpotScore = landingJson?.['opportunity_index'] as number | null | undefined;
 
       // Use cached comp results if available, else compute in memory
       let compResults: CompResults;
@@ -209,9 +217,10 @@ export async function POST(req: NextRequest) {
             position: prospect.position,
             draftRound: estimatedRound,
             draftPick: estimatedPick,
-            positionRank: classPosRank, // primary comp dimension: "WR#3 in class"
-            breakoutAge,    // from FantasyCalc maybeBirthday (stored in athletic_profile_json)
-            athleticScore,  // from combine measurements (stored post-combine)
+            positionRank: classPosRank,
+            breakoutAge,
+            athleticScore,
+            dominatorRating,
           },
           posPool,
         );
@@ -220,11 +229,12 @@ export async function POST(req: NextRequest) {
       const scoring = scoreDraftTarget({
         position: prospect.position,
         dynastyValue: prospect.fantasycalc_value ?? 0,
-        overallRank: classRank, // use class-relative rank for surplus calc
+        overallRank: classRank,
         compResults,
         warByPosition,
         tier,
         peakYearOffset,
+        landingSpotScore,
       });
 
       targets.push({

@@ -72,6 +72,8 @@ const MAX_POS_RANK = 24;
 const MAX_BREAKOUT_AGE_DELTA = 5;
 // Athletic score (RAS) is 0-10 scale; max meaningful delta is 10
 const MAX_ATHLETIC_DELTA = 10;
+// Dominator rating is 0–100 scale; max practical spread is ~40 (elite=35+, late-round=5)
+const MAX_DOMINATOR_DELTA = 40;
 
 // ── Output types ──────────────────────────────────────────────────────────────
 
@@ -128,6 +130,11 @@ function computeDistance(
     positionRank?: number;
     breakoutAge?: number;
     athleticScore?: number;
+    /**
+     * Dominator rating (0–100): share of team's receiving/rushing output in final
+     * college season. Elite WR: 30+, avg R1 WR: ~24. Computed from CFBD stats.
+     */
+    dominatorRating?: number;
   },
   historical: HistoricalRookie,
 ): number {
@@ -135,6 +142,7 @@ function computeDistance(
   const hasPick     = prospect.draftPick != null && historical.draft_pick != null;
   const hasAge      = prospect.breakoutAge != null && historical.breakout_age != null;
   const hasAthletic = prospect.athleticScore != null && historical.athletic_score != null;
+  const hasDominator = prospect.dominatorRating != null && historical.dominator_rating != null;
 
   // Log-transformed pick distance: |ln(p+1) - ln(q+1)| / ln(263)
   const logPickDist = hasPick
@@ -154,7 +162,31 @@ function computeDistance(
     ? Math.min(1, Math.abs(prospect.athleticScore! - historical.athletic_score!) / MAX_ATHLETIC_DELTA)
     : null;
 
-  // Combine available signals — weights sum to 1.0
+  const dominatorDist = hasDominator
+    ? Math.min(1, Math.abs(prospect.dominatorRating! - historical.dominator_rating!) / MAX_DOMINATOR_DELTA)
+    : null;
+
+  // Count available signals to select weight combination
+  // Priority: posRank > dominator > pick > age > athletic (by predictive value)
+  // When all 5 present: posRank(42%) + dominator(18%) + pick(20%) + age(12%) + athletic(8%)
+  if (hasPosRank && hasDominator && hasPick && hasAge && hasAthletic) {
+    return posRankDist! * 0.42 + dominatorDist! * 0.18 + logPickDist! * 0.20 + ageDist! * 0.12 + athleticDist! * 0.08;
+  }
+  if (hasPosRank && hasDominator && hasPick && hasAthletic) {
+    return posRankDist! * 0.45 + dominatorDist! * 0.22 + logPickDist! * 0.22 + athleticDist! * 0.11;
+  }
+  if (hasPosRank && hasDominator && hasPick && hasAge) {
+    return posRankDist! * 0.44 + dominatorDist! * 0.22 + logPickDist! * 0.22 + ageDist! * 0.12;
+  }
+  if (hasPosRank && hasDominator && hasPick) {
+    return posRankDist! * 0.48 + dominatorDist! * 0.26 + logPickDist! * 0.26;
+  }
+  if (hasPosRank && hasDominator && hasAge) {
+    return posRankDist! * 0.50 + dominatorDist! * 0.30 + ageDist! * 0.20;
+  }
+  if (hasPosRank && hasDominator) {
+    return posRankDist! * 0.55 + dominatorDist! * 0.45;
+  }
   if (hasPosRank && hasPick && hasAge && hasAthletic) {
     return posRankDist! * 0.48 + logPickDist! * 0.25 + ageDist! * 0.15 + athleticDist! * 0.12;
   }
@@ -312,6 +344,12 @@ export function evaluateProspect(
      * For 2026 prospects: stored in athletic_profile_json after combine results.
      */
     athleticScore?: number;
+    /**
+     * College dominator rating (0–100): share of team receiving/rushing output
+     * in final college season. Computed from CFBD stats. Elite WR: 30+.
+     * For 2026 prospects: stored in college_stats_json.dominator_rating.
+     */
+    dominatorRating?: number;
   },
   historicalPool: HistoricalRookie[],
   options?: { topN?: number },
@@ -331,6 +369,7 @@ export function evaluateProspect(
         positionRank: prospect.positionRank,
         breakoutAge: prospect.breakoutAge,
         athleticScore: prospect.athleticScore,
+        dominatorRating: prospect.dominatorRating,
       },
       p,
     ),
