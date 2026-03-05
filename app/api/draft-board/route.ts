@@ -192,6 +192,12 @@ export async function POST(req: NextRequest) {
       const estimatedPick = prospect.draft_pick ?? classRank;
       const estimatedRound = prospect.draft_round ?? Math.min(7, Math.ceil(classRank / 12));
 
+      // Extract age and athletic profile from athletic_profile_json if available
+      const athleticJson = prospect.athletic_profile_json;
+      const breakoutAge = athleticJson?.age_at_draft ?? undefined;
+      // Athletic score is stored after combine results are processed
+      const athleticScore = (athleticJson as Record<string, unknown> | null | undefined)?.['athletic_score'] as number | undefined;
+
       // Use cached comp results if available, else compute in memory
       let compResults: CompResults;
       if (prospect.comp_results_json) {
@@ -204,8 +210,8 @@ export async function POST(req: NextRequest) {
             draftRound: estimatedRound,
             draftPick: estimatedPick,
             positionRank: classPosRank, // primary comp dimension: "WR#3 in class"
-            // breakoutAge: will be populated post-Combine (late March 2026)
-            // when we collect draft ages for prospect_profiles
+            breakoutAge,    // from FantasyCalc maybeBirthday (stored in athletic_profile_json)
+            athleticScore,  // from combine measurements (stored post-combine)
           },
           posPool,
         );

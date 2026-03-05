@@ -70,6 +70,8 @@ function getBaseRate(position: string, draftRound: number | undefined): { pElite
 const MAX_POS_RANK = 24;
 // Max breakout age delta for normalizing (typical range ≈ 20-25 years)
 const MAX_BREAKOUT_AGE_DELTA = 5;
+// Athletic score (RAS) is 0-10 scale; max meaningful delta is 10
+const MAX_ATHLETIC_DELTA = 10;
 
 // ── Output types ──────────────────────────────────────────────────────────────
 
@@ -112,8 +114,9 @@ export interface CompResults {
  * Priority / weighting:
  * 1. Position rank within class  (primary: WR#3 in class → historical WR#3s)
  * 2. Overall pick number         (log-transformed: early picks more differentiated)
- * 3. Breakout age                (secondary: age-at-draft proxy for development stage)
- * 4. Draft round                 (coarse fallback)
+ * 3. Breakout age                (age-at-draft proxy for development stage)
+ * 4. Athletic score              (RAS-style 0–10 score from combine measurements)
+ * 5. Draft round                 (coarse fallback when nothing else is available)
  *
  * Pick distance is LOG-TRANSFORMED so picks 1-10 are far more differentiated
  * from each other than picks 100-110, matching real draft capital value curves.
@@ -124,15 +127,16 @@ function computeDistance(
     draftPick?: number;
     positionRank?: number;
     breakoutAge?: number;
+    athleticScore?: number;
   },
   historical: HistoricalRookie,
 ): number {
-  const hasPosRank = prospect.positionRank != null && historical.pos_rank_in_class != null;
-  const hasPick    = prospect.draftPick != null && historical.draft_pick != null;
-  const hasAge     = prospect.breakoutAge != null && historical.breakout_age != null;
+  const hasPosRank  = prospect.positionRank != null && historical.pos_rank_in_class != null;
+  const hasPick     = prospect.draftPick != null && historical.draft_pick != null;
+  const hasAge      = prospect.breakoutAge != null && historical.breakout_age != null;
+  const hasAthletic = prospect.athleticScore != null && historical.athletic_score != null;
 
   // Log-transformed pick distance: |ln(p+1) - ln(q+1)| / ln(263)
-  // This compresses the tail (late picks) relative to early picks.
   const logPickDist = hasPick
     ? Math.abs(Math.log(prospect.draftPick! + 1) - Math.log(historical.draft_pick! + 1))
       / Math.log(263)
@@ -146,7 +150,20 @@ function computeDistance(
     ? Math.min(1, Math.abs(prospect.breakoutAge! - historical.breakout_age!) / MAX_BREAKOUT_AGE_DELTA)
     : null;
 
-  // Combine available signals with appropriate weights
+  const athleticDist = hasAthletic
+    ? Math.min(1, Math.abs(prospect.athleticScore! - historical.athletic_score!) / MAX_ATHLETIC_DELTA)
+    : null;
+
+  // Combine available signals — weights sum to 1.0
+  if (hasPosRank && hasPick && hasAge && hasAthletic) {
+    return posRankDist! * 0.48 + logPickDist! * 0.25 + ageDist! * 0.15 + athleticDist! * 0.12;
+  }
+  if (hasPosRank && hasPick && hasAthletic) {
+    return posRankDist! * 0.55 + logPickDist! * 0.28 + athleticDist! * 0.17;
+  }
+  if (hasPosRank && hasAge && hasAthletic) {
+    return posRankDist! * 0.55 + ageDist! * 0.25 + athleticDist! * 0.20;
+  }
   if (hasPosRank && hasPick && hasAge) {
     return posRankDist! * 0.55 + logPickDist! * 0.30 + ageDist! * 0.15;
   }
@@ -156,8 +173,17 @@ function computeDistance(
   if (hasPosRank && hasAge) {
     return posRankDist! * 0.70 + ageDist! * 0.30;
   }
+  if (hasPosRank && hasAthletic) {
+    return posRankDist! * 0.75 + athleticDist! * 0.25;
+  }
   if (hasPosRank) {
     return posRankDist!;
+  }
+  if (hasPick && hasAge && hasAthletic) {
+    return logPickDist! * 0.55 + ageDist! * 0.25 + athleticDist! * 0.20;
+  }
+  if (hasPick && hasAthletic) {
+    return logPickDist! * 0.65 + athleticDist! * 0.35;
   }
   if (hasPick && hasAge) {
     return logPickDist! * 0.70 + ageDist! * 0.30;
@@ -276,11 +302,16 @@ export function evaluateProspect(
      */
     positionRank?: number;
     /**
-     * Age at draft (breakout age proxy). When available, improves comp matching
-     * by distinguishing young-entry vs older-entry players at the same draft slot.
-     * Currently null for 2026 pre-draft prospects — will improve post-Combine.
+     * Age at draft (breakout age proxy). Distinguishes young-entry vs older-entry
+     * players at the same draft slot. Populated from birth_date on ProspectProfile.
      */
     breakoutAge?: number;
+    /**
+     * RAS-style athletic score (0–10). Computed from nflverse combine measurements.
+     * Available for ~45% of historical pool (combine participants only).
+     * For 2026 prospects: stored in athletic_profile_json after combine results.
+     */
+    athleticScore?: number;
   },
   historicalPool: HistoricalRookie[],
   options?: { topN?: number },
@@ -293,7 +324,16 @@ export function evaluateProspect(
   // 2. Compute distances and sort
   const withDistances = positionPool.map((p) => ({
     player: p,
-    distance: computeDistance(prospect, p),
+    distance: computeDistance(
+      {
+        draftRound: prospect.draftRound,
+        draftPick: prospect.draftPick,
+        positionRank: prospect.positionRank,
+        breakoutAge: prospect.breakoutAge,
+        athleticScore: prospect.athleticScore,
+      },
+      p,
+    ),
   }));
   withDistances.sort((a, b) => a.distance - b.distance);
 

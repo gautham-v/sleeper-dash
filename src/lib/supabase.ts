@@ -58,7 +58,13 @@ export interface ProspectProfile {
   nfl_team?: string;
   college?: string;
   college_stats_json?: Record<string, unknown>;
-  athletic_profile_json?: Record<string, unknown>;
+  athletic_profile_json?: {
+    height_in?: number | null;
+    weight_lbs?: number | null;
+    age_at_draft?: number | null;
+    birthday?: string | null;
+    [key: string]: unknown;
+  } | null;
   landing_spot_json?: Record<string, unknown>;
   comp_results_json?: Record<string, unknown>;
   overall_rank?: number;

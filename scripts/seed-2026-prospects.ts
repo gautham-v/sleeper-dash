@@ -42,6 +42,10 @@ interface FantasyCalcPlayer {
   maybeAge?: number | null;
   maybeYoe?: number | null;
   sleeperId?: string | null;
+  // Extended fields — used to compute breakout age and athletic profile
+  maybeBirthday?: string | null;  // "YYYY-MM-DD"
+  maybeHeight?: number | null;    // inches
+  maybeWeight?: number | null;    // lbs
 }
 
 interface FantasyCalcEntry {
@@ -99,19 +103,33 @@ async function main() {
   console.log(
     'Rank'.padEnd(6) +
     'Pos'.padEnd(5) +
-    'PosRank'.padEnd(9) +
+    'PosRk'.padEnd(7) +
     'Value'.padEnd(8) +
+    'Age'.padEnd(6) +
+    'Ht/Wt'.padEnd(12) +
     'Name'
   );
-  console.log('-'.repeat(60));
+  console.log('-'.repeat(75));
 
   for (const entry of prospects) {
     const { player, value, overallRank, positionRank } = entry;
+    let age_at_draft_str = '—';
+    if (player.maybeBirthday) {
+      const born = new Date(player.maybeBirthday);
+      const draftDate = new Date(`${DRAFT_YEAR}-04-26`);
+      const age = (draftDate.getTime() - born.getTime()) / (365.25 * 24 * 3600 * 1000);
+      age_at_draft_str = age.toFixed(1);
+    }
+    const htWt = player.maybeHeight && player.maybeWeight
+      ? `${Math.floor(player.maybeHeight / 12)}-${player.maybeHeight % 12}/${player.maybeWeight}`
+      : '—';
     console.log(
       String(overallRank).padEnd(6) +
       player.position.padEnd(5) +
-      String(positionRank).padEnd(9) +
+      String(positionRank).padEnd(7) +
       String(value).padEnd(8) +
+      age_at_draft_str.padEnd(6) +
+      htWt.padEnd(12) +
       player.name
     );
   }
@@ -129,19 +147,43 @@ async function main() {
 
   console.log(`Inserting ${prospects.length} prospects to prospect_profiles...`);
 
-  const rows = prospects.map((entry) => ({
-    name: entry.player.name,
-    position: entry.player.position,
-    draft_year: DRAFT_YEAR,
-    nfl_team: null,
-    fantasycalc_value: entry.value,
-    overall_rank: entry.overallRank,
-    position_rank: entry.positionRank,
-    confidence_level: null,
-    comp_results_json: null,
-    draft_round: null,
-    draft_pick: null,
-  }));
+  const rows = prospects.map((entry) => {
+    const { player, value, overallRank, positionRank } = entry;
+
+    // Compute age at NFL Draft (approximate: April 26 of draft year) from birthday
+    let age_at_draft: number | null = null;
+    if (player.maybeBirthday) {
+      const born = new Date(player.maybeBirthday);
+      const draftDate = new Date(`${DRAFT_YEAR}-04-26`);
+      age_at_draft = Math.round((draftDate.getTime() - born.getTime()) / (365.25 * 24 * 3600 * 1000) * 10) / 10;
+    }
+
+    // Store physical attributes in athletic_profile_json for use by comp engine
+    const athletic_profile_json =
+      player.maybeHeight != null || player.maybeWeight != null || age_at_draft != null
+        ? {
+            height_in: player.maybeHeight ?? null,
+            weight_lbs: player.maybeWeight ?? null,
+            age_at_draft,
+            birthday: player.maybeBirthday ?? null,
+          }
+        : null;
+
+    return {
+      name: player.name,
+      position: player.position,
+      draft_year: DRAFT_YEAR,
+      nfl_team: player.maybeTeam ?? null,
+      fantasycalc_value: value,
+      overall_rank: overallRank,
+      position_rank: positionRank,
+      confidence_level: null,
+      comp_results_json: null,
+      draft_round: null,
+      draft_pick: null,
+      athletic_profile_json,
+    };
+  });
 
   const { error, count } = await supabase
     .from('prospect_profiles')
