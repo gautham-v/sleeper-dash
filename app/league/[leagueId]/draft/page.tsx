@@ -39,9 +39,9 @@ export default function DraftPage() {
       {showCountdown && (
         <div className="mb-5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 flex items-center gap-3">
           <span className="text-base">🏈</span>
-          <span className="text-sm text-amber-300">
+          <span className="text-sm text-amber-400">
             <span className="font-semibold">NFL Draft in {daysUntilDraft} days</span>
-            <span className="text-amber-400/60 ml-2">— check your rookie targets below</span>
+            <span className="opacity-70 ml-2">— check your rookie targets below</span>
           </span>
         </div>
       )}

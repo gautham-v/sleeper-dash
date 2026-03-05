@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useDashboardData } from '@/hooks/useLeagueData';
+import { useDashboardData, useLeague } from '@/hooks/useLeagueData';
 import { useAllTimeWAR } from '@/hooks/useAllTimeWAR';
 import { useFranchiseOutlook } from '@/hooks/useFranchiseOutlook';
 import { useSessionUser } from '@/hooks/useSessionUser';
+import { buildTeamStatesFromContext } from '@/utils/leagueSnapshot';
 import { FranchiseTrajectoryTab } from '@/components/FranchiseTrajectoryTab';
 import { FranchiseOutlookTab } from '@/components/FranchiseOutlookTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +20,8 @@ export default function FranchisePage() {
   const { computed, isLoading: dashLoading } = useDashboardData(leagueId);
   const trajectoryAnalysis = useAllTimeWAR(leagueId);
   const franchiseOutlook = useFranchiseOutlook(leagueId);
+  const league = useLeague(leagueId);
+  const snapshotFired = useRef(false);
 
   // Default userId: session user if they're in standings, else first in standings (champion)
   const defaultUserId = useMemo(() => {
@@ -43,6 +46,28 @@ export default function FranchisePage() {
         displayName: s.displayName,
       }));
   }, [computed]);
+
+  useEffect(() => {
+    if (snapshotFired.current) return;
+    if (!franchiseOutlook.data || !league.data) return;
+
+    snapshotFired.current = true;
+    const season = parseInt(league.data.season ?? '0', 10);
+    if (!season) return;
+
+    const teamStates = buildTeamStatesFromContext(
+      franchiseOutlook.data.rawContext,
+      franchiseOutlook.data.outlookMap,
+    );
+
+    fetch('/api/league-snapshot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leagueId, season, teamStates }),
+    }).catch((err: unknown) => {
+      console.warn('[league-snapshot] background write failed:', err);
+    });
+  }, [franchiseOutlook.data, league.data, leagueId]);
 
   if (dashLoading) {
     return (

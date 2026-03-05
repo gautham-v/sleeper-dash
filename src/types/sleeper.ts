@@ -1,3 +1,5 @@
+import type { CompPlayer } from './prospects';
+
 export interface SleeperUser {
   user_id: string;
   username: string;
@@ -644,4 +646,34 @@ export interface PlayerCareerHistoryResult {
   position: string;
   seasons: PlayerCareerSeason[];
   draftedBy?: { ownerName: string; season: string; round: number; pick: number };
+}
+
+// ---- Draft Board Types (Phase 3) ----
+
+export interface DraftBoardRequest {
+  draftYear: number;
+  warByPosition: FranchiseOutlookResult['warByPosition'];
+  tier: FranchiseTier;
+  peakYearOffset: number;
+}
+
+export interface DraftBoardTarget {
+  name: string;
+  position: string;
+  dynastyValue: number;
+  overallRank: number;
+  positionRank: number;
+  draftRound?: number;
+  draftPick?: number;
+  targetScore: number;
+  pStarter: number;      // P(starter+) = elite% + starter%, 0–100
+  pElite: number;        // P(elite outcome), 0–100
+  confidence: 'high' | 'medium' | 'low';
+  timelineBadge: 'immediate' | 'year2' | 'year3+';
+  needLabel: 'Critical Need' | 'Need' | 'Value';
+  comps: CompPlayer[];   // top 3 historical comps
+  surplusFlag: boolean;
+  reason: string;
+  impactSummary: string;
+  isArchetype?: boolean; // true for pre-draft synthetic entries
 }

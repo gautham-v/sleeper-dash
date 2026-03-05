@@ -218,6 +218,25 @@ button {
 
     --color-orange-400: #c2410c;
     --color-orange-300: #9a3412;
+
+    /* Amber — remap light/neon tones to readable dark equivalents */
+    --color-amber-400: #b45309;
+    --color-amber-500: #d97706;
+    --color-amber-600: #b45309;
+    --color-amber-700: #92400e;
+
+    /* Blue — remap light tones to readable dark equivalents */
+    --color-blue-300: #1d4ed8;
+    --color-blue-400: #1d4ed8;
+    --color-blue-500: #2563eb;
+
+    /* Zinc — remap dark shades used in dark-first components */
+    --color-zinc-900: #f4f4f5;
+    --color-zinc-800: #e4e4e7;
+    --color-zinc-700: #d4d4d8;
+    --color-zinc-600: #a1a1aa;
+    --color-zinc-500: #71717a;
+    --color-zinc-400: #52525b;
   }
 }
 
