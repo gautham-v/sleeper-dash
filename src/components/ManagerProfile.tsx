@@ -855,11 +855,11 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                     <Table>
                       <TableHeader>
                         <TableRow className="text-muted-foreground text-xs uppercase tracking-wider border-b border-card-border">
-                          <TableHead className="text-left py-2.5 px-5">Player</TableHead>
+                          <TableHead className="text-left py-2.5 px-3 sm:px-5">Player</TableHead>
                           {playersView === 'current' && recommendations.data && (
-                            <TableHead className="text-center py-2.5 px-3">Verdict</TableHead>
+                            <TableHead className="text-center py-2.5 px-2 hidden sm:table-cell">Verdict</TableHead>
                           )}
-                          <TableHead className="text-right py-2.5 px-3">Total Pts</TableHead>
+                          <TableHead className="text-right py-2.5 px-2 sm:px-3">Pts</TableHead>
                           <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">TDs</TableHead>
                           <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Starts</TableHead>
                           <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Tenure</TableHead>
@@ -880,10 +880,24 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                 className="border-b border-card-border/60 hover:bg-muted/20 cursor-pointer"
                                 onClick={() => setExpandedPlayerId(isExpanded ? null : player.playerId)}
                               >
-                                <TableCell className="py-3 px-5">
-                                  <div className="flex items-center gap-2">
+                                <TableCell className="py-3 px-3 sm:px-5">
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
                                     <PosBadge pos={player.position} />
                                     <span className="text-sm text-foreground font-medium truncate">{player.playerName}</span>
+                                    {/* Verdict pill inline on mobile */}
+                                    {showVerdict && rec && (
+                                      <span
+                                        className={`sm:hidden inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
+                                          rec.verdict === 'HOLD'
+                                            ? 'bg-emerald-500/15 text-emerald-400'
+                                            : rec.verdict === 'TRADE'
+                                              ? 'bg-amber-500/15 text-amber-400'
+                                              : 'bg-red-500/15 text-red-400'
+                                        }`}
+                                      >
+                                        {rec.verdict}
+                                      </span>
+                                    )}
                                     {isExpanded
                                       ? <ChevronDown size={12} className="text-muted-foreground shrink-0" />
                                       : <ChevronRight size={12} className="text-muted-foreground shrink-0" />
@@ -891,10 +905,10 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                   </div>
                                 </TableCell>
                                 {showVerdict && (
-                                  <TableCell className="py-3 px-3 text-center">
+                                  <TableCell className="py-3 px-2 text-center hidden sm:table-cell">
                                     {rec ? (
                                       <span
-                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                                           rec.verdict === 'HOLD'
                                             ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                                             : rec.verdict === 'TRADE'
@@ -904,16 +918,13 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                         title={rec.reason}
                                       >
                                         {rec.verdict}
-                                        {rec.confidence < 30 && (
-                                          <span className="text-[9px] opacity-60">?</span>
-                                        )}
                                       </span>
                                     ) : (
                                       <span className="text-xs text-muted-foreground/50">—</span>
                                     )}
                                   </TableCell>
                                 )}
-                                <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-foreground">
+                                <TableCell className="py-3 px-2 sm:px-3 text-right tabular-nums text-sm font-medium text-foreground">
                                   {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
                                 </TableCell>
                                 <TableCell className="py-3 px-3 text-right text-sm text-muted-foreground tabular-nums hidden sm:table-cell">
