@@ -60,21 +60,6 @@ export default function OverviewPage() {
         />
       </div>
 
-      {/* Franchise Analytics */}
-      <Link
-        href={`/league/${leagueId}/franchise`}
-        className="flex items-center gap-4 bg-card-bg border border-card-border rounded-2xl p-4 hover:border-brand-cyan/40 transition-colors group"
-      >
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-lg">
-          📈
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Value</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Track how each franchise has grown over time and explore contender windows.</div>
-        </div>
-        <ChevronRight size={16} className="text-muted-foreground group-hover:text-brand-cyan transition-colors flex-shrink-0" />
-      </Link>
-
       {/* Rookie Draft Season promo (March–June) */}
       {(() => {
         const now = new Date();
@@ -111,6 +96,21 @@ export default function OverviewPage() {
           </Link>
         );
       })()}
+
+      {/* Franchise Analytics */}
+      <Link
+        href={`/league/${leagueId}/franchise`}
+        className="flex items-center gap-4 bg-card-bg border border-card-border rounded-2xl p-4 hover:border-brand-cyan/40 transition-colors group"
+      >
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-lg">
+          📈
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white group-hover:text-brand-cyan transition-colors">Franchise Value</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Track how each franchise has grown over time and explore contender windows.</div>
+        </div>
+        <ChevronRight size={16} className="text-muted-foreground group-hover:text-brand-cyan transition-colors flex-shrink-0" />
+      </Link>
 
       {/* Standings & Stats */}
       <div>

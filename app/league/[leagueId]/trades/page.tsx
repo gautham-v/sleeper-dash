@@ -56,7 +56,7 @@ export default function TradesPage() {
   }, [computed]);
 
   const TAB_LABELS: { id: TradesPageTab; label: string }[] = [
-    { id: 'trades', label: 'League Trades' },
+    { id: 'trades', label: 'Trade History' },
     { id: 'strategy', label: 'Trade Strategy' },
     { id: 'simulator', label: 'Simulator' },
   ];
@@ -65,9 +65,9 @@ export default function TradesPage() {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Trade Analyzer</h2>
+          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Trades</h2>
           <p className="text-gray-400 text-sm">
-            Analyze every trade in league history and see who came out on top.
+            Browse league trade history, analyze your roster strategy, and simulate trades before you make them.
           </p>
         </div>
         <ShareButton className="mt-1" />
