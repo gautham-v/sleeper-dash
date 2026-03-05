@@ -49,8 +49,8 @@ function NeedLabelBadge({ label }: { label: DraftBoardTarget['needLabel'] }) {
 function TargetScoreBadge({ score }: { score: number }) {
   const rounded = score.toFixed(0);
   const colorCls =
-    score >= 70 ? 'text-green-400' :
-    score >= 45 ? 'text-yellow-400' :
+    score >= 80 ? 'text-green-400' :
+    score >= 60 ? 'text-yellow-400' :
     'text-zinc-500';
   return (
     <span className={`text-xs font-bold tabular-nums ${colorCls}`} title="Roster fit score (0–100)">
@@ -224,7 +224,7 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
     return (
       <div className="flex items-center justify-center h-60 text-muted-foreground">
         <Loader2 className="animate-spin mr-2" size={22} />
-        <span className="text-sm">Loading rookie targets…</span>
+        <span className="text-sm">Building draft board…</span>
       </div>
     );
   }
@@ -293,14 +293,14 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
       {/* Targets list */}
       {!draftBoardError && targets.length > 0 ? (
         <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="text-sm font-semibold text-foreground mb-1">Rookie Draft Targets</div>
+          <div className="text-sm font-semibold text-foreground mb-1">Your Draft Board</div>
           <div className="text-xs text-muted-foreground mb-3">
-            Ranked by fit for your roster — balances dynasty value, positional need, and timeline
+            Dynasty value is the primary driver — need and timeline provide a modest fit adjustment
           </div>
           <div className="flex items-center gap-3 mb-4 pb-3 border-b border-card-border/50">
-            <span className="text-[11px] text-zinc-600">Score = need + value fit</span>
+            <span className="text-[11px] text-zinc-600">Score = dynasty value + roster fit</span>
             <span className="text-[11px] text-zinc-600">· Impact = when they contribute</span>
-            <span className="text-[11px] text-zinc-600">· Comps = similar historical rookies</span>
+            <span className="text-[11px] text-zinc-600">· Comps = historical players at same position rank</span>
           </div>
 
           <div className="space-y-4">

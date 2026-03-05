@@ -1,13 +1,16 @@
 import type { HistoricalRookie } from '@/lib/supabase';
 
 // ── Outcome tier thresholds ───────────────────────────────────────────────────
-
+// PPR point totals per season that define each tier
 export const OUTCOME_TIERS: Record<string, { elite: number; starter: number; rotational: number }> = {
   QB: { elite: 350, starter: 225, rotational: 100 },
   RB: { elite: 200, starter: 125, rotational: 60 },
   WR: { elite: 250, starter: 150, rotational: 75 },
   TE: { elite: 150, starter: 80, rotational: 30 },
 };
+
+// Max position rank used to normalize distance — top 24 positional prospects are meaningful
+const MAX_POS_RANK = 24;
 
 // ── Output types ──────────────────────────────────────────────────────────────
 
@@ -44,19 +47,42 @@ export interface CompResults {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Compute normalized distance between a prospect and a historical rookie.
+ *
+ * Priority order:
+ * 1. Position rank within class (positionRank vs pos_rank_in_class) — best signal
+ *    because it matches e.g. "WR#3 in class" to historical WR3s regardless of overall pick.
+ * 2. Overall pick number — fallback when pos_rank_in_class is unavailable
+ * 3. Draft round — coarse fallback
+ * 4. 1.0 (no match data)
+ */
 function computeDistance(
-  prospect: { draftRound?: number; draftPick?: number },
+  prospect: { draftRound?: number; draftPick?: number; positionRank?: number },
   historical: HistoricalRookie,
 ): number {
-  // Both have overall pick number
-  if (prospect.draftPick != null && historical.draft_pick != null) {
-    return Math.abs(prospect.draftPick - historical.draft_pick) / 262;
+  const hasPosRank = prospect.positionRank != null && historical.pos_rank_in_class != null;
+  const hasPick = prospect.draftPick != null && historical.draft_pick != null;
+
+  if (hasPosRank && hasPick) {
+    // Both signals available: weight position rank higher (primary signal)
+    const posRankDist = Math.min(1, Math.abs(prospect.positionRank! - historical.pos_rank_in_class!) / MAX_POS_RANK);
+    const pickDist = Math.abs(prospect.draftPick! - historical.draft_pick!) / 262;
+    return posRankDist * 0.65 + pickDist * 0.35;
   }
-  // Both have round
+
+  if (hasPosRank) {
+    return Math.min(1, Math.abs(prospect.positionRank! - historical.pos_rank_in_class!) / MAX_POS_RANK);
+  }
+
+  if (hasPick) {
+    return Math.abs(prospect.draftPick! - historical.draft_pick!) / 262;
+  }
+
   if (prospect.draftRound != null && historical.draft_round != null) {
     return Math.abs(prospect.draftRound - historical.draft_round) / 7;
   }
-  // No capital info
+
   return 1.0;
 }
 
@@ -69,49 +95,69 @@ function median(values: number[]): number | null {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function computeDistribution(
-  pool: HistoricalRookie[],
+/**
+ * Compute similarity-weighted outcome distribution.
+ *
+ * Closer comps (higher similarity = lower distance) contribute more to the
+ * probability estimate than distant comps. This avoids flattening the signal
+ * when the pool includes borderline matches.
+ */
+function computeWeightedDistribution(
+  pool: Array<{ player: HistoricalRookie; weight: number }>,
   yearKey: 'year1_ppr' | 'year2_ppr' | 'year3_ppr',
   tiers: { elite: number; starter: number; rotational: number },
 ): OutcomeDistribution | null {
-  const values = pool
-    .map((p) => p[yearKey])
-    .filter((v): v is number => v != null);
+  const pairs = pool
+    .map(({ player, weight }) => ({ value: player[yearKey], weight }))
+    .filter(({ value }) => value != null) as Array<{ value: number; weight: number }>;
 
-  if (values.length < 3) return null;
+  if (pairs.length < 3) return null;
 
-  let elite = 0;
-  let starter = 0;
-  let rotational = 0;
-  let bust = 0;
+  let totalWeight = 0;
+  let weightedElite = 0;
+  let weightedStarter = 0;
+  let weightedRotational = 0;
+  let weightedBust = 0;
 
-  for (const v of values) {
-    if (v >= tiers.elite) elite++;
-    else if (v >= tiers.starter) starter++;
-    else if (v >= tiers.rotational) rotational++;
-    else bust++;
+  for (const { value, weight } of pairs) {
+    totalWeight += weight;
+    if (value >= tiers.elite) weightedElite += weight;
+    else if (value >= tiers.starter) weightedStarter += weight;
+    else if (value >= tiers.rotational) weightedRotational += weight;
+    else weightedBust += weight;
   }
 
-  const n = values.length;
+  if (totalWeight === 0) return null;
+
   return {
-    elite: (elite / n) * 100,
-    starter: (starter / n) * 100,
-    rotational: (rotational / n) * 100,
-    bust: (bust / n) * 100,
-    sampleSize: n,
+    elite: (weightedElite / totalWeight) * 100,
+    starter: (weightedStarter / totalWeight) * 100,
+    rotational: (weightedRotational / totalWeight) * 100,
+    bust: (weightedBust / totalWeight) * 100,
+    sampleSize: pairs.length,
   };
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function evaluateProspect(
-  prospect: { position: string; draftRound?: number; draftPick?: number },
+  prospect: {
+    position: string;
+    draftRound?: number;
+    draftPick?: number;
+    /**
+     * Position rank within the draft class (e.g. 3 = 3rd-best WR in this class).
+     * For 2026 pre-draft prospects this comes from FantasyCalc position_rank.
+     * For archetypes this is set to the draft round number (1, 2, 3).
+     */
+    positionRank?: number;
+  },
   historicalPool: HistoricalRookie[],
   options?: { topN?: number },
 ): CompResults {
   const topN = options?.topN ?? 20;
 
-  // 1. Filter to same position
+  // 1. Filter to same position (pool is pre-filtered by caller but guard anyway)
   const positionPool = historicalPool.filter(
     (p) => p.position === prospect.position,
   );
@@ -124,43 +170,56 @@ export function evaluateProspect(
 
   withDistances.sort((a, b) => a.distance - b.distance);
 
-  // 3. Take top N comps
-  const topComps = withDistances.slice(0, topN).map(({ player }) => player);
+  // 3. Take top N comps; filter out distance=1.0 (no match data) when better comps exist
+  const hasGoodComps = withDistances.some(({ distance }) => distance < 1.0);
+  const topComps = hasGoodComps
+    ? withDistances.filter(({ distance }) => distance < 1.0).slice(0, topN)
+    : withDistances.slice(0, topN);
 
   const poolSize = topComps.length;
 
-  // 4. Confidence
+  // 4. Confidence based on number of close comps (distance < 0.3)
+  const closeComps = topComps.filter(({ distance }) => distance < 0.3).length;
   let confidence: 'high' | 'medium' | 'low';
-  if (poolSize >= 15) confidence = 'high';
-  else if (poolSize >= 8) confidence = 'medium';
+  if (closeComps >= 10) confidence = 'high';
+  else if (closeComps >= 5) confidence = 'medium';
   else confidence = 'low';
 
   // 5. Top 5 for display
-  const top5 = withDistances.slice(0, 5).map(({ player, distance }): CompPlayer => ({
-    name: player.name,
-    draftYear: player.draft_year,
-    draftRound: player.draft_round,
-    draftPick: player.draft_pick,
-    year1PPR: player.year1_ppr,
-    year2PPR: player.year2_ppr,
-    year3PPR: player.year3_ppr,
-    similarity: 1 - distance,
-  }));
+  const top5 = withDistances
+    .filter(({ distance }) => distance < 1.0)
+    .slice(0, 5)
+    .map(({ player, distance }): CompPlayer => ({
+      name: player.name,
+      draftYear: player.draft_year,
+      draftRound: player.draft_round,
+      draftPick: player.draft_pick,
+      year1PPR: player.year1_ppr,
+      year2PPR: player.year2_ppr,
+      year3PPR: player.year3_ppr,
+      similarity: 1 - distance,
+    }));
 
   // 6. Outcome tiers for this position
   const tiers = OUTCOME_TIERS[prospect.position] ?? { elite: 999, starter: 999, rotational: 999 };
 
-  // 7. Distributions
+  // 7. Similarity-weighted distributions
+  // Use similarity (1 - distance) as weight so closer comps drive probabilities
+  const weightedPool = topComps.map(({ player, distance }) => ({
+    player,
+    weight: Math.max(0.1, 1 - distance), // floor weight at 0.1 to avoid zero-weight
+  }));
+
   const distributions = {
-    year1: computeDistribution(topComps, 'year1_ppr', tiers),
-    year2: computeDistribution(topComps, 'year2_ppr', tiers),
-    year3: computeDistribution(topComps, 'year3_ppr', tiers),
+    year1: computeWeightedDistribution(weightedPool, 'year1_ppr', tiers),
+    year2: computeWeightedDistribution(weightedPool, 'year2_ppr', tiers),
+    year3: computeWeightedDistribution(weightedPool, 'year3_ppr', tiers),
   };
 
   // 8. Median PPR
-  const year1Values = topComps.map((p) => p.year1_ppr).filter((v): v is number => v != null);
-  const year2Values = topComps.map((p) => p.year2_ppr).filter((v): v is number => v != null);
-  const year3Values = topComps.map((p) => p.year3_ppr).filter((v): v is number => v != null);
+  const year1Values = topComps.map((c) => c.player.year1_ppr).filter((v): v is number => v != null);
+  const year2Values = topComps.map((c) => c.player.year2_ppr).filter((v): v is number => v != null);
+  const year3Values = topComps.map((c) => c.player.year3_ppr).filter((v): v is number => v != null);
 
   const medianPPR = {
     year1: median(year1Values),

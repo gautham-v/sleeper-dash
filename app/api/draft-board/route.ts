@@ -58,7 +58,7 @@ function buildArchetypes(
       // Partition historical pool by position and run comp engine
       const posPool = historicalPool.filter((p) => p.position === position);
       const compResults: CompResults = evaluateProspect(
-        { position, draftRound: round },
+        { position, draftRound: round, positionRank: round },
         posPool,
       );
 
@@ -113,7 +113,25 @@ export async function POST(req: NextRequest) {
     // 1. Load historical pool (cached)
     const historicalPool = await getHistoricalPool();
 
-    // 2. Partition by position in memory (avoid 4 separate DB queries)
+    // 2. Compute position rank within each (draft_year, position) class.
+    //    For each year, rank players by draft_pick ascending — pick #1 WR in 2022
+    //    gets pos_rank_in_class=1, #2 WR gets 2, etc. Players without a pick are unranked.
+    //    This lets the comp engine match "2026 WR#3" against "historical WR#3s".
+    const posYearGroups = new Map<string, HistoricalRookie[]>();
+    for (const p of historicalPool) {
+      const key = `${p.draft_year}-${p.position}`;
+      const arr = posYearGroups.get(key) ?? [];
+      arr.push(p);
+      posYearGroups.set(key, arr);
+    }
+    for (const players of posYearGroups.values()) {
+      const withPick = players
+        .filter((p) => p.draft_pick != null)
+        .sort((a, b) => (a.draft_pick ?? 999) - (b.draft_pick ?? 999));
+      withPick.forEach((p, i) => { p.pos_rank_in_class = i + 1; });
+    }
+
+    // 3. Partition by position in memory (avoid 4 separate DB queries)
     const poolByPosition = new Map<string, HistoricalRookie[]>();
     for (const p of historicalPool) {
       const arr = poolByPosition.get(p.position) ?? [];
@@ -121,7 +139,7 @@ export async function POST(req: NextRequest) {
       poolByPosition.set(p.position, arr);
     }
 
-    // 3. Load prospect profiles for this draft year
+    // 4. Load prospect profiles for this draft year
     const { data: prospects, error: prospectsError } = await supabase
       .from('prospect_profiles')
       .select('*')
@@ -132,7 +150,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: prospectsError.message }, { status: 500 });
     }
 
-    // 4. isPreDraft = true if the table is empty OR if no prospect has a confirmed NFL draft pick
+    // 5. isPreDraft = true if the table is empty OR if no prospect has a confirmed NFL draft pick
     const isPreDraft =
       !prospects ||
       prospects.length === 0 ||
@@ -144,10 +162,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ targets: archetypes, isPreDraft: true });
     }
 
-    // 5. Compute class-relative ranks (within 2026 class, not global dynasty rank)
-    //    Also derive estimated NFL draft pick from class rank for comp matching.
-    //    All 2026 prospects have draft_pick=null pre-draft, so without this the
-    //    computeDistance() fallback returns 1.0 for everyone → identical comps.
+    // 5. Compute class-relative ranks (within this class, sorted by FantasyCalc value).
+    //    `classPosRank` is the prospect's position rank in the class (e.g. "WR#3").
+    //    This is the primary comp matching dimension — WR#3 in 2026 → historical WR#3s.
     const prospectsTyped = prospects as ProspectProfile[];
     const sortedByValue = [...prospectsTyped].sort(
       (a, b) => (b.fantasycalc_value ?? 0) - (a.fantasycalc_value ?? 0),
@@ -159,7 +176,8 @@ export async function POST(req: NextRequest) {
       const p = sortedByValue[i];
       classRankMap.set(p.name, i + 1);
       posCounter[p.position] = (posCounter[p.position] ?? 0) + 1;
-      classPosRankMap.set(p.name, posCounter[p.position]);
+      // Prefer stored position_rank from FantasyCalc; fall back to computed rank
+      classPosRankMap.set(p.name, p.position_rank ?? posCounter[p.position]);
     }
 
     // 6. Score each real prospect
@@ -169,8 +187,8 @@ export async function POST(req: NextRequest) {
       const classRank = classRankMap.get(prospect.name) ?? 99;
       const classPosRank = classPosRankMap.get(prospect.name) ?? 99;
 
-      // For pre-draft prospects with no confirmed NFL pick, estimate from class rank.
-      // Class rank 1 ≈ top NFL pick, class rank 12 ≈ late round 1 / early round 2, etc.
+      // For pre-draft prospects with no confirmed NFL pick, estimate pick from class rank
+      // for the round-based fallback in computeDistance.
       const estimatedPick = prospect.draft_pick ?? classRank;
       const estimatedRound = prospect.draft_round ?? Math.min(7, Math.ceil(classRank / 12));
 
@@ -185,6 +203,7 @@ export async function POST(req: NextRequest) {
             position: prospect.position,
             draftRound: estimatedRound,
             draftPick: estimatedPick,
+            positionRank: classPosRank, // primary comp dimension: "WR#3 in class"
           },
           posPool,
         );

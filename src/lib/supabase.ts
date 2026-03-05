@@ -27,6 +27,8 @@ export interface HistoricalRookie {
   athletic_score?: number;
   data_sources?: string[];
   notes?: string;
+  // Computed at runtime in API route — not stored in DB
+  pos_rank_in_class?: number;
 }
 
 export interface ProspectProfile {

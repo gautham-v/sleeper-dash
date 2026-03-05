@@ -65,7 +65,7 @@ export default function DraftPage() {
               : 'border-transparent text-muted-foreground hover:text-white'
           }`}
         >
-          Rookie Targets
+          Draft Board
         </button>
       </div>
 

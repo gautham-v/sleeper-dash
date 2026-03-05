@@ -1,19 +1,12 @@
 import type { CompResults } from '@/utils/prospectEvaluator';
 import type { FranchiseTier } from '@/types/sleeper';
 
-// Per-position estimated NFL contribution onset (years from draft)
-const PROSPECT_PEAK_OFFSET: Record<string, number> = {
-  QB: 3.5,
-  RB: 1.5,
-  WR: 2.5,
-  TE: 3.5,
-};
-
-// Expected dynasty value by overall rank (rough linear model)
-// Top 5 picks ~5500, pick 32 ~2000, pick 100+ ~500
-function expectedValueForRank(overallRank: number): number {
-  return Math.max(500, 6000 - overallRank * 115);
-}
+/**
+ * Reference dynasty value for a top-tier #1 overall prospect.
+ * Used to normalize dynasty value to 0–60 scale.
+ * 7000 = roughly what FantasyCalc assigns an elite top pick (e.g. Jeremiyah Love 2026).
+ */
+const MAX_DYNASTY_REF = 7000;
 
 interface ScorerInput {
   position: string;
@@ -36,51 +29,65 @@ interface ScoringOutput {
   impactSummary: string;
 }
 
+// Per-position estimated NFL contribution onset (years from draft)
+const PROSPECT_PEAK_OFFSET: Record<string, number> = {
+  QB: 3.5,
+  RB: 1.5,
+  WR: 2.5,
+  TE: 3.5,
+};
+
+// Expected dynasty value by overall class rank (linear model)
+// Used only for surplus detection, not as a scoring input
+function expectedValueForClassRank(classRank: number): number {
+  return Math.max(400, 7500 - classRank * 120);
+}
+
 export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
   const { position, dynastyValue, overallRank, compResults, warByPosition, tier, peakYearOffset } = input;
 
-  // ── 1. pHit: P(starter+) using Year2 distribution (most predictive) ──────
+  // ── 1. Dynasty value score (0–60): primary talent signal ─────────────────
+  // Dynasty value IS the market's best estimate of a prospect's long-term worth.
+  // This must dominate — a #3 overall should always rank above a #44 regardless of need.
+  const dynastyScore = Math.min(60, (dynastyValue / MAX_DYNASTY_REF) * 60);
+
+  // ── 2. Talent bonus from comp analysis (0–15) ─────────────────────────────
+  // Use Year2 distribution as primary — most predictive year for dynasty value.
+  // Fall back to Year1 or Year3 if Year2 unavailable.
   const dist = compResults.distributions.year2
     ?? compResults.distributions.year1
     ?? compResults.distributions.year3;
   const pHit = dist ? (dist.elite + dist.starter) / 100 : 0.30;
   const pEliteRaw = dist ? dist.elite / 100 : 0.10;
+  const talentBonus = pHit * 15;
 
-  // ── 2. needWeight: WAR deficit at this position, normalized ───────────────
+  // ── 3. Positional need adjustment (0–15): secondary signal ────────────────
+  // Compressed significantly vs old formula (was 25). Need can only shift
+  // rankings modestly — it should never elevate a weak prospect over a strong one.
   const posNeed = warByPosition.find((p) => p.position === position);
   const deficits = warByPosition.map((p) => Math.max(0, p.leagueAvgWAR - p.war));
   const maxDeficit = Math.max(...deficits, 0.01);
   const myDeficit = posNeed ? Math.max(0, posNeed.leagueAvgWAR - posNeed.war) : 0;
   const needWeight = myDeficit / maxDeficit;
+  const needBonus = needWeight * 15;
 
-  // ── 3. timelineScore: tier-based alignment bonus ──────────────────────────
-  // Rookies inherently have delayed impact (2–4 years). Penalize based on team urgency.
-  // Contenders need impact NOW → low bonus; Rebuilders benefit most from rookies → full bonus.
-  const timelineScore = tier === 'Rebuilding' ? 1.0 : tier === 'Fringe' ? 0.65 : 0.35;
+  // ── 4. Timeline fit (0–8): rebuilding teams benefit more from rookies ──────
+  // Contenders need immediate starters — deep rebuilding is OK for any rookie.
+  // This is a modest signal that only tips tiebreakers between similar prospects.
+  const tierMultiplier = tier === 'Rebuilding' ? 1.0 : tier === 'Fringe' ? 0.65 : 0.35;
+  const timelineFit = tierMultiplier * 8;
 
-  // ── 4. surplusScore: dynasty value vs pick slot expectation ───────────────
-  const expectedValue = expectedValueForRank(overallRank);
-  const surplusScore = Math.max(0, Math.min(1, dynastyValue / expectedValue - 1));
+  // ── 5. Surplus value bonus (0–7): value over expected for draft slot ───────
+  const expectedValue = expectedValueForClassRank(overallRank);
+  const surplusRatio = dynastyValue / expectedValue - 1;
+  const surplusBonus = Math.max(0, Math.min(7, surplusRatio * 7));
   const surplusFlag = dynastyValue > expectedValue * 1.15;
 
-  // ── 5. roleFitScore: top-2 positional need bonus ──────────────────────────
-  // Sort a COPY to avoid mutating the caller's array
-  const sortedNeeds = [...warByPosition].sort(
-    (a, b) => (b.leagueAvgWAR - b.war) - (a.leagueAvgWAR - a.war),
-  );
-  const top2Needs = new Set(sortedNeeds.slice(0, 2).map((p) => p.position));
-  const roleFitScore = top2Needs.has(position) ? 1.0 : 0.5;
-
-  // ── 6. Final score ────────────────────────────────────────────────────────
-  const targetScore =
-    pHit * 40 +
-    needWeight * 25 +
-    timelineScore * 20 +
-    surplusScore * 10 +
-    roleFitScore * 5;
+  // ── 6. Final score (practical range 20–100) ───────────────────────────────
+  const rawScore = dynastyScore + talentBonus + needBonus + timelineFit + surplusBonus;
+  const targetScore = Math.min(100, Math.round(rawScore));
 
   // ── 7. Badges and labels ──────────────────────────────────────────────────
-  // timelineBadge: prospect readiness based on position (NOT team alignment)
   const prospectPeakOffset = PROSPECT_PEAK_OFFSET[position] ?? 2.5;
   const timelineBadge: 'immediate' | 'year2' | 'year3+' =
     prospectPeakOffset <= 1.5 ? 'immediate' : prospectPeakOffset <= 2.5 ? 'year2' : 'year3+';
@@ -112,7 +119,6 @@ export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
       : `Adds depth and future flexibility`;
   }
 
-  // Suppress unused variable warning for peakYearOffset (used by caller for context)
   void peakYearOffset;
 
   return {
