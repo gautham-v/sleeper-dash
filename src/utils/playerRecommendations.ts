@@ -73,11 +73,11 @@ const WEIGHT_PROFILES: Record<StrategyMode, StrategyWeights> = {
 };
 
 const VERDICT_THRESHOLDS: Record<StrategyMode, VerdictThresholds> = {
-  'Push All-In Now':    { hold: 55, cut: 30 },
+  'Push All-In Now':    { hold: 57, cut: 32 },
   'Steady State':       { hold: 60, cut: 35 },
   'Win-Now Pivot':      { hold: 60, cut: 35 },
-  'Asset Accumulation': { hold: 70, cut: 40 },
-  'Full Rebuild':       { hold: 75, cut: 45 },
+  'Asset Accumulation': { hold: 63, cut: 38 },
+  'Full Rebuild':       { hold: 66, cut: 40 },
 };
 
 // ---- Scoring Dimension Functions ----
@@ -242,11 +242,11 @@ function scorePositionalContext(
     }
   } else if (rank <= topThirdCutoff) {
     // Top third: team is deep at this position -- surplus territory
-    // Less need to keep this specific player
-    score = 20 + Math.min(30, (playerWAR / 5) * 30);
+    // Still value top contributors even in surplus positions
+    score = 35 + Math.min(30, (playerWAR / 5) * 30);
   } else {
     // Middle third: moderate need
-    score = 45 + Math.min(25, (playerWAR / 5) * 25);
+    score = 50 + Math.min(25, (playerWAR / 5) * 25);
   }
 
   // Cross-reference with focus areas
@@ -313,25 +313,31 @@ function scoreStrategicFit(
     }
 
     case 'Win-Now Pivot': {
-      // Favor proven starters. Penalize high-upside stashes who won't help this year.
+      // Favor proven starters. Young ascending players still fit the window.
       if (isStarter && playerWAR >= 2) return 85;
       if (isStarter && playerWAR > 0) return 65;
+      // Young ascending players have value even in win-now — they'll contribute soon
+      if (effectiveAge <= 25 && (upsideRatio ?? 0) >= 1.0) return 55;
       // Non-starters with value but not helping now
-      if (effectiveAge <= 23 && (upsideRatio ?? 0) >= 1.2) return 30; // stash, not useful now
-      if (playerWAR <= 0) return 20;
+      if (effectiveAge <= 23 && (upsideRatio ?? 0) >= 1.2) return 45;
+      if (playerWAR > 0) return 50;
+      if (playerWAR <= 0) return 25;
       return 40;
     }
 
     case 'Asset Accumulation': {
-      // Favor young ascending players. Penalize veterans past their peak.
+      // Favor young ascending players. Still value productive players in their prime.
       if (effectiveAge <= 24 && (upsideRatio ?? 0) >= 1.0) {
         return 80 + Math.min(20, (upsideRatio ?? 1) * 8);
       }
+      if (effectiveAge <= 24) return 70;
       if (effectiveAge <= 26) return 60;
-      // Veterans still producing -- moderate fit (they have trade value)
-      if (playerWAR > 2 && effectiveAge <= 28) return 45;
-      // Aging and past peak
-      if (effectiveAge >= 29) return 15;
+      // Prime-age players still producing are tradeable but not aggressively so
+      if (playerWAR > 2 && effectiveAge <= 28) return 50;
+      if (effectiveAge <= 28) return 40;
+      // Past prime but still producing — trade candidates, not valueless
+      if (playerWAR > 3 && effectiveAge <= 31) return 35;
+      if (effectiveAge >= 30) return 20;
       return 30;
     }
 
@@ -340,11 +346,13 @@ function scoreStrategicFit(
       if (effectiveAge <= 23 && (upsideRatio ?? 0) >= 1.0) {
         return 85 + Math.min(15, (upsideRatio ?? 1) * 5);
       }
-      if (effectiveAge <= 24) return 65;
-      if (effectiveAge <= 25 && (upsideRatio ?? 0) >= 1.5) return 55;
-      // Almost everyone else is a Trade/Cut candidate
-      if (effectiveAge >= 28) return 5;
-      if (effectiveAge >= 26) return 15;
+      if (effectiveAge <= 24) return 70;
+      if (effectiveAge <= 25) return 55;
+      if (effectiveAge <= 26 && playerWAR > 2) return 40;
+      // Veterans with high trade value are still assets to leverage
+      if (playerWAR > 3 && effectiveAge <= 28) return 30;
+      if (effectiveAge >= 29) return 15;
+      if (effectiveAge >= 27) return 20;
       return 25;
     }
   }
