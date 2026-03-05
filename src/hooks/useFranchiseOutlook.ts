@@ -86,7 +86,10 @@ export function useFranchiseOutlook(leagueId: string | null) {
           const map = new Map<string, number>();
           const pool: FCPlayerEntry[] = [];
           try {
-            const fcRes = await fetch('/api/fantasycalc?numQbs=1');
+            const isSF = league.roster_positions.includes('SUPER_FLEX');
+            const recPts = league.scoring_settings?.rec ?? 1;
+            const ppr = recPts >= 0.8 ? 1 : recPts >= 0.4 ? 0.5 : 0;
+            const fcRes = await fetch(`/api/fantasycalc?numQbs=${isSF ? 2 : 1}&ppr=${ppr}`);
             if (fcRes.ok) {
               // API field is "sleeperId", not "sleeperPlayerId"
               const fcData: FCPlayerEntry[] = await fcRes.json();

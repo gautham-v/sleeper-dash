@@ -8,6 +8,8 @@ import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { useFranchiseOutlook } from '../hooks/useFranchiseOutlook';
 import { useAllTimeWAR } from '../hooks/useAllTimeWAR';
 import { useManagerRosterStats } from '../hooks/useManagerRosterStats';
+import { usePlayerRecommendations } from '../hooks/usePlayerRecommendations';
+import type { PlayerRecommendation } from '../types/recommendations';
 import { calcAllTimeStats, calcH2H, calcAllTimeRecords } from '../utils/calculations';
 import { Avatar } from './Avatar';
 import { ShareButton } from './ShareButton';
@@ -59,6 +61,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const franchiseOutlook = useFranchiseOutlook(franchiseUnlocked ? leagueId : null);
   const trajectoryAnalysis = useAllTimeWAR(trajectoryUnlocked ? leagueId : null);
   const rosterStats = useManagerRosterStats(leagueId, userId);
+  const recommendations = usePlayerRecommendations(franchiseUnlocked ? leagueId : null, userId);
   const PLAYERS_PER_PAGE = 10;
   const [playersPage, setPlayersPage] = useState(1);
   const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
@@ -128,6 +131,13 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
       .filter(p => p.totalStarts > 0)
       .slice(0, 5);
   }, [rosterStats.data]);
+
+  const recMap = useMemo(() => {
+    const m = new Map<string, PlayerRecommendation>();
+    if (!recommendations.data) return m;
+    for (const r of recommendations.data.players) m.set(r.playerId, r);
+    return m;
+  }, [recommendations.data]);
 
   // Map of season year -> playoff finish label for this user
   const playoffFinishBySeason = useMemo(() => {
@@ -293,7 +303,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           const section = v as typeof activeSection;
           if (section === 'drafting') setDraftingUnlocked(true);
           if (section === 'trading') setTradingUnlocked(true);
-          if (section === 'outlook' || section === 'value') setFranchiseUnlocked(true);
+          if (section === 'outlook' || section === 'value' || section === 'players') setFranchiseUnlocked(true);
           if (section === 'value') setTrajectoryUnlocked(true);
           setActiveSection(section);
         }}
@@ -306,7 +316,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
               const section = v as typeof activeSection;
               if (section === 'drafting') setDraftingUnlocked(true);
               if (section === 'trading') setTradingUnlocked(true);
-              if (section === 'outlook') setFranchiseUnlocked(true);
+              if (section === 'outlook' || section === 'players') setFranchiseUnlocked(true);
               if (section === 'value') setTrajectoryUnlocked(true);
               setActiveSection(section);
             }}
@@ -807,6 +817,30 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                   </button>
                 </div>
               </div>
+              {playersView === 'current' && recommendations.data && (
+                <div className="px-5 pb-2 flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-gray-400">Hold</span>
+                    <span className="font-semibold text-white">{recommendations.data.summary.holdCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-gray-400">Trade</span>
+                    <span className="font-semibold text-white">{recommendations.data.summary.tradeCount}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-gray-400">Cut</span>
+                    <span className="font-semibold text-white">{recommendations.data.summary.cutCount}</span>
+                  </span>
+                  {recommendations.data.summary.tradeableValue > 0 && (
+                    <span className="ml-auto text-gray-500">
+                      Tradeable value: <span className="text-amber-400 font-medium">{Math.round(recommendations.data.summary.tradeableValue).toLocaleString()}</span>
+                    </span>
+                  )}
+                </div>
+              )}
               {(() => {
                 const filteredPlayers = playersView === 'current'
                   ? rosterStats.data.players.filter(p => rosterStats.data!.currentRosterIds.includes(p.playerId))
@@ -822,6 +856,9 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                       <TableHeader>
                         <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
                           <TableHead className="text-left py-2.5 px-5">Player</TableHead>
+                          {playersView === 'current' && recommendations.data && (
+                            <TableHead className="text-center py-2.5 px-3">Verdict</TableHead>
+                          )}
                           <TableHead className="text-right py-2.5 px-3">Total Pts</TableHead>
                           <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">TDs</TableHead>
                           <TableHead className="text-right py-2.5 px-3 hidden sm:table-cell">Starts</TableHead>
@@ -834,6 +871,9 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                             ? player.firstSeason
                             : `${player.firstSeason}–${player.lastSeason}`;
                           const isExpanded = expandedPlayerId === player.playerId;
+                          const rec = recMap.get(player.playerId);
+                          const showVerdict = playersView === 'current' && recommendations.data;
+                          const colSpan = showVerdict ? 6 : 5;
                           return (
                             <React.Fragment key={`${player.playerId}-${idx}`}>
                               <TableRow
@@ -850,6 +890,29 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                     }
                                   </div>
                                 </TableCell>
+                                {showVerdict && (
+                                  <TableCell className="py-3 px-3 text-center">
+                                    {rec ? (
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                          rec.verdict === 'HOLD'
+                                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                            : rec.verdict === 'TRADE'
+                                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                              : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                                        }`}
+                                        title={rec.reason}
+                                      >
+                                        {rec.verdict}
+                                        {rec.confidence < 30 && (
+                                          <span className="text-[9px] opacity-60">?</span>
+                                        )}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-600">—</span>
+                                    )}
+                                  </TableCell>
+                                )}
                                 <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
                                   {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
                                 </TableCell>
@@ -865,7 +928,41 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                               </TableRow>
                               {isExpanded && (
                                 <TableRow key={`${player.playerId}-expanded`} className="border-b border-gray-800/60">
-                                  <TableCell colSpan={5} className="px-5 pb-4 pt-0">
+                                  <TableCell colSpan={colSpan} className="px-5 pb-4 pt-0">
+                                    {rec && (
+                                      <div className={`mb-3 mt-2 rounded-lg px-3 py-2 text-xs ${
+                                        rec.verdict === 'HOLD'
+                                          ? 'bg-emerald-500/10 border border-emerald-500/20'
+                                          : rec.verdict === 'TRADE'
+                                            ? 'bg-amber-500/10 border border-amber-500/20'
+                                            : 'bg-red-500/10 border border-red-500/20'
+                                      }`}>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className={`font-semibold ${
+                                            rec.verdict === 'HOLD' ? 'text-emerald-400'
+                                              : rec.verdict === 'TRADE' ? 'text-amber-400'
+                                                : 'text-red-400'
+                                          }`}>
+                                            {rec.verdict}{rec.tradeType ? ` (${rec.tradeType})` : ''}
+                                          </span>
+                                          <span className="text-gray-400">{rec.reason}</span>
+                                          <span className="ml-auto text-gray-600 tabular-nums">
+                                            {rec.confidence}% confidence
+                                          </span>
+                                        </div>
+                                        {rec.dynastyValue != null && (
+                                          <div className="flex gap-4 mt-1.5 text-gray-500">
+                                            <span>WAR: <span className="text-gray-300">{rec.playerWAR.toFixed(1)}</span></span>
+                                            <span>Value: <span className="text-gray-300">{Math.round(rec.dynastyValue).toLocaleString()}</span></span>
+                                            <span>Curve: <span className={
+                                              rec.ageCurveDirection === 'ascending' ? 'text-emerald-400'
+                                                : rec.ageCurveDirection === 'declining' ? 'text-red-400'
+                                                  : 'text-gray-300'
+                                            }>{rec.ageCurveDirection}</span></span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                     <PlayerCareerPanel
                                       leagueId={leagueId}
                                       playerId={player.playerId}
