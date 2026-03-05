@@ -79,7 +79,7 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
             <span className="text-4xl leading-none">🏈</span>
             <div>
               <h2 className="text-xl font-bold text-white leading-tight">leaguemate.fyi</h2>
-              <p className="text-sm text-gray-400 mt-0.5">Fantasy football analytics for Sleeper leagues</p>
+              <p className="text-sm text-gray-400 mt-0.5">Dynasty strategy, built around your roster</p>
             </div>
           </div>
 
@@ -87,31 +87,44 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
           <section className="space-y-2">
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">The Story</h3>
             <p className="text-sm text-gray-300 leading-relaxed">
-              Hey, I'm <span className="text-white font-semibold">Gautham</span> 👋 — a product manager based in{' '}
-              <span className="text-white font-semibold">Seattle, WA</span> 🌧️🏔️. I built leaguemate.fyi because I
-              wanted deeper historical stats for my own Sleeper leagues and figured other fantasy nerds might too.
+              Hey, I&apos;m <span className="text-white font-semibold">Gautham</span> &mdash; a product manager based in{' '}
+              <span className="text-white font-semibold">Seattle, WA</span>. I built leaguemate.fyi because I was tired
+              of generic dynasty advice that didn&apos;t account for my actual roster, my league format, or where my
+              team was in its rebuild cycle. So I built the tool I wanted.
+            </p>
+          </section>
+
+          {/* What it does */}
+          <section className="space-y-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">What It Does</h3>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              leaguemate.fyi is a <span className="text-white font-semibold">personalized dynasty strategy engine</span>.
+              It ingests your Sleeper roster and cross-references a database of{' '}
+              <span className="text-white font-semibold">3,500+ historical rookies</span> to generate Hold, Trade, or
+              Cut verdicts tuned to your team&apos;s strategy &mdash; not the market at large. It&apos;s{' '}
+              <span className="text-white font-semibold">completely free</span> &mdash; no ads, no accounts, no paywalls.
             </p>
           </section>
 
           {/* Nights & weekends */}
           <section className="space-y-2">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Nights & Weekends 🌙</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Nights &amp; Weekends</h3>
             <p className="text-sm text-gray-300 leading-relaxed">
-              This site is a <span className="text-white font-semibold">one-person passion project</span> built and
-              maintained entirely by me in my free time. It's{' '}
-              <span className="text-white font-semibold">completely free</span> — no ads, no accounts, no paywalls.
-              Your public Sleeper data loads directly in the browser.
+              This is a <span className="text-white font-semibold">one-person passion project</span> built and
+              maintained entirely by me in my free time. What started as a historical stats dashboard evolved into a
+              full strategy recommendation engine backed by a real historical database &mdash; because one rabbit hole
+              leads to another.
             </p>
           </section>
 
           {/* Tech stack */}
           <section className="space-y-2.5">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">🛠️ Under the Hood</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Under the Hood</h3>
             <div className="flex flex-wrap gap-2">
               {[
-                'React 19',
+                'Next.js',
                 'TypeScript',
-                'Vite',
+                'Supabase',
                 'Tailwind CSS v4',
                 'TanStack Query',
                 'shadcn/ui',
@@ -126,14 +139,6 @@ export function AboutModal({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           </section>
-
-          {/* Fun fact */}
-          <div className="bg-card-bg border border-card-border rounded-xl p-4">
-            <p className="text-xs text-gray-400 leading-relaxed">
-              ☕ Fun fact: this app has no backend and no database. Every stat and record you see is computed live
-              from the Sleeper API — right there in your browser.
-            </p>
-          </div>
 
           {/* Links */}
           <div className="border-t border-card-border pt-4 flex flex-wrap gap-4">

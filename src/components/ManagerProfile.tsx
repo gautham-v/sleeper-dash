@@ -22,6 +22,7 @@ import { TradingTab } from './TradingTab';
 import { FranchiseOutlookTab } from './FranchiseOutlookTab';
 import { FranchiseTrajectoryTab } from './FranchiseTrajectoryTab';
 import { PlayerCareerPanel } from './PlayerCareerPanel';
+import { HTCMethodologySheet } from './methodology/HTCMethodologySheet';
 import {
   Table,
   TableHeader,
@@ -66,6 +67,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const [playersPage, setPlayersPage] = useState(1);
   const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  const [htcSheetOpen, setHtcSheetOpen] = useState(false);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -818,7 +820,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                 </div>
               </div>
               {playersView === 'current' && recommendations.data && (
-                <div className="px-5 pb-2 flex items-center gap-3 text-xs">
+                <div className="px-5 pb-2 flex items-center gap-3 text-xs flex-wrap">
                   <span className="flex items-center gap-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-muted-foreground">Hold</span>
@@ -834,6 +836,12 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                     <span className="text-muted-foreground">Cut</span>
                     <span className="font-semibold text-foreground">{recommendations.data.summary.cutCount}</span>
                   </span>
+                  <button
+                    onClick={() => setHtcSheetOpen(true)}
+                    className="text-muted-foreground hover:text-white transition-colors ml-1"
+                  >
+                    How verdicts are calculated →
+                  </button>
                   {recommendations.data.summary.tradeableValue > 0 && (
                     <span className="ml-auto text-muted-foreground">
                       Tradeable value: <span className="text-amber-400 font-medium">{Math.round(recommendations.data.summary.tradeableValue).toLocaleString()}</span>
@@ -1022,6 +1030,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           )}
         </TabsContent>
       </Tabs>
+
+      <HTCMethodologySheet open={htcSheetOpen} onOpenChange={setHtcSheetOpen} />
     </div>
   );
 }
