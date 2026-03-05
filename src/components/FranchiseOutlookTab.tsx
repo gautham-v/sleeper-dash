@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -17,6 +18,9 @@ import type {
 } from '../types/sleeper';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import { PosBadge, TierBadge } from '@/components/ui/badges';
+import { Share2 } from 'lucide-react';
+import { FranchiseCardModal } from '@/components/FranchiseCardModal';
+import type { FranchiseShareCardProps } from '@/components/FranchiseShareCard';
 
 interface FranchiseOutlookTabProps {
   userId: string;
@@ -72,7 +76,10 @@ function SummaryCard({ label, children }: { label: React.ReactNode; children: Re
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) {
+export function FranchiseOutlookTab({ userId, data, rawContext }: FranchiseOutlookTabProps) {
+  // useState must be called unconditionally before any early returns (Rules of Hooks)
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+
   const result = data.get(userId);
 
   if (!result) {
@@ -95,6 +102,25 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
   } = result;
 
   const totalManagers = data.size;
+  const displayName = rawContext?.userDisplayNames?.get(userId) ?? 'My Team';
+
+  const cardProps: FranchiseShareCardProps = {
+    displayName,
+    totalManagers,
+    tier,
+    warRank,
+    wins,
+    losses,
+    luckScore,
+    windowLength,
+    peakYearOffset,
+    currentWAR,
+    strategyMode: strategyRecommendation.mode,
+    strategyHeadline: strategyRecommendation.headline,
+    rationale: strategyRecommendation.rationale,
+    keyPlayers,
+  };
+
   const tc = tierColors(tier);
 
   const currentYear = new Date().getFullYear();
@@ -144,6 +170,13 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
                 {luckScore <= -2 && <span className="ml-1 text-red-400">Unlucky record</span>}
               </div>
             )}
+            <button
+              onClick={() => setCardModalOpen(true)}
+              className="mt-2 flex items-center gap-1.5 text-xs text-gray-400 hover:text-white border border-gray-700/60 hover:border-gray-500 rounded-full px-2.5 py-1 transition-colors ml-auto"
+            >
+              <Share2 size={11} />
+              Share My Card
+            </button>
           </div>
         </div>
       </div>
@@ -402,6 +435,12 @@ export function FranchiseOutlookTab({ userId, data }: FranchiseOutlookTabProps) 
           Dynasty values, rookie rankings, and trade compatibility from FantasyCalc (24h cache).
         </div>
       </div>
+
+      <FranchiseCardModal
+        open={cardModalOpen}
+        onClose={() => setCardModalOpen(false)}
+        cardProps={cardProps}
+      />
 
     </div>
   );

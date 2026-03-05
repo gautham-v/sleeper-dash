@@ -23,10 +23,10 @@ The product is a **league analytics tool**: any manager in a Sleeper league can 
 ## Who Uses This?
 
 **The Dynasty Analyst** *(primary)*
-Has been in the same league for 3+ years. Wants to understand their franchise's trajectory, evaluate past drafts and trades, and build a strategic case for their next move. Spends time on the Franchise Outlook tab, the WAR trajectory chart, and their Manager Profile. Likely the person who shared the link with their league.
+Has been in the same league for 3+ years. Wants to understand their franchise's trajectory, evaluate past drafts and trades, and build a strategic case for their next move. Spends time on the Franchise Outlook tab, the WAR trajectory chart, and their Manager Profile. Likely the person who shared the link with their league. The Trade Impact Simulator is built almost exclusively for this user.
 
 **The Competitive Commissioner** *(secondary)*
-Maintains a long-running league and wants a single authoritative source for league lore — all-time records, the reigning champion, the best draft ever. Uses Records, Draft Leaderboard, and the Managers page. Most likely to share specific pages or screenshots in league chat.
+Maintains a long-running league and wants a single authoritative source for league lore — all-time records, the reigning champion, the best draft ever. Uses Records, Draft Leaderboard, and the Managers page. Most likely to share specific pages or screenshots in league chat. The Franchise Share Card is designed for this sharing behavior.
 
 **The Casual Overviewer** *(tertiary)*
 Visits once at the end of the season, checks standings, looks up their luck score, glances at a trade card or two. Doesn't engage with deep analytics but benefits from the League Overview and Trade Analyzer. Can leave the app with a clear picture of how their season went in under two minutes.
@@ -38,9 +38,10 @@ Visits once at the end of the season, checks standings, looks up their luck scor
 1. **Entry** — User visits leaguemate.fyi and enters their Sleeper username. The app fetches all leagues they're in for 2024–2025 and redirects to their most recent active league.
 2. **Orientation** — League Overview loads: current standings, their personal "My Season" card (rank, record, points for, luck score), and the reigning champion. This is the first context-setting moment.
 3. **First depth** — They navigate to Draft Leaderboard or Trade Analyzer to see how they rank in the league. Grade letters and league-relative rankings make this immediately engaging.
-4. **Personal deep-dive** — They visit their own Manager Profile to see their Ring of Honor (most-started players ever), career record in the league, and the Franchise Outlook tab with their contender window and a strategy recommendation.
+4. **Personal deep-dive** — They visit their own Manager Profile to see their Ring of Honor (most-started players ever), career record in the league, and the Franchise Outlook tab with their contender window and a strategy recommendation — now including data-driven rationale that names specific players and positions.
 5. **Cross-manager exploration** — They visit another manager's profile to compare, use H2H to settle a debate, or click through the Franchise Analytics page to see all-time WAR trajectory for every franchise.
-6. **Return behavior** — Power users check Franchise Analytics periodically through the season, or return to the Records page at season end to see if any marks were broken.
+6. **Trade planning** — Power users use the Trade Impact Simulator to model a hypothetical trade before proposing it, seeing how WAR, tier, contender window, and roster age would change for both sides.
+7. **Return behavior** — Power users check Franchise Analytics periodically through the season, or return to the Records page at season end to see if any marks were broken.
 
 ---
 
@@ -172,18 +173,44 @@ Visits once at the end of the season, checks standings, looks up their luck scor
 
 1. **Franchise Value** — A multi-line chart showing cumulative WAR for every franchise across the league's full history. Each season adds to the running total, so long-tenured franchises with sustained success rise to the top. Lines are color-coded per manager; clicking a manager in the legend highlights their line. A rankings table below shows current franchise value rank, total WAR, and year-over-year change.
 2. **Franchise Outlook** — A manager-selectable deep-dive panel with:
-  - **Tier banner** (Contender / Fringe / Rebuilding, color-coded) with overall franchise score and rank
-  - **Strategy recommendation** (one of five: Push All-In, Win-Now Pivot, Steady State, Asset Accumulation, Full Rebuild) with a rationale and action urgency score
+  - **Tier banner** (Contender / Fringe / Rebuilding, color-coded) with overall franchise score and rank, plus a **Share My Card** button
+  - **Strategy recommendation** (one of five: Push All-In, Win-Now Pivot, Steady State, Asset Accumulation, Full Rebuild) with a **data-driven rationale** and action urgency score
   - **Focus areas** — specific signals flagged as warnings, positives, or information (e.g., "aging WR corps," "strong rookie pipeline")
   - **Summary cards** — roster age, contender window (how many years until peak), peak projected year, roster age risk, future draft pick count
   - **Roster Assets** — Franchise Pillars (top starters by WAR) and Young Pipeline (players 24 or under with dynasty upside)
   - **3-year WAR projection chart** — current performance extended forward with a dashed contender threshold line
   - **Position breakdown** — each position ranked within the league, with age trend (Rising / Prime / Aging)
-  - **Rookie Targets**, **Trade Targets**, and **Trade Partners** cards — FantasyCalc-powered recommendations for how to improve the roster
+  - **Rookie Targets**, **Trade Targets** (with seller context), and **Trade Partners** cards — FantasyCalc-powered recommendations for how to improve the roster
 
-**Enables:** Long-term strategic planning; identifying the right trade partners; communicating franchise health to prospective trade counterparts.
+**Data-driven strategy rationale:** Strategy recommendation bullets now reference actual roster data — naming the top franchise pillar by age, identifying the weakest position group by WAR rank, counting young assets and future first-round picks, and factoring in luck score context (e.g., "Unlucky record masks true talent — sellers may underestimate you").
 
-**Limitations:** Projections assume standard roster configurations; superflex or non-standard formats may produce incorrect age curves. Rookie targets and trade partners require the FantasyCalc API; if unavailable, those cards are absent. The 0.85-per-year discount applied to future pick values is not configurable.
+**Trade Target Seller Context:** Each trade target card now includes a seller motivation assessment based on the target's tier (Contender / Rebuilder / Fringe), age trajectory, and luck score. Urgency flags (`buy-low`, `closing-window`) surface when elite players show decline curves or when sellers have extra motivation to move assets.
+
+**Share My Card:** From the Franchise Outlook panel, any manager can tap "Share My Card" to open a styled 400×520px franchise card in a modal overlay. The card shows tier badge, strategy headline, key metrics (WAR rank, contender window, peak year, record), franchise pillars, and top rationale bullets — designed for screenshot sharing into league chats. The card always renders in dark mode regardless of app color scheme. A copy-link button in the modal copies the current page URL.
+
+**Enables:** Long-term strategic planning; identifying the right trade partners; communicating franchise health to prospective trade counterparts; sharing franchise identity in league chat.
+
+**Limitations:** Projections assume standard roster configurations; superflex or non-standard formats may produce incorrect age curves. Rookie targets and trade partners require the FantasyCalc API; if unavailable, those cards are absent. The 0.85-per-year discount applied to future pick values is not configurable. The share card copies the current page URL rather than a franchise-specific deep link.
+
+---
+
+#### Trade Impact Simulator
+
+**Answers:** What would happen to my franchise if I made a specific trade?
+
+**Shows:** A two-column (desktop) / tabbed (mobile) asset picker with WAR impact visualization:
+
+- **Counterparty selector** — dropdown of all league managers; clears selections on change
+- **Asset columns** — searchable player lists (QB, RB, WR, TE only) and future draft picks for each side; selected assets appear as removable chips. Player cards show position badge, age, WAR, and dynasty value.
+- **Delta Summary Card** — before/after comparison across: Franchise Score (total WAR), Tier (with transition label, e.g., "Rebuilder → Contender"), Contender Window (years), Peak Year, and Weighted Roster Age. Each metric is color-coded (green = improvement, red = decline, gray = unchanged).
+- **WAR Trajectory Chart** — 5-year projection showing before (gray dashed) and after (cyan/red) lines, with an indigo contender threshold reference line.
+- **Counterparty Outlook** — mirrored delta summary and WAR chart for the other team in the trade, enabling bilateral evaluation.
+
+**How it works:** The simulator clones the current league state snapshot (`FranchiseOutlookRawContext`), applies roster and pick mutations for the proposed trade, recalculates all-league position ranks and WAR ranks, then runs the full `computeFranchiseOutlook()` engine for both teams. Results are debounced 300ms to prevent excessive recomputation during rapid asset selection.
+
+**Enables:** Evaluating trades before proposing them; understanding second-order effects (how trading away a WR affects position ranking relative to the whole league); seeing both sides of a trade simultaneously.
+
+**Limitations:** Only QB, RB, WR, TE positions modeled (kickers and defenses excluded). Strictly bilateral — multi-team trades not supported. Uses a static league state snapshot at page load; changes made by others during a session won't be reflected until refresh. Future pick values are implicit in WAR projections rather than displayed as a dollar figure.
 
 ---
 
@@ -257,8 +284,11 @@ Every major page and component is fully wired to real data. The only exception i
 | **Draft Surplus**                | Whether a draft pick outperformed or underperformed expectations for its slot.                                                                                           |
 | **Analyzed Trade**               | Post-trade fantasy points for both sides of every trade, to determine who "won."                                                                                         |
 | **Franchise Outlook**            | 3-year projection of a team's WAR, incorporating current roster age, future draft picks, and position-specific aging curves.                                             |
+| **Franchise Outlook Raw Context** | A full immutable snapshot of the league state at a point in time: all rosters, player WAR map, pick ownership, position rankings, display names, dynasty values. Used as the input to Trade Impact Simulation. |
+| **Trade Simulator Result**       | Before/after delta across five franchise metrics (WAR, tier, contender window, peak year, roster age) after a proposed bilateral trade. Computed by mutating a Raw Context clone and re-running computeFranchiseOutlook. |
+| **Seller Context**               | Per-trade-target motivation profile: tier-adjusted willingness to sell, age-based urgency flags (`buy-low`, `closing-window`), and luck-adjusted pricing. Surfaced in Trade Targets cards. |
 | **Luck Index**                   | Gap between actual wins and "expected wins" (simulated record if you played every other team each week).                                                                 |
-| **Strategy Recommendation**      | One of five actionable labels (Push All-In, Win-Now Pivot, Steady State, Asset Accumulation, Full Rebuild) derived from a team's tier, contender window, and risk score. |
+| **Strategy Recommendation**      | One of five actionable labels (Push All-In, Win-Now Pivot, Steady State, Asset Accumulation, Full Rebuild) derived from a team's tier, contender window, and risk score. Rationale bullets now reference named players, specific position weaknesses, young asset counts, and luck context. |
 | **All-Time Records**             | 12+ career superlatives computed across every historical season in the league.                                                                                           |
 
 
@@ -278,8 +308,8 @@ The franchise outlook, contender window, future pick valuation, age curves, and 
 **2. WAR as the single truth**
 Every analytical surface — draft grades, trade grades, franchise projections, strategy recommendations — ultimately converts back to WAR. This creates a coherent, unified analytical language, but it also means the entire product's credibility rests on WAR being a trusted metric.
 
-**3. Evaluation is retrospective by design**
-Trades are graded by actual post-trade fantasy production. Draft picks are graded by actual season points vs. replacement level. There is no forward-looking "expected value at time of decision" model. This is a philosophical stance: judge outcomes, not intentions.
+**3. Evaluation is retrospective by design (with a forward-looking simulator as complement)**
+Trades are graded by actual post-trade fantasy production. Draft picks are graded by actual season points vs. replacement level. There is no forward-looking "expected value at time of decision" model for historical grades. However, the Trade Impact Simulator deliberately offers the forward-looking counterpart: before you make a trade, you can simulate its WAR impact. The product now covers both temporal modes — judge outcomes for the past, project impact for the future.
 
 **4. The app is a league analytics tool, not a team management tool**
 There are no waiver wire recommendations, no lineup optimizer, no sit/start advice, and no injury alerts. The product deliberately sits upstream of in-season decisions and focuses on historical intelligence and long-term strategy.
@@ -295,6 +325,9 @@ The landing page fetches only these two seasons from Sleeper. Users in leagues t
 
 **8. FantasyCalc is a critical, non-redundant dependency**
 Rookie draft targets, trade target values, and trade partner compatibility all require FantasyCalc's dynasty values. If FantasyCalc is unavailable, these features silently degrade. There is no fallback value system.
+
+**9. Trade simulation is exploratory, not prescriptive**
+The simulator places no guardrails on what trades can be modeled — a user can simulate trading 5 stars for 1 rookie. It does not suggest fair trades or flag imbalanced deals. This is intentional: the product informs, it does not judge in-progress decisions.
 
 ---
 
@@ -321,10 +354,16 @@ Career stats exist on a per-user basis, but there is no way to compare two manag
 Playoff wins and losses are tracked in career stats. But there is no "playoff performance" analysis — no clutch scoring, no bracket luck, no analysis of who consistently underperforms or overperforms in the postseason.
 
 **Mock draft or draft prep tools**
-The product analyzes past drafts in detail but has no forward-looking draft tools: no player board, no draft simulator, no ADP comparison. Given the franchise/dynasty orientation, draft prep is a natural adjacent product.
+The product analyzes past drafts in detail but has no forward-looking draft tools: no player board, no draft simulator, no ADP comparison. The Trade Impact Simulator fills the forward-looking gap for trades specifically, but the draft equivalent does not exist.
 
 **Historical power rankings or luck trends**
 Power rankings and luck scores are computed for the current season only. There is no week-by-week historical chart, no "power ranking trajectory," no way to see how a team rose or fell over the course of a season.
+
+**Multi-team trade simulation**
+The Trade Impact Simulator is strictly bilateral. Three-way (or larger) trades — common in dynasty leagues — cannot be modeled.
+
+**Franchise-specific share URLs**
+The "Share My Card" feature copies the current page URL, not a direct link to a specific manager's franchise outlook. There is no deep-linkable URL that routes to a specific manager's card.
 
 ---
 
@@ -338,6 +377,8 @@ Power rankings and luck scores are computed for the current season only. There i
 - **Additional manager profile tabs** — The tab system in Manager Profile is designed to accept new tabs. A "Season Timeline" or "Roster History" tab could be added independently.
 - **Keeper flag surfacing** — The data is already in every draft pick. Exposing keeper analysis is primarily a UI task.
 - **Expanded glossary and onboarding** — A glossary already exists in the codebase. Contextual help, tooltips, and onboarding flows can be layered on without structural changes.
+- **Multi-team trade simulation** — The `FranchiseOutlookRawContext` snapshot pattern used by the bilateral simulator could extend to 3+ teams with moderate effort, since the mutation-and-recompute pattern is already in place.
+- **Franchise-specific deep links** — The share card already has a `shareUrl` prop designed for this; generating and passing a manager-scoped URL is the only missing piece.
 
 ### What Would Require Significant Work
 
@@ -353,7 +394,7 @@ Power rankings and luck scores are computed for the current season only. There i
 ## Open Questions
 
 **1. Who is the intended primary user?**
-The product serves both casual overviewers (standings, records) and deep analysts (franchise outlook, WAR charts). It's unclear which user is primary. The navigation gives equal weight to both, which may dilute focus.
+The product serves both casual overviewers (standings, records) and deep analysts (franchise outlook, WAR charts, trade simulator). It's unclear which user is primary. The navigation gives equal weight to both, which may dilute focus.
 
 **2. How should grade calibration be communicated?**
 Grades are percentile-ranked within a league. A user who transfers to a stronger league will see their grade drop even if their absolute performance didn't change. This isn't documented anywhere for the user.
@@ -364,20 +405,23 @@ WAR is computed as starter points above league median. It advantages managers wh
 **4. What happens to multi-year metrics when a manager leaves a league?**
 The data model links rosters to users, and historical chains to previous leagues. But if a manager leaves mid-history and a new manager takes over their team, the WAR trajectory chart and career records would attribute old seasons to the new manager. This edge case is unhandled.
 
-**5. The trade evaluation model is purely outcome-based — is that the right call?**
-Judging a trade by post-trade fantasy points ignores context: a manager who traded away a player who then got injured isn't "wrong" in any meaningful sense. The model will grade them as losers anyway. The product has made a clear choice here (outcomes, not expectations), but it hasn't communicated that philosophy to users.
+**5. The trade evaluation model is retrospective and the simulator is forward-looking — do users understand they're different tools?**
+Trades are graded historically by actual post-trade fantasy points. The Trade Impact Simulator projects forward using WAR modeling. A trade that the Analyzer grades as a loss (because the player got injured) might still show as a WAR improvement in the simulator. These two surfaces produce different answers to different questions, but the product doesn't clearly communicate that distinction.
 
 **6. What is the upgrade or monetization path?**
-The product has no account system, paywall, premium tier, or rate limiting. It's unclear whether the intent is to remain free, introduce a freemium model (e.g., gate franchise outlook or cross-league features), or pursue B2B (league commissioner tools). The architecture would need significant changes to support any monetization model.
+The product has no account system, paywall, premium tier, or rate limiting. It's unclear whether the intent is to remain free, introduce a freemium model (e.g., gate franchise outlook or trade simulator behind a premium tier), or pursue B2B (league commissioner tools). The architecture would need significant changes to support any monetization model.
 
 **7. Are strategy recommendations trusted by users, or does "AI strategy advice" create skepticism?**
-The franchise outlook produces deterministic, rule-based recommendations labeled as strategy guidance. Users sophisticated enough to question the assumptions (e.g., "why does 0.85 discount apply to my Round 1 pick?") have no way to inspect or override the model. The product doesn't acknowledge its own uncertainty.
+The franchise outlook produces deterministic, rule-based recommendations labeled as strategy guidance. The data-driven rationale (naming players, positions, luck scores) adds credibility, but users sophisticated enough to question the assumptions (e.g., "why does 0.85 discount apply to my Round 1 pick?") have no way to inspect or override the model. The product doesn't acknowledge its own uncertainty.
 
 **8. How does the product handle leagues with non-standard roster configurations?**
-Franchise outlook projections assume standard starting lineups (1 QB, 2 RB, 2 WR, 1 TE). Superflex leagues (2 QBs), tight end premium leagues, or IDP leagues would produce incorrect age curves and projections. The product fetches scoring settings but doesn't always use them in the analytical models.
+Franchise outlook projections assume standard starting lineups (1 QB, 2 RB, 2 WR, 1 TE). Superflex leagues (2 QBs), tight end premium leagues, or IDP leagues would produce incorrect age curves and projections. The Trade Impact Simulator similarly excludes non-standard positions (kickers, defenses) by design. The product fetches scoring settings but doesn't always use them in the analytical models.
 
 **9. What is the experience for brand-new leagues with no history?**
 The all-time records, franchise trajectory, draft leaderboard, and trade grades all require multiple seasons of history. For a league in its first year, most of these surfaces will be empty or trivial. There is no "new league" onboarding or reduced feature set that communicates gracefully what becomes available over time.
 
 **10. Should Career Stats and Manager Profiles be the same product surface?**
 Career Stats (cross-league) and Manager Profile (per-league) overlap significantly. A user viewing their own profile in a league and then clicking "Career Stats" sees similar data at different scopes. The distinction between "who am I in this league" vs. "who am I as a fantasy manager" is architecturally correct but may create navigational confusion for non-power users.
+
+**11. Does the Trade Impact Simulator create unrealistic expectations?**
+The simulator shows WAR impact but not win probability or playoff odds. A trade that improves WAR by 0.5 might feel significant in the UI but be statistically marginal. Users may over-index on simulated improvements without context for what WAR delta actually matters.
