@@ -821,21 +821,21 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                 <div className="px-5 pb-2 flex items-center gap-3 text-xs">
                   <span className="flex items-center gap-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-gray-400">Hold</span>
-                    <span className="font-semibold text-white">{recommendations.data.summary.holdCount}</span>
+                    <span className="text-muted-foreground">Hold</span>
+                    <span className="font-semibold text-foreground">{recommendations.data.summary.holdCount}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-gray-400">Trade</span>
-                    <span className="font-semibold text-white">{recommendations.data.summary.tradeCount}</span>
+                    <span className="text-muted-foreground">Trade</span>
+                    <span className="font-semibold text-foreground">{recommendations.data.summary.tradeCount}</span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-gray-400">Cut</span>
-                    <span className="font-semibold text-white">{recommendations.data.summary.cutCount}</span>
+                    <span className="text-muted-foreground">Cut</span>
+                    <span className="font-semibold text-foreground">{recommendations.data.summary.cutCount}</span>
                   </span>
                   {recommendations.data.summary.tradeableValue > 0 && (
-                    <span className="ml-auto text-gray-500">
+                    <span className="ml-auto text-muted-foreground">
                       Tradeable value: <span className="text-amber-400 font-medium">{Math.round(recommendations.data.summary.tradeableValue).toLocaleString()}</span>
                     </span>
                   )}
@@ -854,7 +854,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                   <>
                     <Table>
                       <TableHeader>
-                        <TableRow className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-800">
+                        <TableRow className="text-muted-foreground text-xs uppercase tracking-wider border-b border-card-border">
                           <TableHead className="text-left py-2.5 px-5">Player</TableHead>
                           {playersView === 'current' && recommendations.data && (
                             <TableHead className="text-center py-2.5 px-3">Verdict</TableHead>
@@ -877,16 +877,16 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                           return (
                             <React.Fragment key={`${player.playerId}-${idx}`}>
                               <TableRow
-                                className="border-b border-gray-800/60 hover:bg-gray-800/20 cursor-pointer"
+                                className="border-b border-card-border/60 hover:bg-muted/20 cursor-pointer"
                                 onClick={() => setExpandedPlayerId(isExpanded ? null : player.playerId)}
                               >
                                 <TableCell className="py-3 px-5">
                                   <div className="flex items-center gap-2">
                                     <PosBadge pos={player.position} />
-                                    <span className="text-sm text-white font-medium truncate">{player.playerName}</span>
+                                    <span className="text-sm text-foreground font-medium truncate">{player.playerName}</span>
                                     {isExpanded
-                                      ? <ChevronDown size={12} className="text-gray-500 shrink-0" />
-                                      : <ChevronRight size={12} className="text-gray-500 shrink-0" />
+                                      ? <ChevronDown size={12} className="text-muted-foreground shrink-0" />
+                                      : <ChevronRight size={12} className="text-muted-foreground shrink-0" />
                                     }
                                   </div>
                                 </TableCell>
@@ -909,25 +909,25 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                         )}
                                       </span>
                                     ) : (
-                                      <span className="text-xs text-gray-600">—</span>
+                                      <span className="text-xs text-muted-foreground/50">—</span>
                                     )}
                                   </TableCell>
                                 )}
-                                <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-white">
+                                <TableCell className="py-3 px-3 text-right tabular-nums text-sm font-medium text-foreground">
                                   {player.totalPoints > 0 ? player.totalPoints.toFixed(1) : '—'}
                                 </TableCell>
-                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                <TableCell className="py-3 px-3 text-right text-sm text-muted-foreground tabular-nums hidden sm:table-cell">
                                   {player.totalTDs > 0 ? player.totalTDs : '—'}
                                 </TableCell>
-                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 tabular-nums hidden sm:table-cell">
+                                <TableCell className="py-3 px-3 text-right text-sm text-muted-foreground tabular-nums hidden sm:table-cell">
                                   {player.totalStarts}
                                 </TableCell>
-                                <TableCell className="py-3 px-3 text-right text-sm text-gray-400 hidden sm:table-cell">
+                                <TableCell className="py-3 px-3 text-right text-sm text-muted-foreground hidden sm:table-cell">
                                   {tenure}
                                 </TableCell>
                               </TableRow>
                               {isExpanded && (
-                                <TableRow key={`${player.playerId}-expanded`} className="border-b border-gray-800/60">
+                                <TableRow key={`${player.playerId}-expanded`} className="border-b border-card-border/60">
                                   <TableCell colSpan={colSpan} className="px-5 pb-4 pt-0">
                                     {rec && (
                                       <div className={`mb-3 mt-2 rounded-lg px-3 py-2 text-xs ${
@@ -945,19 +945,19 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                           }`}>
                                             {rec.verdict}{rec.tradeType ? ` (${rec.tradeType})` : ''}
                                           </span>
-                                          <span className="text-gray-400">{rec.reason}</span>
-                                          <span className="ml-auto text-gray-600 tabular-nums">
+                                          <span className="text-muted-foreground">{rec.reason}</span>
+                                          <span className="ml-auto text-muted-foreground/60 tabular-nums">
                                             {rec.confidence}% confidence
                                           </span>
                                         </div>
                                         {rec.dynastyValue != null && (
-                                          <div className="flex gap-4 mt-1.5 text-gray-500">
-                                            <span>WAR: <span className="text-gray-300">{rec.playerWAR.toFixed(1)}</span></span>
-                                            <span>Value: <span className="text-gray-300">{Math.round(rec.dynastyValue).toLocaleString()}</span></span>
+                                          <div className="flex gap-4 mt-1.5 text-muted-foreground/70">
+                                            <span>WAR: <span className="text-foreground/80">{rec.playerWAR.toFixed(1)}</span></span>
+                                            <span>Value: <span className="text-foreground/80">{Math.round(rec.dynastyValue).toLocaleString()}</span></span>
                                             <span>Curve: <span className={
                                               rec.ageCurveDirection === 'ascending' ? 'text-emerald-400'
                                                 : rec.ageCurveDirection === 'declining' ? 'text-red-400'
-                                                  : 'text-gray-300'
+                                                  : 'text-foreground/80'
                                             }>{rec.ageCurveDirection}</span></span>
                                           </div>
                                         )}

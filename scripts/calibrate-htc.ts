@@ -34,7 +34,7 @@ import type {
   PlayerRosterStat,
   PlayerUsageMetrics,
 } from '../src/types/sleeper';
-import type { PlayerRecommendation, RosterRecommendations } from '../src/types/recommendations';
+import type { PlayerRecommendation } from '../src/types/recommendations';
 
 const CURVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
 const POSITIONS = ['QB', 'RB', 'WR', 'TE'] as const;
@@ -188,13 +188,12 @@ async function main() {
   console.log('Fetching league data...');
 
   // 1. Fetch league metadata + rosters + users + all players + traded picks + drafts
-  const [league, rosters, leagueUsers, allPlayers, tradedPicks, drafts] = await Promise.all([
+  const [league, rosters, leagueUsers, allPlayers, tradedPicks] = await Promise.all([
     fetchJSON<SleeperLeague>(`${BASE_URL}/league/${leagueId}`),
     fetchJSON<SleeperRoster[]>(`${BASE_URL}/league/${leagueId}/rosters`),
     fetchJSON<SleeperLeagueUser[]>(`${BASE_URL}/league/${leagueId}/users`),
     fetchJSON<Record<string, SleeperPlayer>>(`${BASE_URL}/players/nfl`),
     fetchJSON<FutureDraftPick[]>(`${BASE_URL}/league/${leagueId}/traded_picks`),
-    fetchJSON<unknown[]>(`${BASE_URL}/league/${leagueId}/drafts`),
   ]);
 
   const playoffStart = league.settings.playoff_week_start || 15;

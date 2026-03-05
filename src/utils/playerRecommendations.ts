@@ -575,54 +575,99 @@ function generateReason(
   isStarter: boolean,
   injuryStatus: string | null,
   upsideRatio: number | null,
+  isSuperFlex: boolean,
 ): string {
-  const ageStr = age != null ? `${age}-year-old` : '';
+  const ageStr = age != null ? `${age}yo` : '';
   const posStr = position;
   const warStr = playerWAR.toFixed(1);
   const valueStr = dynastyValue != null ? Math.round(dynastyValue).toLocaleString() : 'no';
+  const primeWindows: Record<string, string> = { QB: '25-32', RB: '22-27', WR: '24-29', TE: '25-30' };
+  const primeStr = primeWindows[position] ?? '';
+  const isInPrime = age != null && primeStr && age >= parseInt(primeStr) && age <= parseInt(primeStr.split('-')[1]);
+  const isPastPrime = age != null && primeStr && age > parseInt(primeStr.split('-')[1]);
+  const isPrePrime = age != null && primeStr && age < parseInt(primeStr);
 
   if (verdict === 'HOLD') {
     if (injuryStatus === 'IR' && dynastyValue != null && dynastyValue > 3000) {
-      return `On IR but a top dynasty asset (${valueStr} value) -- hold through recovery.`;
+      return `On IR but elite dynasty asset (${valueStr} value) — hold through recovery.`;
     }
     if (ageCurveDirection === 'ascending' && upsideRatio != null && upsideRatio >= 1.3) {
-      return `${ageStr} ascending ${posStr} with ${upsideRatio.toFixed(1)}x upside ratio -- fits your ${mode.toLowerCase()} timeline.`;
+      return `${ageStr} ${posStr} still ascending with ${upsideRatio.toFixed(1)}x upside — prime years ahead.`;
+    }
+    if (isPrePrime && ageCurveDirection === 'ascending') {
+      return `${ageStr} ${posStr} entering prime window (${primeStr}) — ceiling hasn't been reached yet.`;
+    }
+    if (isInPrime && playerWAR > 5 && isStarter) {
+      return `Elite ${posStr} in prime (${primeStr}) producing ${warStr} WAR — franchise cornerstone.`;
     }
     if (dominantFactor === 'production' && isStarter) {
-      return `Core ${posStr} starter producing ${warStr} WAR${windowLength > 0 ? ` with ${windowLength}+ years in your contender window` : ''}.`;
+      return `Core ${posStr} starter producing ${warStr} WAR${windowLength > 0 ? ` through your ${windowLength}-year window` : ''}.`;
     }
     if (dominantFactor === 'positional') {
-      return `Key ${posStr} on a roster thin at the position -- essential depth you can't afford to lose.`;
+      return `Key ${posStr} on a roster thin at the position — can't afford to lose this depth.`;
+    }
+    if (isSuperFlex && position === 'QB') {
+      return `${ageStr} QB in SuperFlex — positional scarcity makes QBs premium holds.`;
     }
     if (dominantFactor === 'strategicFit') {
-      return `Strong strategic fit for ${mode.toLowerCase()} -- ${ageCurveDirection} curve aligns with your build timeline.`;
+      if (mode === 'Full Rebuild' || mode === 'Asset Accumulation') {
+        return `${ageStr} ${posStr} fits your rebuild timeline — ${ageCurveDirection} curve with years of value ahead.`;
+      }
+      return `Strong fit for ${mode.toLowerCase()} — ${ageCurveDirection} trajectory aligns with your window.`;
     }
-    return `${ageStr} ${posStr} contributing ${warStr} WAR -- reliable hold for your roster.${ageCurveDirection === 'ascending' ? ' Still ascending.' : ''}`;
+    if (ageCurveDirection === 'ascending') {
+      return `${ageStr} ${posStr} on an ascending curve — production trending up, hold for appreciation.`;
+    }
+    return `${ageStr} ${posStr} contributing ${warStr} WAR — solid roster piece${isInPrime ? ' in prime' : ''}.`;
   }
 
   if (verdict === 'TRADE') {
     switch (tradeType) {
       case 'sell-high':
-        return `Elite production but declining curve -- sell high while dynasty value peaks (${valueStr} value).`;
+        if (position === 'RB' && isPastPrime) {
+          return `${ageStr} RB past the cliff (prime ${primeStr}) but still valued at ${valueStr} — sell before the drop.`;
+        }
+        return `Peak value window — ${ageCurveDirection} curve means ${valueStr} value is as high as it gets.`;
       case 'sell-declining':
-        return `Aging ${posStr} past peak -- trade before value drops further${dynastyValue != null ? ` (${valueStr} value remaining)` : ''}.`;
+        if (position === 'RB' && age != null && age >= 28) {
+          return `${ageStr} RB entering steep decline — RBs age fastest, move now while ${valueStr} value remains.`;
+        }
+        if (isPastPrime) {
+          return `${ageStr} ${posStr} past prime (${primeStr}) — value dropping, trade for future assets.`;
+        }
+        return `${ageCurveDirection} ${posStr} losing value — trade before the market catches up (${valueStr} remaining).`;
       case 'surplus-depth':
-        return `Positional surplus at ${posStr} -- convert depth into a need position or draft capital.`;
+        if (playerWAR > 3) {
+          return `Strong ${posStr} but you're deep here — convert surplus value (${valueStr}) into a weaker position.`;
+        }
+        return `Depth ${posStr} at a position of strength — roster spot better used elsewhere.`;
       case 'rebuild-asset':
-        return `${ageStr} ${posStr} with trade value -- doesn't fit your ${windowLength > 0 ? `${windowLength}-year` : ''} rebuild window.`;
+        if (isInPrime && playerWAR > 3) {
+          return `Productive ${ageStr} ${posStr} (${warStr} WAR) but won't align with your rebuild — sell for picks/youth while value is high.`;
+        }
+        if (isPastPrime) {
+          return `${ageStr} ${posStr} past prime — your rebuild won't be ready before decline, extract ${valueStr} value now.`;
+        }
+        return `${ageStr} ${posStr} with ${valueStr} trade value — timeline doesn't match your ${windowLength > 0 ? `${windowLength}-year ` : ''}rebuild.`;
       default:
-        return `Trade candidate -- ${ageCurveDirection} trajectory with ${valueStr} dynasty value.`;
+        return `Trade candidate — ${ageCurveDirection} trajectory with ${valueStr} dynasty value.`;
     }
   }
 
   // CUT
   if (playerWAR <= 0 && (dynastyValue == null || dynastyValue <= 0)) {
-    return `No dynasty value, negative WAR -- roster clogger.`;
+    if (isPastPrime) {
+      return `${ageStr} ${posStr} past prime with no trade value — free the roster spot for upside.`;
+    }
+    return `No dynasty value and negative WAR — roster clogger, use the spot on a waiver flier.`;
+  }
+  if (injuryStatus === 'IR') {
+    return `On IR with minimal value (${valueStr}) — not worth the roster spot through recovery.`;
   }
   if (playerWAR <= 0) {
-    return `Negative production (${warStr} WAR) with minimal trade market -- free the roster spot.`;
+    return `Negative production (${warStr} WAR) with minimal trade market — free the spot.`;
   }
-  return `${ageStr} ${posStr} with ${warStr} WAR and ${valueStr} dynasty value -- below the roster threshold for your strategy.`;
+  return `${ageStr} ${posStr} below the roster threshold for ${mode.toLowerCase()} — ${warStr} WAR isn't enough to justify the spot.`;
 }
 
 // ---- Helper: Find upside ratio for a player ----
@@ -852,12 +897,19 @@ export function computePlayerRecommendations(
       confidence = Math.max(15, confidence);
     }
 
-    // 5. QB in SuperFlex: floor at TRADE (never Cut unless WAR < 0 AND dynastyValue < 500)
+    // 5. QB in SuperFlex: floor at TRADE (never Cut ascending QBs; only cut truly worthless QBs)
     if (leagueFormat.isSuperFlex && position === 'QB') {
-      const isTrulyReplacementLevel = playerWAR < 0 && (dynastyValue == null || dynastyValue < 500);
-      if (verdict === 'CUT' && !isTrulyReplacementLevel) {
-        verdict = 'TRADE';
-        confidence = Math.max(15, confidence);
+      if (verdict === 'CUT') {
+        // Ascending QBs always worth a roster spot in SF
+        if (ageCurveDirection === 'ascending' || ageCurveDirection === 'stable') {
+          verdict = 'TRADE';
+          confidence = Math.max(15, confidence);
+        }
+        // Only CUT truly replacement-level QBs: negative WAR AND near-zero dynasty value AND old
+        else if (dynastyValue != null && dynastyValue >= 500) {
+          verdict = 'TRADE';
+          confidence = Math.max(15, confidence);
+        }
       }
     }
 
@@ -910,6 +962,7 @@ export function computePlayerRecommendations(
       isStarter,
       injuryStatus,
       upsideRatio,
+      leagueFormat.isSuperFlex,
     );
 
     // ---- Build full dimension scores with composite ----
