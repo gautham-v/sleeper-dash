@@ -254,10 +254,11 @@ function computeRookieDraftTargets(
 
   // Score positions by need severity
   const positionNeeds = warByPosition
-    .filter((p) => p.war < p.leagueAvgWAR || (p.avgAge > 27 && p.avgAge > 0))
+    .filter((p) => p.war < p.leagueAvgWAR)
     .sort((a, b) => {
-      const aNeed = (a.leagueAvgWAR - a.war) + (a.avgAge > 27 ? (a.avgAge - 27) * 2 : 0);
-      const bNeed = (b.leagueAvgWAR - b.war) + (b.avgAge > 27 ? (b.avgAge - 27) * 2 : 0);
+      // Age amplifies urgency for already-weak positions
+      const aNeed = (a.leagueAvgWAR - a.war) + (a.avgAge > 27 && a.avgAge > 0 ? (a.avgAge - 27) * 0.5 : 0);
+      const bNeed = (b.leagueAvgWAR - b.war) + (b.avgAge > 27 && b.avgAge > 0 ? (b.avgAge - 27) * 0.5 : 0);
       return bNeed - aNeed;
     });
 

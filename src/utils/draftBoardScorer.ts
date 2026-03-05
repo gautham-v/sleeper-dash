@@ -117,8 +117,8 @@ export function scoreDraftTarget(input: ScorerInput): ScoringOutput {
 
   return {
     targetScore,
-    pStarter: pHit * 100,
-    pElite: pEliteRaw * 100,
+    pStarter: Math.round(pHit * 100),
+    pElite: Math.round(pEliteRaw * 100),
     timelineBadge,
     needLabel,
     surplusFlag,

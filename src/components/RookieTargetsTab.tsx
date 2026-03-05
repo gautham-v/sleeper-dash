@@ -44,13 +44,13 @@ function NeedLabelBadge({ label }: { label: DraftBoardTarget['needLabel'] }) {
 }
 
 function TargetScoreBadge({ score }: { score: number }) {
-  const rounded = score.toFixed(1);
+  const rounded = score.toFixed(0);
   const colorCls =
     score >= 70 ? 'text-green-400' :
     score >= 45 ? 'text-yellow-400' :
     'text-zinc-500';
   return (
-    <span className={`text-xs font-bold tabular-nums ${colorCls}`}>
+    <span className={`text-xs font-bold tabular-nums ${colorCls}`} title="Roster fit score (0–100)">
       {rounded}
     </span>
   );
@@ -61,14 +61,14 @@ function TimelineBadge({ badge }: { badge: DraftBoardTarget['timelineBadge'] }) 
     return (
       <span className="inline-flex items-center gap-0.5 text-xs text-green-400">
         <Zap size={10} className="flex-shrink-0" />
-        Immediate
+        Day-1 impact
       </span>
     );
   }
   if (badge === 'year2') {
-    return <span className="text-xs text-yellow-400">Yr 2</span>;
+    return <span className="text-xs text-yellow-400">Yr 2 impact</span>;
   }
-  return <span className="text-xs text-zinc-500">Yr 3+</span>;
+  return <span className="text-xs text-zinc-500">Yr 3+ impact</span>;
 }
 
 function ConfidenceDot({ confidence }: { confidence: DraftBoardTarget['confidence'] }) {
@@ -140,14 +140,13 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
   const userOutlook = outlookData?.outlookMap.get(effectiveUserId);
 
   // Build the request body for the draft-board API
-  const draftBoardRequestBody: DraftBoardRequest | null = userOutlook
-    ? {
-        draftYear: 2026,
-        warByPosition: userOutlook.warByPosition,
-        tier: userOutlook.tier,
-        peakYearOffset: userOutlook.peakYearOffset,
-      }
-    : null;
+  // Always defined when effectiveUserId is available; falls back gracefully when outlook is missing
+  const draftBoardRequestBody: DraftBoardRequest = {
+    draftYear: 2026,
+    warByPosition: userOutlook?.warByPosition ?? [],
+    tier: userOutlook?.tier ?? 'Fringe',
+    peakYearOffset: userOutlook?.peakYearOffset ?? 2,
+  };
 
   const {
     data: draftBoardData,
@@ -164,7 +163,7 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
       if (!res.ok) throw new Error('Failed to fetch draft board');
       return res.json() as Promise<DraftBoardResponse>;
     },
-    enabled: !!outlookData && !!userOutlook && !!draftBoardRequestBody,
+    enabled: !isLoading && !!effectiveUserId,
     staleTime: 30 * 60 * 1000, // 30 minutes
   });
 
@@ -206,7 +205,7 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
       {isPreDraft && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <span className="text-amber-400 text-xs leading-relaxed">
-            Pre-draft estimates — actual prospects will appear after the NFL Draft
+            <span className="font-semibold">Pre-draft rankings</span> — values are consensus estimates. Will auto-update with real pick data after the NFL Draft (April 24).
           </span>
         </div>
       )}
@@ -225,8 +224,13 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
       {!draftBoardError && targets.length > 0 ? (
         <div className="bg-card-bg border border-card-border rounded-2xl p-5">
           <div className="text-sm font-semibold text-white mb-1">Rookie Draft Targets</div>
-          <div className="text-xs text-muted-foreground mb-4">
-            Highest-value prospects at your weakest positions — prioritized for your roster
+          <div className="text-xs text-muted-foreground mb-3">
+            Ranked by fit for your roster — balances dynasty value, positional need, and timeline
+          </div>
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-card-border/50">
+            <span className="text-[11px] text-zinc-600">Score = need + value fit</span>
+            <span className="text-[11px] text-zinc-600">· Impact = when they contribute</span>
+            <span className="text-[11px] text-zinc-600">· Comps = similar historical rookies</span>
           </div>
           <div className="space-y-4">
             {targets.map((t, i) => (
@@ -267,11 +271,13 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
                   {/* Row 3: probability + confidence */}
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-xs text-zinc-400">
-                      P(starter+): <span className="font-semibold">{t.pStarter}%</span>
+                      <span className="font-semibold">{Math.round(t.pStarter)}%</span>
+                      <span className="text-zinc-600 ml-0.5">starter</span>
                     </span>
                     <span className="text-zinc-700 text-xs">·</span>
                     <span className="text-xs text-zinc-400">
-                      P(elite): <span className="font-semibold">{t.pElite}%</span>
+                      <span className="font-semibold">{Math.round(t.pElite)}%</span>
+                      <span className="text-zinc-600 ml-0.5">elite</span>
                     </span>
                     <ConfidenceDot confidence={t.confidence} />
                   </div>

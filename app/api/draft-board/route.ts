@@ -132,7 +132,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: prospectsError.message }, { status: 500 });
     }
 
-    // 4. Pre-draft fallback: no prospects seeded yet
+    // 4. isPreDraft = true if the table is empty OR if no prospect has a confirmed NFL draft pick
+    const isPreDraft =
+      !prospects ||
+      prospects.length === 0 ||
+      (prospects as ProspectProfile[]).every((p) => p.draft_pick == null);
+
+    // If completely empty, use archetype fallback
     if (!prospects || prospects.length === 0) {
       const archetypes = buildArchetypes(warByPosition, tier, peakYearOffset, historicalPool);
       return NextResponse.json({ targets: archetypes, isPreDraft: true });
@@ -191,7 +197,7 @@ export async function POST(req: NextRequest) {
 
     targets.sort((a, b) => b.targetScore - a.targetScore);
 
-    return NextResponse.json({ targets, isPreDraft: false });
+    return NextResponse.json({ targets, isPreDraft });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

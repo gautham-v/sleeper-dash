@@ -10,7 +10,8 @@
     "lint": "next lint",
     "ingest:rookies": "tsx scripts/ingest-historical-rookies.ts",
     "backfill:draft-capital": "tsx scripts/backfill-draft-capital.ts",
-    "seed:prospects": "tsx scripts/seed-2026-prospects.ts"
+    "seed:prospects": "tsx scripts/seed-2026-prospects.ts",
+    "seed:predraft": "tsx scripts/seed-2026-predraft-prospects.ts"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
