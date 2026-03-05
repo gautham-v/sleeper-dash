@@ -221,15 +221,15 @@ export function FranchiseOutlookTab({ userId, data, rawContext }: FranchiseOutlo
               key={i}
               className={`rounded-lg px-4 py-3 border ${
                 area.severity === 'warning'
-                  ? 'bg-amber-900/15 border-amber-700/30'
+                  ? 'bg-yellow-900/20 border-yellow-700/40'
                   : area.severity === 'positive'
-                  ? 'bg-emerald-900/15 border-emerald-700/30'
+                  ? 'bg-emerald-800/20 border-emerald-800/40'
                   : 'bg-gray-800/40 border-gray-700/30'
               }`}
             >
               <div className={`text-sm font-medium ${
-                area.severity === 'warning' ? 'text-amber-300'
-                  : area.severity === 'positive' ? 'text-emerald-300'
+                area.severity === 'warning' ? 'text-yellow-400'
+                  : area.severity === 'positive' ? 'text-emerald-400'
                   : 'text-gray-300'
               }`}>
                 {area.severity === 'warning' ? '⚠ ' : area.severity === 'positive' ? '✓ ' : 'ℹ '}
