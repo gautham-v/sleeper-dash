@@ -15,6 +15,7 @@ import {
   Mail,
   Scale,
   ClipboardList,
+  FlaskConical,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
@@ -342,13 +343,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* About / Contact */}
-            <div className="border-t border-gray-800 pt-2 flex items-center gap-1">
+            <div className="border-t border-gray-800 pt-2 flex items-center gap-1 flex-wrap">
               <AboutModal>
                 <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
                   <Info size={12} />
                   About
                 </button>
               </AboutModal>
+              <span className="text-gray-700 text-xs">·</span>
+              <a
+                href="/how-it-works"
+                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
+                onClick={() => setLeagueSheetOpen(false)}
+              >
+                <FlaskConical size={12} />
+                How It Works
+              </a>
               <span className="text-gray-700 text-xs">·</span>
               <ContactModal>
                 <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">

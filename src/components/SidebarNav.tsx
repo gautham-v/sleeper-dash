@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, BarChart2, UserCircle } from 'lucide-react';
+import { ChevronDown, BarChart2, UserCircle, FlaskConical } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
@@ -183,12 +183,20 @@ export function SidebarNav({
       </nav>
 
       {/* Footer links */}
-      <div className="px-4 sm:px-5 py-4 border-t border-card-border/40 flex items-center gap-1 shrink-0">
+      <div className="px-4 sm:px-5 py-4 border-t border-card-border/40 flex items-center gap-1 shrink-0 flex-wrap">
         <AboutModal>
           <button className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
             About
           </button>
         </AboutModal>
+        <span className="text-gray-700 text-xs">·</span>
+        <Link
+          href="/how-it-works"
+          className="flex items-center gap-1 text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+        >
+          <FlaskConical size={10} />
+          How It Works
+        </Link>
         <span className="text-gray-700 text-xs">·</span>
         <ContactModal>
           <button className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">

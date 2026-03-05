@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RookieMethodologySheet } from './methodology/RookieMethodologySheet';
 import { useQuery } from '@tanstack/react-query';
 import { useFranchiseOutlook } from '@/hooks/useFranchiseOutlook';
 import { useRosters, useLeagueUsers } from '@/hooks/useLeagueData';
@@ -200,6 +201,7 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
   }, [upcomingDraft, effectiveManager]);
 
   const [page, setPage] = useState(0);
+  const [rookieSheetOpen, setRookieSheetOpen] = useState(false);
 
   // Which class ranks are within reach of the user's pick slot(s)?
   // Must be before any early returns to satisfy Rules of Hooks.
@@ -293,7 +295,15 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
       {/* Targets list */}
       {!draftBoardError && targets.length > 0 ? (
         <div className="bg-card-bg border border-card-border rounded-2xl p-5">
-          <div className="text-sm font-semibold text-foreground mb-1">Your Draft Board</div>
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <div className="text-sm font-semibold text-foreground">Your Draft Board</div>
+            <button
+              onClick={() => setRookieSheetOpen(true)}
+              className="text-xs text-muted-foreground hover:text-white transition-colors flex-shrink-0"
+            >
+              How rankings work →
+            </button>
+          </div>
           <div className="text-xs text-muted-foreground mb-3">
             Dynasty value is the primary driver — need and timeline provide a modest fit adjustment
           </div>
@@ -412,6 +422,8 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
           </div>
         )
       )}
+
+      <RookieMethodologySheet open={rookieSheetOpen} onOpenChange={setRookieSheetOpen} />
     </div>
   );
 }
