@@ -572,6 +572,19 @@ export interface AllTimeWARAnalysis {
   hasData: boolean;
 }
 
+// Player usage metrics extracted from Sleeper weekly stats
+export interface PlayerUsageMetrics {
+  snapPct: number;            // season avg snap share (off_snp / tm_off_snp), 0-1
+  recentSnapPct: number;      // last 4 weeks avg snap share, 0-1
+  snapTrend: 'rising' | 'stable' | 'declining';
+  targetShare: number;        // season avg target share (for WR/TE/RB), 0-1
+  recentTargetShare: number;  // last 4 weeks target share, 0-1
+  rushShare: number;          // season avg rush share (for RB), 0-1
+  recentRushShare: number;    // last 4 weeks rush share, 0-1
+  gamesPlayed: number;
+  redZoneOpps: number;        // red zone targets + rush attempts
+}
+
 // Manager roster player stats (for Players tab)
 export interface PlayerRosterStat {
   playerId: string;
@@ -584,6 +597,7 @@ export interface PlayerRosterStat {
   seasons: number;          // distinct season count
   firstSeason: string;      // earliest season
   lastSeason: string;       // most recent season
+  usage?: PlayerUsageMetrics; // usage metrics from most recent season
 }
 
 export interface ManagerRosterStatsResult {

@@ -9,6 +9,7 @@ import type {
   FranchiseOutlookResult,
   FranchiseOutlookRawContext,
   PlayerRosterStat,
+  PlayerUsageMetrics,
   SleeperRoster,
   StrategyMode,
 } from '../types/sleeper';
@@ -89,6 +90,7 @@ function scoreProductionAlignment(
   playerWAR: number,
   teamCurrentWAR: number,
   isStarter: boolean,
+  usage?: PlayerUsageMetrics,
 ): number {
   if (teamCurrentWAR <= 0) {
     // Edge case: team has zero or negative WAR -- any positive WAR is meaningful
@@ -96,7 +98,26 @@ function scoreProductionAlignment(
   }
   const shareRaw = (playerWAR / teamCurrentWAR) * 100;
   const starterMultiplier = isStarter ? 1.3 : 1.0;
-  return Math.min(100, Math.max(0, shareRaw * starterMultiplier));
+  let score = Math.min(100, Math.max(0, shareRaw * starterMultiplier));
+
+  // Enhanced: usage trend adjustment
+  if (usage && usage.gamesPlayed >= 4) {
+    // Rising snap share = player's role is growing, production may be understated
+    if (usage.snapTrend === 'rising') {
+      score = Math.min(100, score * 1.15);
+    }
+    // Declining snap share = player losing role, production may be overstated
+    else if (usage.snapTrend === 'declining') {
+      score = score * 0.85;
+    }
+
+    // High snap share player with low WAR might be due for positive regression
+    if (usage.snapPct >= 0.7 && playerWAR < 1 && score < 40) {
+      score = Math.max(score, 35); // floor for high-usage players
+    }
+  }
+
+  return Math.min(100, Math.max(0, score));
 }
 
 /**
@@ -155,6 +176,7 @@ function scoreSellWindow(
   dynastyValue: number | null,
   maxDynastyValueOnRoster: number,
   ageCurveNormalized: number,
+  usage?: PlayerUsageMetrics,
 ): number {
   if (dynastyValue == null || dynastyValue <= 0 || maxDynastyValueOnRoster <= 0) {
     // No market value = untradeable, sell window is irrelevant
@@ -166,7 +188,19 @@ function scoreSellWindow(
 
   // High dynasty value + declining curve = high sell signal
   // High dynasty value + ascending curve = near-zero sell signal
-  const raw = valueShare * declineRate * 100;
+  let raw = valueShare * declineRate * 100;
+
+  // Enhanced: usage trend amplifies sell signal
+  if (usage && usage.gamesPlayed >= 4) {
+    // Declining usage on a declining curve = peak sell moment (market hasn't caught up)
+    if (usage.snapTrend === 'declining' && declineRate > 0.3) {
+      raw *= 1.25;
+    }
+    // Rising usage on ascending curve = strong hold (market may be undervaluing)
+    if (usage.snapTrend === 'rising' && declineRate < 0.2) {
+      raw *= 0.5;
+    }
+  }
 
   return Math.min(100, Math.max(0, raw));
 }
@@ -342,6 +376,7 @@ function scoreSituation(
   yearsExp: number | undefined,
   dynastyValue: number | null,
   playerWAR: number,
+  usage?: PlayerUsageMetrics,
 ): number {
   let score = 50; // baseline neutral
 
@@ -385,6 +420,44 @@ function scoreSituation(
   // Production check -- positive WAR indicates productive situation
   if (playerWAR >= 3) score += 10;
   else if (playerWAR <= 0) score -= 10;
+
+  // Enhanced: usage metrics from Sleeper weekly stats
+  if (usage && usage.gamesPlayed >= 3) {
+    // Snap share is the strongest situational indicator
+    if (usage.snapPct >= 0.75) {
+      score += 12; // entrenched starter
+    } else if (usage.snapPct >= 0.50) {
+      score += 5;  // significant role
+    } else if (usage.snapPct < 0.30 && usage.snapPct > 0) {
+      score -= 10; // limited role
+    }
+
+    // Snap trend overrides depth chart when available (more current)
+    if (usage.snapTrend === 'rising') {
+      score += 8; // growing role
+    } else if (usage.snapTrend === 'declining') {
+      score -= 8; // shrinking role
+    }
+
+    // Red zone opportunities indicate scoring upside
+    if (usage.redZoneOpps >= 15) {
+      score += 5; // heavy red zone usage
+    }
+
+    // Target share for receivers (WR/TE)
+    if (usage.targetShare >= 0.20) {
+      score += 8; // alpha target share
+    } else if (usage.targetShare >= 0.12) {
+      score += 3; // solid target share
+    }
+
+    // Rush share for RBs
+    if (usage.rushShare >= 0.50) {
+      score += 8; // bell-cow workload
+    } else if (usage.rushShare >= 0.30) {
+      score += 3; // meaningful share
+    }
+  }
 
   return Math.min(100, Math.max(0, score));
 }
@@ -650,6 +723,7 @@ export function computePlayerRecommendations(
     const depthChartOrder = player.depth_chart_order ?? null;
     const yearsExp = player.years_exp;
     const upsideRatio = findUpsideRatio(pid, playerName, outlook.youngAssets);
+    const usage = rosterStatsMap.get(pid)?.usage;
 
     // ---- Score all 6 dimensions ----
 
@@ -657,6 +731,7 @@ export function computePlayerRecommendations(
       playerWAR,
       outlook.currentWAR,
       isStarter,
+      usage,
     );
 
     const { score: ageCurveTrajectory, direction: ageCurveDirection } = scoreAgeCurveTrajectory(
@@ -669,6 +744,7 @@ export function computePlayerRecommendations(
       dynastyValue,
       maxDynastyValueOnRoster,
       ageCurveTrajectory,
+      usage,
     );
 
     const positionalContext = scorePositionalContext(
@@ -697,6 +773,7 @@ export function computePlayerRecommendations(
       yearsExp,
       dynastyValue,
       playerWAR,
+      usage,
     );
 
     // ---- Compute composite ----
