@@ -366,6 +366,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   Contact
                 </button>
               </ContactModal>
+              <span className="text-gray-700 text-xs">·</span>
+              <a
+                href="/terms"
+                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
+                onClick={() => setLeagueSheetOpen(false)}
+              >
+                Terms
+              </a>
             </div>
           </div>
         </SheetContent>
