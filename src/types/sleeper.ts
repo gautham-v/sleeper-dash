@@ -520,6 +520,10 @@ export interface TradeTargetPlayer {
   urgencyFlag: 'buy-low' | 'closing-window' | null;
   sellerTierLabel: string;          // 'Rebuilding' | 'Fringe' | 'Contender'
   sellerContext: string;
+  /** HTC signal derived from the seller's own roster analysis */
+  htcSignal: 'motivated-seller' | 'neutral' | 'reluctant-seller' | null;
+  /** The seller's HTC trade type for this player (e.g. 'sell-high') */
+  htcTradeType: 'sell-high' | 'sell-declining' | 'surplus-depth' | 'rebuild-asset' | null;
 }
 
 export interface TradeTargetPick {
@@ -539,7 +543,7 @@ export interface TradePartner {
   displayName: string;
   avatar: string | null;
   compatibilityScore: number;
-  theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
+  theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number; motivatedSeller?: boolean; htcTradeType?: string | null }[];
   youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[];
   summary: string;
   windowAlignment: 'ideal' | 'complementary' | 'neutral' | 'poor';
@@ -634,6 +638,8 @@ export interface FranchiseOutlookRawContext {
   warRankByRoster: Map<number, number>;
   /** rosterId → wins rank (1 = most wins) */
   winsRankByRoster: Map<number, number>;
+  /** playerId → lightweight HTC result for all rostered players across all teams */
+  htcByPlayerId: Map<string, import('./recommendations').LightweightHTCResult>;
 }
 
 // ---- Players Page Types ----

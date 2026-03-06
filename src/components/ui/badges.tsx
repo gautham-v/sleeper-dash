@@ -56,12 +56,14 @@ const STATUS_COLORS: Record<string, string> = {
   loss:             'bg-red-900/30 text-red-400 border-red-700/40',
   even:             'bg-gray-800/50 text-gray-400 border-gray-700/40',
   pending:          'bg-yellow-900/30 text-yellow-400 border-yellow-700/40',
-  'buy-low':        'bg-orange-900/40 text-orange-300 border-orange-800/50',
-  'closing-window': 'bg-yellow-800/40 text-yellow-400 border-yellow-700/40',
-  'ideal-fit':      'bg-emerald-800/40 text-emerald-400 border-emerald-800/40',
-  'good-fit':       'bg-blue-900/40 text-blue-300 border-blue-800/50',
-  drafted:          'bg-yellow-900/40 text-yellow-400 border-yellow-700/40',
-  current:          'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/30',
+  'buy-low':          'bg-orange-900/40 text-orange-300 border-orange-800/50',
+  'closing-window':   'bg-yellow-800/40 text-yellow-400 border-yellow-700/40',
+  'ideal-fit':        'bg-emerald-800/40 text-emerald-400 border-emerald-800/40',
+  'good-fit':         'bg-blue-900/40 text-blue-300 border-blue-800/50',
+  'motivated-seller': 'bg-green-900/40 text-green-400 border-green-700/40',
+  'reluctant-seller': 'bg-red-900/30 text-red-400 border-red-700/40',
+  drafted:            'bg-yellow-900/40 text-yellow-400 border-yellow-700/40',
+  current:            'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/30',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,12 +71,14 @@ const STATUS_LABELS: Record<string, string> = {
   loss:             'Loss',
   even:             'Even',
   pending:          'Pending',
-  'buy-low':        'Buy Low',
-  'closing-window': 'Closing Window',
-  'ideal-fit':      'Ideal fit',
-  'good-fit':       'Good fit',
-  drafted:          'drafted',
-  current:          'current',
+  'buy-low':          'Buy Low',
+  'closing-window':   'Closing Window',
+  'ideal-fit':        'Ideal fit',
+  'good-fit':         'Good fit',
+  'motivated-seller': 'Motivated Seller',
+  'reluctant-seller': 'Reluctant Seller',
+  drafted:            'drafted',
+  current:            'current',
 };
 
 export function StatusBadge({

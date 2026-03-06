@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 const SESSION_KEY = 'recordbook-user';
 
@@ -29,16 +29,16 @@ function getReturnUrl(): string {
 
 export function BackLink() {
   const router = useRouter();
-  const [hasHistory, setHasHistory] = useState(false);
+  const hasHistory = useRef(false);
 
   useEffect(() => {
     // history.length > 2 means there's a real page to go back to
     // (1 = typed URL directly, 2 = navigated from one page)
-    setHasHistory(window.history.length > 2);
+    hasHistory.current = window.history.length > 2;
   }, []);
 
   const handleClick = () => {
-    if (hasHistory) {
+    if (hasHistory.current) {
       router.back();
     } else {
       router.push(getReturnUrl());

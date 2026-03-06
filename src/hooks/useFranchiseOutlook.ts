@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { sleeperApi } from '../api/sleeper';
 import { computePlayerSeasonPoints } from '../utils/draftCalculations';
 import { computeFranchiseOutlook, computeAllTeamWeightedAges } from '../utils/franchiseOutlook';
+import { computeLightweightHTC } from '../utils/playerRecommendations';
+import { extractLeagueFormat } from '../utils/leagueFormat';
 import type {
   FranchiseOutlookResult,
   FranchiseOutlookRawContext,
@@ -10,6 +12,7 @@ import type {
   SleeperPlayer,
   FCPlayerEntry,
 } from '../types/sleeper';
+import type { LightweightHTCResult } from '../types/recommendations';
 import { THIRTY_MIN_MS, ONE_HOUR_MS } from '@/lib/constants';
 
 const CURVE_POSITIONS = new Set(['QB', 'RB', 'WR', 'TE']);
@@ -299,7 +302,9 @@ export function useFranchiseOutlook(leagueId: string | null) {
           .map((r, i) => [r.roster_id, i + 1]),
       );
 
-      // 10. Compute per-manager outlook
+      // 10a. First pass: compute per-manager outlook WITHOUT htc (needed to get strategy modes)
+      const leagueFormat = extractLeagueFormat(league);
+      const emptyHtc = new Map<string, LightweightHTCResult>();
       const outlookMap = new Map<string, FranchiseOutlookResult>();
       for (const roster of validRosters) {
         const result = computeFranchiseOutlook(
@@ -322,6 +327,71 @@ export function useFranchiseOutlook(leagueId: string | null) {
           teamPositionWAR,
           positionRanksByRoster,
           picksByRosterId,
+          emptyHtc,
+        );
+        outlookMap.set(roster.owner_id!, result);
+      }
+
+      // 10b. Compute lightweight HTC for every rostered player across all teams
+      const htcByPlayerId = new Map<string, LightweightHTCResult>();
+      for (const roster of validRosters) {
+        const ownerOutlook = outlookMap.get(roster.owner_id!);
+        if (!ownerOutlook) continue;
+
+        // Compute max dynasty value on this roster for sell-window normalization
+        let maxDynastyValue = 0;
+        for (const pid of roster.players ?? []) {
+          const dv = fcMap.get(pid) ?? 0;
+          if (dv > maxDynastyValue) maxDynastyValue = dv;
+        }
+
+        for (const pid of roster.players ?? []) {
+          const player = allPlayers[pid];
+          if (!player) continue;
+          const pos = player.position ?? '';
+          if (!['QB', 'RB', 'WR', 'TE'].includes(pos)) continue;
+
+          const htcResult = computeLightweightHTC(
+            player,
+            pid,
+            playerWARMap.get(pid) ?? 0,
+            fcMap.get(pid) ?? null,
+            maxDynastyValue,
+            ownerOutlook,
+            { allPlayers, playerWARMap, allTeamWARs, allTeamWeightedAges, isSeasonComplete,
+              leagueAvgWARByPosition, allRosters: validRosters, userDisplayNames, userAvatars,
+              teamPositionWAR, positionRanksByRoster, picksByRosterId, fcMap, rookiePool,
+              warRankByRoster, winsRankByRoster, htcByPlayerId: emptyHtc },
+            leagueFormat,
+            roster.roster_id,
+          );
+          htcByPlayerId.set(pid, htcResult);
+        }
+      }
+
+      // 10c. Second pass: recompute outlook with HTC data for accurate trade targets/partners
+      for (const roster of validRosters) {
+        const result = computeFranchiseOutlook(
+          roster,
+          allPlayers,
+          playerWARMap,
+          allTeamWARs,
+          allTeamWeightedAges,
+          picksByRosterId.get(roster.roster_id) ?? [],
+          isSeasonComplete,
+          leagueAvgWARByPosition,
+          positionRanksByRoster.get(roster.roster_id) ?? new Map(),
+          warRankByRoster.get(roster.roster_id) ?? 1,
+          winsRankByRoster.get(roster.roster_id) ?? 1,
+          fcMap,
+          rookiePool,
+          validRosters,
+          userDisplayNames,
+          userAvatars,
+          teamPositionWAR,
+          positionRanksByRoster,
+          picksByRosterId,
+          htcByPlayerId,
         );
         outlookMap.set(roster.owner_id!, result);
       }
@@ -343,6 +413,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
         rookiePool,
         warRankByRoster,
         winsRankByRoster,
+        htcByPlayerId,
       };
 
       return { outlookMap, rawContext };

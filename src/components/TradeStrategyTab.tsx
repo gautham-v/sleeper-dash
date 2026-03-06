@@ -97,16 +97,15 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
               {tradeTargets.players.length > 0 && (
                 <div className="space-y-3">
                   {tradeTargets.players.map((t, i) => {
-                    const urgencyVariant =
-                      t.urgencyFlag === 'buy-low' ? 'buy-low' as const
-                      : t.urgencyFlag === 'closing-window' ? 'closing-window' as const
-                      : null;
-                    const timelineVariant = !urgencyVariant
-                      ? t.timelineMatch === 'ideal' ? 'ideal-fit' as const
-                        : t.timelineMatch === 'good' ? 'good-fit' as const
-                        : null
-                      : null;
-                    const badgeVariant = urgencyVariant ?? timelineVariant;
+                    // Badge priority: motivated-seller > buy-low > closing-window > ideal-fit > good-fit > reluctant-seller
+                    const topBadge =
+                      t.htcSignal === 'motivated-seller' ? 'motivated-seller' as const :
+                      t.urgencyFlag === 'buy-low' ? 'buy-low' as const :
+                      t.urgencyFlag === 'closing-window' ? 'closing-window' as const :
+                      t.timelineMatch === 'ideal' ? 'ideal-fit' as const :
+                      t.timelineMatch === 'good' ? 'good-fit' as const :
+                      t.htcSignal === 'reluctant-seller' ? 'reluctant-seller' as const :
+                      null;
                     return (
                       <div key={i} className="flex items-start gap-2">
                         <PosBadge pos={t.position} />
@@ -114,7 +113,7 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-sm text-gray-200 truncate">{t.name}</span>
                             {t.age > 0 && <span className="text-xs text-gray-500">age {t.age}</span>}
-                            {badgeVariant && <StatusBadge variant={badgeVariant} />}
+                            {topBadge && <StatusBadge variant={topBadge} />}
                             {t.dynastyValue != null && (
                               <span className="text-xs font-medium text-yellow-400 tabular-nums ml-auto">
                                 {t.dynastyValue.toLocaleString()}
@@ -128,20 +127,22 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            {t.urgencyFlag && (
+                            {t.htcSignal === 'motivated-seller' && t.htcTradeType && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-900/40 text-green-400">
+                                {t.htcTradeType === 'sell-high' ? '📈 Sell-High Candidate' : '📉 Sell Before Decline'}
+                              </span>
+                            )}
+                            {t.htcSignal !== 'motivated-seller' && t.urgencyFlag && (
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                                 t.urgencyFlag === 'buy-low'
                                   ? 'bg-amber-900/40 text-amber-400'
-                                  : 'bg-orange-900/40 text-orange-400'
+                                  : 'bg-orange-800/60 text-orange-200'
                               }`}>
                                 {t.urgencyFlag === 'buy-low' ? '⬇ Buy Low' : '⏱ Act Soon'}
                               </span>
                             )}
                             {t.sellerContext && (
-                              <span className={`text-[11px] ${
-                                t.availabilityScore >= 0.5 ? 'text-green-400' :
-                                t.availabilityScore >= 0.3 ? 'text-yellow-400' : 'text-gray-500'
-                              }`}>
+                              <span className="text-[11px] text-muted-foreground">
                                 {t.sellerContext}
                               </span>
                             )}
@@ -252,20 +253,25 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                           <div>
                             <div className="text-gray-600 mb-1.5">They offer →</div>
                             <div className="space-y-1.5">
-                              {[...p.theyCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                                <div key={o.position} className="flex items-start gap-1.5">
+                              {[...p.theyCanOffer].sort((a, b) => b.delta - a.delta).map((o, oi) => (
+                                <div key={`${o.position}-${oi}`} className="flex items-start gap-1.5">
                                   <PosBadge pos={o.position} />
                                   <div>
                                     {o.topPlayer && (
-                                      <div className="flex items-baseline gap-1.5">
-                                        <span className="text-emerald-300 font-medium">{o.topPlayer}</span>
+                                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                                        <span className="text-foreground font-medium">{o.topPlayer}</span>
                                         {o.topPlayerValue != null && o.topPlayerValue > 0 && (
                                           <span className="text-yellow-400 tabular-nums">{Math.round(o.topPlayerValue).toLocaleString()}</span>
+                                        )}
+                                        {o.motivatedSeller && (
+                                          <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-green-900/40 text-green-400 border border-green-700/40">
+                                            motivated
+                                          </span>
                                         )}
                                       </div>
                                     )}
                                     {!(o.rank === 0 && o.delta === 0) && (
-                                      <span className="text-emerald-500">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
+                                      <span className="text-muted-foreground">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
                                     )}
                                   </div>
                                 </div>
@@ -277,20 +283,20 @@ export function TradeStrategyTab({ leagueId }: TradeStrategyTabProps) {
                           <div>
                             <div className="text-gray-600 mb-1.5">You offer →</div>
                             <div className="space-y-1.5">
-                              {[...p.youCanOffer].sort((a, b) => b.delta - a.delta).map((o) => (
-                                <div key={o.position} className="flex items-start gap-1.5">
+                              {[...p.youCanOffer].sort((a, b) => b.delta - a.delta).map((o, oi) => (
+                                <div key={`${o.position}-${oi}`} className="flex items-start gap-1.5">
                                   <PosBadge pos={o.position} />
                                   <div>
                                     {o.topPlayer && (
                                       <div className="flex items-baseline gap-1.5">
-                                        <span className="text-brand-cyan font-medium">{o.topPlayer}</span>
+                                        <span className="text-foreground font-medium">{o.topPlayer}</span>
                                         {o.topPlayerValue != null && o.topPlayerValue > 0 && (
                                           <span className="text-yellow-400 tabular-nums">{Math.round(o.topPlayerValue).toLocaleString()}</span>
                                         )}
                                       </div>
                                     )}
                                     {!(o.rank === 0 && o.delta === 0) && (
-                                      <span className="text-brand-cyan/60">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
+                                      <span className="text-muted-foreground">#{o.rank} · +{o.delta.toFixed(1)} WAR</span>
                                     )}
                                   </div>
                                 </div>

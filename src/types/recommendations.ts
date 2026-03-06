@@ -5,6 +5,21 @@ import type { StrategyMode, FranchiseTier } from './sleeper';
 export type PlayerVerdict = 'HOLD' | 'TRADE' | 'CUT';
 export type TradeType = 'sell-high' | 'sell-declining' | 'surplus-depth' | 'rebuild-asset';
 
+/**
+ * Lightweight HTC result computed for every rostered player across all teams.
+ * Uses 4 of 6 dimensions (omits productionAlignment + situationScore which need per-roster stats).
+ * Used to identify motivated sellers for trade targeting.
+ */
+export interface LightweightHTCResult {
+  verdict: PlayerVerdict;
+  tradeType: TradeType | null;
+  htcScore: number;           // lightweight composite 0-100 (lower = stronger trade signal)
+  sellWindowScore: number;    // raw sell window 0-100
+  ageCurveDirection: 'ascending' | 'stable' | 'declining';
+  ownerRosterId: number;
+  strategyMode: StrategyMode;
+}
+
 export interface LeagueFormatContext {
   isSuperFlex: boolean;
   starterSlots: Record<string, number>;   // position -> count needed (QB: 1, RB: 2, etc.)

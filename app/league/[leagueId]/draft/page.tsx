@@ -21,7 +21,7 @@ function getRookieSeasonDefaults() {
 export default function DraftPage() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const router = useRouter();
-  const { isRookieSeason, daysUntilDraft, showCountdown } = getRookieSeasonDefaults();
+  const { daysUntilDraft, showCountdown } = getRookieSeasonDefaults();
   const [activeTab, setActiveTab] = useState<DraftPageTab>('rookies');
 
   return (

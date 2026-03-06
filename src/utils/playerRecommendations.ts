@@ -10,12 +10,14 @@ import type {
   FranchiseOutlookRawContext,
   PlayerRosterStat,
   PlayerUsageMetrics,
+  SleeperPlayer,
   SleeperRoster,
   StrategyMode,
 } from '../types/sleeper';
 
 import type {
   LeagueFormatContext,
+  LightweightHTCResult,
   PlayerRecommendation,
   RosterRecommendations,
   PlayerVerdict,
@@ -1046,5 +1048,124 @@ export function computePlayerRecommendations(
       tradeableValue,
       tradeTypeBreakdown,
     },
+  };
+}
+
+// ---- Lightweight HTC (cross-roster, 4-dimension) ----
+
+/**
+ * Lightweight HTC for a single player using only data available in rawContext.
+ * Omits productionAlignment (needs rosterStats) and situationScore (needs snap data).
+ * Used to identify motivated sellers across all league rosters.
+ */
+export function computeLightweightHTC(
+  player: SleeperPlayer,
+  _playerId: string,
+  playerWAR: number,
+  dynastyValue: number | null,
+  maxDynastyValueOnRoster: number,
+  outlook: FranchiseOutlookResult,
+  rawContext: FranchiseOutlookRawContext,
+  leagueFormat: LeagueFormatContext,
+  ownerRosterId: number,
+): LightweightHTCResult {
+  const mode = outlook.strategyRecommendation.mode;
+  const position = player.position ?? 'UNKNOWN';
+  const age = player.age ?? null;
+  const windowLength = outlook.windowLength;
+  const totalTeams = rawContext.allRosters.length;
+
+  // Lightweight weight profiles (4 dimensions only, renormalized)
+  // Original weights sum to 1.0 across 6 dims; here we use 4 and renormalize.
+  // ageCurve: 0.30, sellWindow: 0.30, positional: 0.20, strategicFit: 0.20
+  const weights = {
+    ageCurve: 0.30,
+    sellWindow: 0.30,
+    positional: 0.20,
+    strategicFit: 0.20,
+  };
+
+  const { score: ageCurveTrajectory, direction: ageCurveDirection } = scoreAgeCurveTrajectory(
+    position,
+    age,
+    windowLength,
+  );
+
+  const sellWindowScore = scoreSellWindow(
+    dynastyValue,
+    maxDynastyValueOnRoster,
+    ageCurveTrajectory,
+    undefined,
+  );
+
+  const positionalContext = scorePositionalContext(
+    position,
+    playerWAR,
+    outlook.warByPosition,
+    outlook.focusAreas,
+    leagueFormat,
+    false, // conservative: no starter info available cross-roster
+    totalTeams,
+  );
+
+  const upsideRatio = outlook.youngAssets.find(
+    (ya) => ya.name === `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim(),
+  )?.upsideRatio ?? null;
+
+  const strategicFit = scoreStrategicFit(
+    mode,
+    position,
+    age,
+    playerWAR,
+    windowLength,
+    upsideRatio,
+    false,
+  );
+
+  // Invert sellWindow for composite (high sell signal = lower composite = more tradeable)
+  const composite =
+    ageCurveTrajectory * weights.ageCurve +
+    (100 - sellWindowScore) * weights.sellWindow +
+    positionalContext * weights.positional +
+    strategicFit * weights.strategicFit;
+
+  // Use lightweight thresholds (slightly more aggressive toward TRADE)
+  const LIGHTWEIGHT_HOLD_THRESHOLD = 58;
+  const LIGHTWEIGHT_CUT_THRESHOLD = 30;
+
+  let verdict: PlayerVerdict;
+  if (composite >= LIGHTWEIGHT_HOLD_THRESHOLD) verdict = 'HOLD';
+  else if (composite < LIGHTWEIGHT_CUT_THRESHOLD) verdict = 'CUT';
+  else verdict = 'TRADE';
+
+  // Force CUT for truly worthless players
+  if ((dynastyValue == null || dynastyValue <= 0) && playerWAR <= 0) {
+    verdict = 'CUT';
+  }
+
+  // Classify trade type
+  const posRankMap = new Map<string, number>();
+  for (const wp of outlook.warByPosition) posRankMap.set(wp.position, wp.rank);
+  const tradeType: TradeType | null =
+    verdict === 'TRADE'
+      ? classifyTradeType(
+          dynastyValue,
+          ageCurveDirection,
+          ageCurveTrajectory,
+          posRankMap.get(position),
+          totalTeams,
+          mode,
+          playerWAR,
+        )
+      : null;
+
+  return {
+    verdict,
+    tradeType,
+    htcScore: Math.round(composite),
+    sellWindowScore: Math.round(sellWindowScore),
+    ageCurveDirection,
+    ownerRosterId,
+    strategyMode: mode,
   };
 }

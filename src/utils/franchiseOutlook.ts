@@ -14,6 +14,7 @@ import type {
   TradeTargetPick,
   TradePartner,
 } from '../types/sleeper';
+import type { LightweightHTCResult } from '../types/recommendations';
 
 // ---- Static Age Curve Tables ----
 const AGE_CURVES: Record<string, Record<number, number>> = {
@@ -369,6 +370,7 @@ function computeTradeTargets(
   leagueAvgWARByPosition: Map<string, number>,
   myTier: FranchiseTier,
   myPeakYearOffset: number,
+  htcByPlayerId: Map<string, LightweightHTCResult>,
   maxResults = 8,
 ): { players: TradeTargetPlayer[]; picks: TradeTargetPick[] } {
   const ownedSet = new Set(thisRosterPlayerIds);
@@ -538,20 +540,50 @@ function computeTradeTargets(
 
       const pillarMult = rankOnTeam === 3 ? 0.55 : rankOnTeam === 4 ? 0.80 : 1.0;
       const liquidityMult = POSITION_LIQUIDITY[pos] ?? 1.0;
-      const sellerMult = sellerTierMultFn(sellerTier, age);
+      const baseSeller = sellerTierMultFn(sellerTier, age);
+
+      // HTC-augmented seller multiplier: use the seller's own algorithm signal
+      const htcResult = htcByPlayerId.get(pid);
+      let htcSellerMult = baseSeller;
+      if (htcResult) {
+        if (htcResult.verdict === 'TRADE') {
+          const boost =
+            htcResult.tradeType === 'sell-high' ? 1.4 :
+            htcResult.tradeType === 'sell-declining' ? 1.3 :
+            htcResult.tradeType === 'rebuild-asset' ? 1.2 :
+            1.15; // surplus-depth
+          htcSellerMult = Math.min(1.0, baseSeller * boost);
+        } else if (htcResult.verdict === 'HOLD') {
+          // Algorithm says keep — hard to pry loose
+          htcSellerMult = Math.max(0.05, baseSeller * 0.5);
+        }
+        // CUT: likely already filtered by baseValue < 200; keep baseSeller
+      }
+
       const availabilityMult = Math.max(0.05, Math.min(1.0,
-        sellerMult * depthMult * pillarMult * liquidityMult * luckMult,
+        htcSellerMult * depthMult * pillarMult * liquidityMult * luckMult,
       ));
 
       const needMult = needMultFn(pos);
-      const finalScore = baseValue * needMult * availabilityMult * timelinePenalty;
+
+      // HTC confidence boost: very strong trade signal pushes score up
+      let htcConfidenceBoost = 1.0;
+      if (htcResult) {
+        if (htcResult.verdict === 'TRADE' && htcResult.htcScore < 45) {
+          htcConfidenceBoost = 1.0 + (45 - htcResult.htcScore) / 100; // up to 1.45x
+        } else if (htcResult.verdict === 'HOLD' && htcResult.htcScore > 70) {
+          htcConfidenceBoost = 0.7; // strong hold = penalty
+        }
+      }
+
+      const finalScore = baseValue * needMult * availabilityMult * timelinePenalty * htcConfidenceBoost;
 
       const urgency = urgencyFlagFn(age, pos, dynastyValue ?? 0);
       const posNeed = warByPosition.find((p) => p.position === pos);
       const timelineMatch: TradeTargetPlayer['timelineMatch'] =
         timelinePenalty >= 0.9 ? 'ideal' : timelinePenalty >= 0.6 ? 'good' : 'marginal';
 
-      // Build reason text
+      // Build reason text (includes HTC signal when available)
       const needPart = posNeed
         ? `Your ${pos} is #${posNeed.rank}/${numTeams} in the league`
         : `Addresses ${pos} depth`;
@@ -562,7 +594,27 @@ function computeTradeTargets(
       const urgencyPart =
         urgency === 'buy-low' ? `Buy before dynasty value drops` :
         urgency === 'closing-window' ? `Value declining — act soon` : '';
-      const reason = [needPart, availPart, urgencyPart].filter(Boolean).join('. ');
+      const htcPart =
+        htcResult?.verdict === 'TRADE' && htcResult.tradeType === 'sell-high' ? `Algorithm flags as sell-high` :
+        htcResult?.verdict === 'TRADE' && htcResult.tradeType === 'sell-declining' ? `Declining value on their roster` :
+        htcResult?.verdict === 'TRADE' && htcResult.tradeType === 'surplus-depth' ? `Surplus depth on their roster` :
+        htcResult?.verdict === 'TRADE' && htcResult.tradeType === 'rebuild-asset' ? `Doesn't fit their rebuild` :
+        '';
+      const reason = [needPart, availPart || htcPart, !availPart ? '' : htcPart, urgencyPart]
+        .filter(Boolean)
+        .filter((v, i, arr) => arr.indexOf(v) === i) // dedupe
+        .slice(0, 3)
+        .join('. ');
+
+      // HTC signal label for UI
+      const htcSignal: TradeTargetPlayer['htcSignal'] =
+        htcResult?.verdict === 'TRADE' && (htcResult.tradeType === 'sell-high' || htcResult.tradeType === 'sell-declining')
+          ? 'motivated-seller'
+          : htcResult?.verdict === 'TRADE'
+          ? 'neutral'
+          : htcResult?.verdict === 'HOLD'
+          ? 'reluctant-seller'
+          : null;
 
       const sellerFutureFirsts = (allPicksByRosterId.get(roster.roster_id) ?? [])
         .filter((p) => p.round === 1).length;
@@ -582,6 +634,8 @@ function computeTradeTargets(
         urgencyFlag: urgency,
         sellerTierLabel: sellerTier,
         sellerContext: buildSellerContext(ownerName, sellerTier, sellerWarRank, numTeams, sellerFutureFirsts, luckMult, age),
+        htcSignal,
+        htcTradeType: htcResult?.tradeType ?? null,
         finalScore,
         availabilityMult,
       });
@@ -637,6 +691,10 @@ function computeTradeTargets(
   playerCandidates.sort((a, b) => {
     const diff = b.finalScore - a.finalScore;
     if (Math.abs(diff) > 200) return diff;
+    // Motivated sellers surface ahead of neutral signals at similar score
+    const aMotivated = a.htcSignal === 'motivated-seller' ? 1 : 0;
+    const bMotivated = b.htcSignal === 'motivated-seller' ? 1 : 0;
+    if (bMotivated !== aMotivated) return bMotivated - aMotivated;
     return b.availabilityMult - a.availabilityMult;
   });
 
@@ -655,6 +713,7 @@ function computeTradeTargets(
       dynastyValue: c.dynastyValue, ownerUserId: c.ownerUserId, ownerDisplayName: c.ownerDisplayName,
       reason: c.reason, availabilityScore: c.availabilityScore, timelineMatch: c.timelineMatch,
       urgencyFlag: c.urgencyFlag, sellerTierLabel: c.sellerTierLabel, sellerContext: c.sellerContext,
+      htcSignal: c.htcSignal, htcTradeType: c.htcTradeType,
     });
     ownerCounts.set(c.ownerUserId, oCount + 1);
     posCounts.set(c.position, pCount + 1);
@@ -734,6 +793,7 @@ function computeTradePartners(
   playerWARMap: Map<string, number>,
   fcMap: Map<string, number>,
   allPicksByRosterId: Map<number, FutureDraftPick[]>,
+  htcByPlayerId: Map<string, LightweightHTCResult>,
   maxResults = 3,
 ): TradePartner[] {
   type Candidate = TradePartner & { score: number };
@@ -778,7 +838,7 @@ function computeTradePartners(
     const theirTier = rosterTierFn(roster.roster_id);
     const theirPillarIds = rosterPillarIds.get(roster.roster_id) ?? new Set<string>();
 
-    const theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[] = [];
+    const theyCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number; motivatedSeller?: boolean; htcTradeType?: string | null }[] = [];
     const youCanOffer: { position: string; rank: number; delta: number; topPlayer?: string; topPlayerValue?: number }[] = [];
     let score = 0;
 
@@ -798,14 +858,44 @@ function computeTradePartners(
       if (myDeficit > 0 && theirWARVal > myWAR) {
         const top = topPlayerAtPosition(theirPlayerIds, pos, allPlayers, playerWARMap, fcMap, theirPillarIds, myTier);
         if (top) {
+          // Check HTC signal for their non-pillar players at this position
+          const theirNonPillarAtPos = theirPlayerIds.filter(
+            (pid) => !theirPillarIds.has(pid) && allPlayers[pid]?.position === pos,
+          );
+          const tradeFlaggedCount = theirNonPillarAtPos.filter(
+            (pid) => htcByPlayerId.get(pid)?.verdict === 'TRADE',
+          ).length;
+          const bestHtcTradeType = theirNonPillarAtPos
+            .map((pid) => htcByPlayerId.get(pid))
+            .filter((h): h is LightweightHTCResult => h?.verdict === 'TRADE')
+            .sort((a, b) => {
+              const order = { 'sell-high': 4, 'sell-declining': 3, 'rebuild-asset': 2, 'surplus-depth': 1 };
+              return (order[b.tradeType ?? 'surplus-depth'] ?? 0) - (order[a.tradeType ?? 'surplus-depth'] ?? 0);
+            })[0]?.tradeType ?? null;
+
+          const htcBoost =
+            tradeFlaggedCount > 0
+              ? bestHtcTradeType === 'sell-high' ? 1.3
+                : bestHtcTradeType === 'sell-declining' ? 1.2
+                : 1.1
+              : theirNonPillarAtPos.length > 0 &&
+                theirNonPillarAtPos.every((pid) => htcByPlayerId.get(pid)?.verdict === 'HOLD')
+              ? 0.75 // all HOLD = unlikely to trade
+              : 1.0;
+
+          const motivatedSeller = tradeFlaggedCount > 0 &&
+            (bestHtcTradeType === 'sell-high' || bestHtcTradeType === 'sell-declining');
+
           theyCanOffer.push({
             position: pos,
             rank: theirRank,
             delta: Math.round((theirWARVal - myWAR) * 10) / 10,
             topPlayer: top.name,
             topPlayerValue: top.value,
+            motivatedSeller,
+            htcTradeType: bestHtcTradeType,
           });
-          score += myDeficit * (theirWARVal - myWAR);
+          score += myDeficit * (theirWARVal - myWAR) * htcBoost;
         }
       }
 
@@ -813,6 +903,15 @@ function computeTradePartners(
       if (mySurplus > 0 && theirDeficit > 0) {
         const top = topPlayerAtPosition(thisRosterPlayerIds, pos, allPlayers, playerWARMap, fcMap, myPillarIds, theirTier);
         if (top) {
+          // Check if my HTC says I should be trading at this position
+          const myNonPillarAtPos = thisRosterPlayerIds.filter(
+            (pid) => !myPillarIds.has(pid) && allPlayers[pid]?.position === pos,
+          );
+          const myTradeFlagged = myNonPillarAtPos.filter(
+            (pid) => htcByPlayerId.get(pid)?.verdict === 'TRADE',
+          ).length;
+          const htcOfferBoost = myTradeFlagged > 0 ? 1.2 : 1.0;
+
           youCanOffer.push({
             position: pos,
             rank: myRank,
@@ -820,7 +919,7 @@ function computeTradePartners(
             topPlayer: top.name,
             topPlayerValue: top.value,
           });
-          score += mySurplus * theirDeficit;
+          score += mySurplus * theirDeficit * htcOfferBoost;
         }
       }
     }
@@ -980,6 +1079,7 @@ export function computeFranchiseOutlook(
   allTeamWarByPosition: Map<number, Map<string, number>>,
   positionRanksByRoster: Map<number, Map<string, number>>,
   allPicksByRosterId: Map<number, FutureDraftPick[]>,
+  htcByPlayerId: Map<string, LightweightHTCResult> = new Map(),
 ): FranchiseOutlookResult {
   const playerIds = roster.players ?? [];
 
@@ -1215,6 +1315,7 @@ export function computeFranchiseOutlook(
     leagueAvgWARByPosition,
     tier,
     peakYearOffset,
+    htcByPlayerId,
   );
 
   // ── Trade Partners ───────────────────────────────────────────────────────
@@ -1226,6 +1327,7 @@ export function computeFranchiseOutlook(
     userDisplayNames, userAvatars,
     allPlayers, playerWARMap, fcMap,
     allPicksByRosterId,
+    htcByPlayerId,
   );
 
   return {

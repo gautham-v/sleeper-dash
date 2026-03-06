@@ -392,6 +392,7 @@ async function main() {
     isSeasonComplete, leagueAvgWARByPosition, allRosters: validRosters,
     userDisplayNames, userAvatars, teamPositionWAR, positionRanksByRoster,
     picksByRosterId, fcMap, rookiePool, warRankByRoster, winsRankByRoster,
+    htcByPlayerId: new Map(),
   };
 
   // 11. Run HTC engine for every team
