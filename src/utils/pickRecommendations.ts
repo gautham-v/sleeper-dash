@@ -249,7 +249,7 @@ function generatePickReason(
   windowLength: number,
   mode: StrategyMode,
   criticalNeedPosition: string | null,
-  contextualWAR: number,
+  _contextualWAR: number,
   overrideApplied: string | null,
   isSuperFlex: boolean,
 ): string {
@@ -279,9 +279,9 @@ function generatePickReason(
 
     case 'TRADE':
       if (yearOffset > windowLength) {
-        return `${pickLabel} matures after your window — its contextual value (${contextualWAR.toFixed(1)} WAR) is better realized by trading for a proven starter now.`;
+        return `${pickLabel} matures after your window closes. Its value is better realized by trading it for a proven starter now rather than waiting.`;
       }
-      return `${pickLabel} (${contextualWAR.toFixed(1)} contextual WAR) is best deployed as currency. Find a known player at your biggest positional need and include this pick in the offer.`;
+      return `${pickLabel} is best deployed as currency. Find a known player at your biggest positional need and include this pick in the offer.`;
 
     case 'TRADE_UP':
       return `${pickLabel} combined with other picks could land a higher-upside prospect${criticalNeedPosition ? ` at ${criticalNeedPosition}` : ''}. Look to move up 3–6 spots above any tier break in Rd ${_pick.round}.`;

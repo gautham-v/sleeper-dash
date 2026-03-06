@@ -104,9 +104,7 @@ function PickCard({ rec }: { rec: PickRecommendation }) {
       <div className="flex items-center gap-2.5">
         <PosBadge pos="PICK" />
         <span className="text-sm font-medium text-gray-200 flex-1">{pickLabel}</span>
-        <span className="text-xs text-gray-500 tabular-nums shrink-0">
-          {rec.contextualWAR.toFixed(1)} cWAR
-        </span>
+        <span className="text-[10px] text-gray-600 shrink-0">{expanded ? '▲' : '▼'}</span>
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${pill}`}>
           {label}
         </span>
@@ -436,7 +434,7 @@ export function FranchiseOutlookTab({ userId, data, leagueId, rawContext }: Fran
             </div>
           </div>
           <div className="text-xs text-gray-500 mb-3">
-            Tap a pick for strategy guidance. cWAR = contextual WAR accounting for your window &amp; roster needs.
+            Tap a pick for strategy guidance based on your window, roster needs, and draft capital depth.
           </div>
           <div className="space-y-2">
             {[...pickRecs.data]

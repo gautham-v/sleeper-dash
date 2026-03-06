@@ -70,6 +70,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [htcSheetOpen, setHtcSheetOpen] = useState(false);
+  const [expandedPickIdx, setExpandedPickIdx] = useState<number | null>(null);
 
   const allStats = useMemo(() => {
     if (!history) return new Map();
@@ -1084,20 +1085,26 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                     const verdictLabels: Record<PickVerdict, string> = {
                       HOLD: 'HOLD', TRADE: 'TRADE', TRADE_UP: 'TRADE UP', TRADE_DOWN: 'TRADE DOWN',
                     };
+                    const isExpanded = expandedPickIdx === i;
                     return (
                       <div
                         key={i}
-                        className="flex flex-col gap-1.5 bg-gray-800/40 border border-gray-700/30 rounded-xl px-4 py-3"
+                        className="flex flex-col gap-1.5 bg-gray-800/40 border border-gray-700/30 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-800/60 transition-colors"
+                        onClick={() => setExpandedPickIdx(isExpanded ? null : i)}
                       >
                         <div className="flex items-center gap-2.5">
                           <PosBadge pos="PICK" />
                           <span className="text-sm font-medium text-gray-200 flex-1">{pickLabel}</span>
-                          <span className="text-xs text-gray-500 tabular-nums shrink-0">{rec.contextualWAR.toFixed(1)} cWAR</span>
+                          <span className="text-[10px] text-gray-600 shrink-0">{isExpanded ? '▲' : '▼'}</span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${verdictStyles[rec.verdict]}`}>
                             {verdictLabels[rec.verdict]}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-400 leading-relaxed">{rec.reason}</div>
+                        {isExpanded && (
+                          <div className="text-xs text-gray-400 leading-relaxed pt-1 border-t border-gray-700/30 mt-1">
+                            {rec.reason}
+                          </div>
+                        )}
                       </div>
                     );
                   })
