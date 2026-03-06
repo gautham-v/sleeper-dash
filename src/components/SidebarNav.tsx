@@ -203,7 +203,13 @@ export function SidebarNav({
             Contact
           </button>
         </ContactModal>
-        <span className="text-gray-700 text-xs ml-auto">🌧️ Seattle</span>
+        <span className="text-gray-700 text-xs">·</span>
+        <Link
+          href="/terms"
+          className="text-[11px] text-gray-600 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+        >
+          Terms
+        </Link>
       </div>
     </div>
   );

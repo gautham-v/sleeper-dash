@@ -216,6 +216,13 @@ export default function HomePage() {
             Contact
           </button>
         </ContactModal>
+        <span>&middot;</span>
+        <a
+          href="/terms"
+          className="hover:text-gray-300 transition-colors px-1.5 py-1 rounded hover:bg-white/5"
+        >
+          Terms
+        </a>
       </div>
     </div>
   );
