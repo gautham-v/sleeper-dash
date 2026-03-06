@@ -969,17 +969,27 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                             {rec.confidence}% confidence
                                           </span>
                                         </div>
-                                        {rec.dynastyValue != null && (
-                                          <div className="flex gap-4 mt-1.5 text-muted-foreground/70">
-                                            <span>WAR: <span className="text-foreground/80">{rec.playerWAR.toFixed(1)}</span></span>
-                                            <span>Value: <span className="text-foreground/80">{Math.round(rec.dynastyValue).toLocaleString()}</span></span>
-                                            <span>Curve: <span className={
-                                              rec.ageCurveDirection === 'ascending' ? 'text-emerald-400'
-                                                : rec.ageCurveDirection === 'declining' ? 'text-red-400'
-                                                  : 'text-foreground/80'
-                                            }>{rec.ageCurveDirection}</span></span>
+                                        {rec.overrideApplied && (
+                                          <div className="mt-1 text-[10px] text-muted-foreground/50 italic">
+                                            Rule applied: {rec.overrideApplied.replace(/-/g, ' ')}
                                           </div>
                                         )}
+                                        <div className="flex gap-4 mt-1.5 text-muted-foreground/70">
+                                          <span>WAR: <span className="text-foreground/80">{rec.playerWAR.toFixed(1)}</span></span>
+                                          {rec.dynastyValue != null && (
+                                            <span>Value: <span className="text-foreground/80">{Math.round(rec.dynastyValue).toLocaleString()}</span></span>
+                                          )}
+                                          <span>Curve: <span className={
+                                            rec.ageCurveDirection === 'ascending' ? 'text-emerald-400'
+                                              : rec.ageCurveDirection === 'declining' ? 'text-red-400'
+                                                : 'text-foreground/80'
+                                          }>{rec.ageCurveDirection}</span></span>
+                                          <span className="ml-auto">Data: <span className={
+                                            rec.dataQuality >= 0.85 ? 'text-foreground/80'
+                                              : rec.dataQuality >= 0.6 ? 'text-amber-400/70'
+                                                : 'text-red-400/70'
+                                          }>{Math.round(rec.dataQuality * 100)}%</span></span>
+                                        </div>
                                       </div>
                                     )}
                                     <PlayerCareerPanel

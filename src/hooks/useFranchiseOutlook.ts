@@ -334,16 +334,18 @@ export function useFranchiseOutlook(leagueId: string | null) {
 
       // 10b. Compute lightweight HTC for every rostered player across all teams
       const htcByPlayerId = new Map<string, LightweightHTCResult>();
+
+      // Compute league P75 dynasty value once as a stable sell-window anchor.
+      // This eliminates roster-composition bias in the sell window signal.
+      const allLeagueFCValues = [...fcMap.values()]
+        .filter((v): v is number => v != null && v > 0)
+        .sort((a, b) => a - b);
+      const p75Index = Math.ceil(allLeagueFCValues.length * 0.75) - 1;
+      const leagueP75DynastyValue = allLeagueFCValues[Math.max(0, p75Index)] ?? 5000;
+
       for (const roster of validRosters) {
         const ownerOutlook = outlookMap.get(roster.owner_id!);
         if (!ownerOutlook) continue;
-
-        // Compute max dynasty value on this roster for sell-window normalization
-        let maxDynastyValue = 0;
-        for (const pid of roster.players ?? []) {
-          const dv = fcMap.get(pid) ?? 0;
-          if (dv > maxDynastyValue) maxDynastyValue = dv;
-        }
 
         for (const pid of roster.players ?? []) {
           const player = allPlayers[pid];
@@ -356,7 +358,7 @@ export function useFranchiseOutlook(leagueId: string | null) {
             pid,
             playerWARMap.get(pid) ?? 0,
             fcMap.get(pid) ?? null,
-            maxDynastyValue,
+            leagueP75DynastyValue,
             ownerOutlook,
             { allPlayers, playerWARMap, allTeamWARs, allTeamWeightedAges, isSeasonComplete,
               leagueAvgWARByPosition, allRosters: validRosters, userDisplayNames, userAvatars,

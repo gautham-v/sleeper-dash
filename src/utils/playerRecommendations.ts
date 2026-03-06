@@ -510,6 +510,62 @@ function computeConfidence(composite: number, verdict: PlayerVerdict, thresholds
   return Math.min(100, Math.abs(composite - nearestThreshold) * 3);
 }
 
+/**
+ * Multi-signal consensus multiplier (0.5 – 1.0).
+ * Each dimension "votes" for HOLD or CUT direction. When dimensions agree with the
+ * verdict, confidence is preserved; disagreement reduces it. For TRADE, a balanced
+ * split between hold/cut signals indicates the strongest trade consensus.
+ */
+function computeConsensusMultiplier(
+  scores: Omit<DimensionScores, 'composite'>,
+  verdict: PlayerVerdict,
+): number {
+  // Each dimension casts a "hold vote" (true) or "cut vote" (false)
+  // sellWindow: low score = hold signal (inverted relative to others)
+  const holdVotes = [
+    scores.productionAlignment >= 50,
+    scores.ageCurveTrajectory >= 50,
+    scores.sellWindow < 50,           // low sell signal = hold-aligned
+    scores.positionalContext >= 50,
+    scores.strategicFit >= 50,
+    scores.situationScore >= 50,
+  ].filter(Boolean).length;
+  const cutVotes = 6 - holdVotes;
+
+  let agreements: number;
+  if (verdict === 'HOLD') {
+    agreements = holdVotes;
+  } else if (verdict === 'CUT') {
+    agreements = cutVotes;
+  } else {
+    // TRADE: maximum consensus when dimensions are perfectly split (3/3)
+    // Weakest consensus when all dimensions agree with one direction
+    agreements = 6 - Math.abs(holdVotes - cutVotes);
+  }
+
+  // Range: 0.5 (0 agreements) to 1.0 (6 agreements)
+  return 0.5 + 0.5 * (agreements / 6);
+}
+
+/**
+ * Data quality score (0.0 – 1.0).
+ * Tracks how many key inputs are available. Used to scale confidence down
+ * when recommendations are built on incomplete data.
+ */
+function computeDataQuality(
+  age: number | null,
+  dynastyValue: number | null,
+  usage: PlayerUsageMetrics | undefined,
+  depthChartOrder: number | null | undefined,
+): number {
+  let quality = 0;
+  if (age != null) quality += 0.25;
+  if (dynastyValue != null && dynastyValue > 0) quality += 0.35;
+  if (usage && usage.gamesPlayed >= 3) quality += 0.25;
+  if (depthChartOrder != null) quality += 0.15;
+  return quality;
+}
+
 // ---- Trade Type Classification ----
 
 function classifyTradeType(
@@ -708,15 +764,19 @@ export function computePlayerRecommendations(
   const playerIds = roster.players ?? [];
   const starterIds = new Set(roster.starters ?? []);
 
-  // Compute max dynasty value on the roster for sell-window normalization
-  let maxDynastyValueOnRoster = 0;
+  // Compute league P75 dynasty value as a stable sell-window anchor.
+  // Using P75 (not per-roster max) eliminates roster-composition bias: a weak roster's
+  // mediocre players no longer appear as peak sell candidates relative to their teammates.
+  const allLeagueFCValues = [...rawContext.fcMap.values()]
+    .filter((v): v is number => v != null && v > 0)
+    .sort((a, b) => a - b);
+  const p75Index = Math.ceil(allLeagueFCValues.length * 0.75) - 1;
+  const leagueP75DynastyValue = allLeagueFCValues[Math.max(0, p75Index)] ?? 5000;
+
   const rosterDynastyValues: Map<string, number | null> = new Map();
   for (const pid of playerIds) {
     const dv = rawContext.fcMap.get(pid) ?? null;
     rosterDynastyValues.set(pid, dv);
-    if (dv != null && dv > maxDynastyValueOnRoster) {
-      maxDynastyValueOnRoster = dv;
-    }
   }
 
   // Compute median dynasty value for IR floor check
@@ -799,7 +859,7 @@ export function computePlayerRecommendations(
 
     const sellWindow = scoreSellWindow(
       dynastyValue,
-      maxDynastyValueOnRoster,
+      leagueP75DynastyValue,
       ageCurveTrajectory,
       usage,
     );
@@ -859,23 +919,32 @@ export function computePlayerRecommendations(
     let verdict = computeVerdict(composite, thresholds);
     let confidence = computeConfidence(composite, verdict, thresholds);
 
-    // ---- Edge-case overrides ----
+    // ---- Edge-case overrides (with strength-calibrated confidence) ----
+    // Each override tracks what fired so the UI can present it transparently.
 
-    // 1. dynastyValue null/zero AND playerWAR <= 0 -> force CUT
+    let overrideApplied: string | null = null;
+
+    // 1. No dynasty value AND negative WAR -> force CUT (double signal, high confidence)
     if ((dynastyValue == null || dynastyValue <= 0) && playerWAR <= 0) {
       verdict = 'CUT';
       confidence = Math.max(confidence, 80);
+      overrideApplied = 'no-value-negative-war';
     }
 
     // 2. Top-3 WAR contributor AND team is Contender -> floor at HOLD
+    // Confidence scales with WAR rank: rank 1 → 70, rank 2 → 60, rank 3 → 50
     if (top3WARIds.has(pid) && tier === 'Contender') {
       if (verdict !== 'HOLD') {
         verdict = 'HOLD';
-        confidence = Math.max(20, confidence); // lower confidence since it was overridden
+        const warRankPosition = rosterPlayerWARs.findIndex((p) => p.pid === pid) + 1;
+        const overrideConfidence = warRankPosition === 1 ? 70 : warRankPosition === 2 ? 60 : 50;
+        confidence = Math.max(confidence, overrideConfidence);
+        overrideApplied = 'top3-war-contender';
       }
     }
 
     // 3. Age <= 23 with upsideRatio >= 1.5 AND Rebuilding/Asset Accum -> floor at HOLD
+    // Confidence scales with upsideRatio: 1.5 → 40, 2.0 → 75
     if (
       age != null &&
       age <= 23 &&
@@ -885,11 +954,13 @@ export function computePlayerRecommendations(
     ) {
       if (verdict !== 'HOLD') {
         verdict = 'HOLD';
-        confidence = Math.max(20, confidence);
+        const overrideConfidence = Math.round(40 + Math.min(35, (upsideRatio - 1.5) * 70));
+        confidence = Math.max(confidence, overrideConfidence);
+        overrideApplied = 'young-high-upside-rebuild';
       }
     }
 
-    // 4. injury_status === 'IR' AND dynastyValue in top 50% -> floor at TRADE (don't Cut)
+    // 4. On IR AND dynastyValue in top 50% -> floor at TRADE (don't Cut valuable injured players)
     if (
       injuryStatus === 'IR' &&
       dynastyValue != null &&
@@ -898,38 +969,51 @@ export function computePlayerRecommendations(
       verdict === 'CUT'
     ) {
       verdict = 'TRADE';
-      confidence = Math.max(15, confidence);
+      confidence = Math.max(confidence, 30);
+      overrideApplied = 'ir-valuable-player';
     }
 
-    // 5. QB in SuperFlex: floor at TRADE (never Cut ascending QBs; only cut truly worthless QBs)
+    // 5. QB in SuperFlex: floor at TRADE (format constraint — not a quality judgment)
     if (leagueFormat.isSuperFlex && position === 'QB') {
       if (verdict === 'CUT') {
-        // Ascending QBs always worth a roster spot in SF
         if (ageCurveDirection === 'ascending' || ageCurveDirection === 'stable') {
           verdict = 'TRADE';
-          confidence = Math.max(15, confidence);
-        }
-        // Only CUT truly replacement-level QBs: negative WAR AND near-zero dynasty value AND old
-        else if (dynastyValue != null && dynastyValue >= 500) {
+          confidence = Math.max(confidence, 45);
+          overrideApplied = 'sf-qb-floor';
+        } else if (dynastyValue != null && dynastyValue >= 500) {
           verdict = 'TRADE';
-          confidence = Math.max(15, confidence);
+          confidence = Math.max(confidence, 45);
+          overrideApplied = 'sf-qb-floor';
         }
       }
     }
 
-    // 6. Required starter with no replacement -> floor at HOLD
+    // 6. Required starter with no replacement -> floor at HOLD (format constraint)
     if (isStarter) {
       const posCount = rosterCountByPos.get(position) ?? 0;
       const starterCount = starterCountByPos.get(position) ?? 0;
       const requiredSlots = leagueFormat.starterSlots[position] ?? 0;
-      // If removing this player would leave fewer players than required starter slots
       if (posCount - 1 < requiredSlots || (posCount <= starterCount && requiredSlots > 0)) {
         if (verdict !== 'HOLD') {
           verdict = 'HOLD';
-          confidence = Math.max(15, confidence);
+          confidence = Math.max(confidence, 45);
+          overrideApplied = 'required-starter';
         }
       }
     }
+
+    // ---- Multi-signal consensus multiplier ----
+    // Reduces confidence when dimensions disagree with the verdict direction.
+    // Range: 0.5 (all dimensions disagree) to 1.0 (all dimensions agree).
+    const consensusMultiplier = computeConsensusMultiplier(dimensionScores, verdict);
+    confidence = confidence * consensusMultiplier;
+
+    // ---- Data quality multiplier ----
+    // Reduces confidence proportionally when key inputs (age, dynasty value, usage, depth) are missing.
+    // Range: 0.4 (no data) to 1.0 (full data).
+    const dataQuality = computeDataQuality(age, dynastyValue, usage, depthChartOrder);
+    const dataQualityMultiplier = 0.4 + 0.6 * dataQuality;
+    confidence = confidence * dataQualityMultiplier;
 
     // ---- Trade type classification ----
 
@@ -983,7 +1067,7 @@ export function computePlayerRecommendations(
       age,
       verdict,
       tradeType,
-      confidence: Math.round(confidence),
+      confidence: Math.min(100, Math.round(confidence)),
       reason,
       scores: fullScores,
       playerWAR,
@@ -992,6 +1076,8 @@ export function computePlayerRecommendations(
       injuryStatus,
       isStarter,
       dominantFactor,
+      dataQuality: Math.round(dataQuality * 100) / 100,
+      overrideApplied,
     });
   }
 
@@ -1065,7 +1151,7 @@ export function computeLightweightHTC(
   _playerId: string,
   playerWAR: number,
   dynastyValue: number | null,
-  maxDynastyValueOnRoster: number,
+  dynastyValueReference: number,
   outlook: FranchiseOutlookResult,
   rawContext: FranchiseOutlookRawContext,
   leagueFormat: LeagueFormatContext,
@@ -1095,7 +1181,7 @@ export function computeLightweightHTC(
 
   const sellWindowScore = scoreSellWindow(
     dynastyValue,
-    maxDynastyValueOnRoster,
+    dynastyValueReference,
     ageCurveTrajectory,
     undefined,
   );
