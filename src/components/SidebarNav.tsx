@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, BarChart2, UserCircle, FlaskConical, Lock } from 'lucide-react';
+import { ChevronDown, BarChart2, UserCircle, FlaskConical, Lock, Zap } from 'lucide-react';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
 import type { SleeperLeague } from '@/types/sleeper';
@@ -16,6 +16,8 @@ export type SidebarNavProps = {
   isOffseason: boolean;
   currentWeek: number;
   isPro?: boolean;
+  cancelAtPeriodEnd?: boolean;
+  periodEnd?: string | null;
   onChangeLeague: (id: string) => void;
   onLockedLeague?: () => void;
   onTabChange: (tab: TabId) => void;
@@ -29,7 +31,8 @@ export type SidebarNavProps = {
 
 export function SidebarNav({
   league, leagueId, activeTab, allLeagueGroups, isOffseason, currentWeek,
-  isPro = false, onChangeLeague, onLockedLeague, onTabChange, onClose,
+  isPro = false, cancelAtPeriodEnd = false, periodEnd = null,
+  onChangeLeague, onLockedLeague, onTabChange, onClose,
   onCareerStats, careerStatsActive = false,
   onViewMyProfile, myProfileActive = false,
 }: SidebarNavProps) {
@@ -130,14 +133,16 @@ export function SidebarNav({
                 );
               })}
               {!isPro && allLeagueGroups.length > 1 && (
-                <div className="border-t border-card-border/40 mt-1 px-3 py-2">
-                  <button
-                    onClick={() => { setLeagueDropdownOpen(false); onLockedLeague?.(); }}
-                    className="text-[10px] text-brand-cyan hover:text-brand-cyan/80 transition-colors font-medium"
-                  >
-                    Unlock all leagues — Pro
-                  </button>
-                </div>
+                <button
+                  onClick={() => { setLeagueDropdownOpen(false); onLockedLeague?.(); }}
+                  className="bg-brand-cyan/10 border-t border-card-border/40 px-3 py-2.5 flex items-center gap-2.5 w-full hover:bg-brand-cyan/15 transition-colors"
+                >
+                  <Zap size={13} className="text-brand-cyan flex-shrink-0" />
+                  <div className="text-left">
+                    <div className="text-brand-cyan text-xs font-semibold">Upgrade to Pro</div>
+                    <div className="text-gray-500 text-[10px]">from $1.67/mo</div>
+                  </div>
+                </button>
               )}
             </div>
           )}
@@ -167,6 +172,17 @@ export function SidebarNav({
           <>
             <div className="border-t border-card-border/40 my-2" />
             <div className="text-[10px] text-gray-600 uppercase tracking-widest px-3 mb-1">Your Account</div>
+            {isPro && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 mb-1 bg-amber-400/10 rounded-xl border border-amber-400/20">
+                <Zap size={11} className="text-amber-400 flex-shrink-0" />
+                <span className="text-[11px] font-semibold text-amber-400">Pro</span>
+                <span className="text-[10px] text-gray-500 ml-auto">
+                  {cancelAtPeriodEnd && periodEnd
+                    ? `Ends ${new Date(periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    : 'Active'}
+                </span>
+              </div>
+            )}
             {onViewMyProfile && (
               <button
                 onClick={() => { onViewMyProfile(); onClose?.(); }}

@@ -17,6 +17,9 @@ import {
   ClipboardList,
   FlaskConical,
   Lock,
+  CreditCard,
+  Zap,
+  Search,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
@@ -52,7 +55,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // User context from sessionStorage
   const sessionUser = useSessionUser();
 
-  const { isPro } = useSubscription();
+  const { isPro, cancelAtPeriodEnd, periodEnd } = useSubscription();
   const { user: supabaseUser } = useAuthContext();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
@@ -85,11 +88,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const handleChangeLeague = (id: string) => {
     if (!isPro) {
-      setShowUpgradeModal(true);
+      setLeaguePickerOpen(false);
+      setLeagueSheetOpen(false);
+      setUserMenuOpen(false);
+      // Small delay to let the sheet close animation finish before modal appears
+      setTimeout(() => setShowUpgradeModal(true), 150);
       return;
     }
     posthog.capture('league_switched', { from_league_id: leagueId, to_league_id: id });
     router.push(`/league/${id}/overview`);
+  };
+
+  const handleManageSubscription = async () => {
+    const res = await fetch('/api/stripe/portal', { method: 'POST' });
+    if (!res.ok) return;
+    const { url } = await res.json() as { url: string };
+    if (url) window.location.href = url;
   };
 
   const handleSelectManager = (uid: string) => {
@@ -133,8 +147,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     isOffseason,
     currentWeek,
     isPro,
+    cancelAtPeriodEnd,
+    periodEnd,
     onChangeLeague: handleChangeLeague,
-    onLockedLeague: () => setShowUpgradeModal(true),
+    onLockedLeague: () => {
+      setLeaguePickerOpen(false);
+      setLeagueSheetOpen(false);
+      setUserMenuOpen(false);
+      setTimeout(() => setShowUpgradeModal(true), 150);
+    },
     onTabChange: handleTabChange,
     onCareerStats: sessionUser ? handleCareerStats : undefined,
     careerStatsActive: isCareerRoute,
@@ -218,34 +239,74 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="relative" ref={avatarMenuRef}>
                 <button
                   onClick={() => setAvatarMenuOpen((o) => !o)}
-                  className="w-10 h-10 rounded-full border border-card-border hover:border-gray-500 flex items-center justify-center bg-card-bg overflow-hidden transition-colors"
+                  className="relative w-10 h-10 rounded-full border border-card-border hover:border-gray-500 flex items-center justify-center bg-card-bg overflow-visible transition-colors"
                   aria-label="User menu"
                 >
-                  {userAvatar ? (
-                    <img
-                      src={avatarUrl(userAvatar) ?? ''}
-                      alt={userDisplayName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <UserCircle size={20} className="text-muted-foreground" />
+                  <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                    {userAvatar ? (
+                      <img
+                        src={avatarUrl(userAvatar) ?? ''}
+                        alt={userDisplayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle size={20} className="text-muted-foreground" />
+                    )}
+                  </div>
+                  {isPro && (
+                    <div className="absolute -bottom-1 -right-1 bg-amber-400 text-amber-900 text-[8px] font-black px-1 rounded-full leading-tight">PRO</div>
                   )}
                 </button>
                 {avatarMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 overflow-hidden py-1">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 overflow-hidden py-1">
                     <div className="px-3 py-2.5 border-b border-card-border/60">
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
                       <div className="text-sm font-semibold text-white truncate">{userDisplayName}</div>
                     </div>
+                    {isPro && cancelAtPeriodEnd && periodEnd && (
+                      <div className="px-3 py-2 border-b border-card-border/60 flex items-center gap-2">
+                        <Zap size={12} className="text-amber-400 flex-shrink-0" />
+                        <span className="text-[11px] text-amber-400">
+                          Access until {new Date(periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    )}
                     <button
                       onClick={() => { setAvatarMenuOpen(false); handleChangeUser(); }}
                       className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
                     >
-                      <LogOut size={15} className="text-gray-500 flex-shrink-0" /> Switch User
+                      <LogOut size={15} className="text-gray-500 flex-shrink-0" />
+                      {supabaseUser ? 'Sign Out' : 'Switch User'}
                     </button>
+                    <button
+                      onClick={() => { setAvatarMenuOpen(false); router.push('/'); }}
+                      className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                    >
+                      <Search size={15} className="text-gray-500 flex-shrink-0" /> Look up another league
+                    </button>
+                    {isPro && (
+                      <button
+                        onClick={() => { setAvatarMenuOpen(false); void handleManageSubscription(); }}
+                        className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                      >
+                        <CreditCard size={15} className="text-gray-500 flex-shrink-0" /> Manage subscription
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
+            ) : sessionUser && !supabaseUser ? (
+              <button
+                onClick={() => {
+                  void createClient().auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: `${window.location.origin}/auth/callback` },
+                  });
+                }}
+                className="text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2 transition-colors"
+              >
+                Sign in
+              </button>
             ) : (
               <button
                 onClick={() => router.push('/')}
@@ -522,6 +583,32 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
 
+                {/* Pro status */}
+                {isPro && (
+                  <div className="flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-xl px-3 py-2">
+                    <Zap size={13} className="text-amber-400 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-amber-400">Pro — Active</div>
+                      <div className="text-[10px] text-gray-500">
+                        {isPro && cancelAtPeriodEnd && periodEnd
+                          ? `Access until ${new Date(periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                          : 'Multi-league access'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manage subscription */}
+                {isPro && (
+                  <button
+                    onClick={() => { setUserMenuOpen(false); void handleManageSubscription(); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+                  >
+                    <CreditCard size={15} className="text-gray-500 flex-shrink-0" />
+                    Manage subscription
+                  </button>
+                )}
+
                 {/* My Profile */}
                 {userId && (
                   <button
@@ -548,13 +635,40 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
                 </button>
 
-                {/* Switch User */}
+                {/* Sign in prompt for session-only users */}
+                {!supabaseUser && (
+                  <div className="bg-card-bg border border-card-border rounded-xl p-3 space-y-2">
+                    <div className="text-xs text-gray-400">Sign in to save your leagues and unlock Pro</div>
+                    <button
+                      onClick={() => {
+                        void createClient().auth.signInWithOAuth({
+                          provider: 'google',
+                          options: { redirectTo: `${window.location.origin}/auth/callback` },
+                        });
+                      }}
+                      className="w-full text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2.5 transition-colors"
+                    >
+                      Continue with Google
+                    </button>
+                  </div>
+                )}
+
+                {/* Sign Out / Switch User */}
                 <button
                   onClick={() => { setUserMenuOpen(false); handleChangeUser(); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
                 >
                   <LogOut size={15} className="text-gray-500 flex-shrink-0" />
-                  Switch User
+                  {supabaseUser ? 'Sign Out' : 'Switch User'}
+                </button>
+
+                {/* Look up another league */}
+                <button
+                  onClick={() => { setUserMenuOpen(false); router.push('/'); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+                >
+                  <Search size={15} className="text-gray-500 flex-shrink-0" />
+                  Look up another league
                 </button>
               </>
             ) : (
