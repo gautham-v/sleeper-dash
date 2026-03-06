@@ -55,10 +55,11 @@ export function UpgradeModal({ leagueCount, onClose }: UpgradeModalProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    const next = encodeURIComponent(window.location.pathname + '?upgrade=true');
     await createClient().auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
         queryParams: { prompt: 'select_account' },
       },
     });

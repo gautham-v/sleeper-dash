@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import posthog from 'posthog-js';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftRight,
@@ -47,6 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { leagueId } = params;
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const activeTab = useMemo((): TabId => {
@@ -68,6 +69,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open upgrade modal when returning from Google OAuth (upgrade intent preserved via ?upgrade=true)
+  useEffect(() => {
+    if (searchParams.get('upgrade') === 'true') {
+      setShowUpgradeModal(true);
+      router.replace(pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Own Supabase profile — always reflects the authenticated user, regardless of
   // which Sleeper username is currently being viewed in sessionUser.
@@ -119,6 +129,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // sessionUser may point to a different Sleeper user when "Look up another league" was used.
   const isViewingOther = !!supabaseUser && !!ownProfile && !!sessionUser &&
     sessionUser.userId !== ownProfile.sleeper_user_id;
+
+  // Anonymous = entered a Sleeper username but not signed in with Google
+  const isAnonymousViewing = !supabaseUser && !!sessionUser;
 
   const headerAvatar = supabaseUser && ownProfile ? ownProfile.sleeper_avatar : (sessionUser?.avatar ?? null);
   const headerDisplayName = supabaseUser && ownProfile
@@ -232,6 +245,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setUserMenuOpen(false);
       setTimeout(() => setShowUpgradeModal(true), 150);
     },
+    onLookupUser: () => setShowLookupModal(true),
     onTabChange: handleTabChange,
     onCareerStats: sessionUser ? handleCareerStats : undefined,
     careerStatsActive: isCareerRoute,
@@ -286,7 +300,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="text-sm font-bold text-white leading-tight">
                 {showingManagerProfile ? 'Manager Profile' : isCareerRoute ? 'Career Stats' : activeLabel}
               </div>
-              {isViewingOther && (
+              {(isViewingOther || isAnonymousViewing) && (
                 <div className="text-[10px] text-gray-500 leading-none mt-0.5">
                   Viewing {sessionUser?.displayName}
                 </div>
@@ -299,7 +313,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 className="w-8 h-8 rounded-full border border-card-border hover:border-gray-500 transition-colors overflow-hidden flex-shrink-0 flex items-center justify-center bg-card-bg"
                 aria-label="User menu"
               >
-                {headerAvatar ? (
+                {supabaseUser && headerAvatar ? (
                   <img src={avatarUrl(headerAvatar) ?? ''} alt={headerDisplayName} className="w-full h-full object-cover" />
                 ) : (
                   <UserCircle size={18} className="text-muted-foreground" />
@@ -314,14 +328,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
                 <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
               </div>
-              {isViewingOther && (
+              {(isViewingOther || isAnonymousViewing) && (
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-card-border/40">
                   <Search size={11} className="text-gray-500" />
                   <span className="text-[11px] text-gray-400">Viewing <span className="text-gray-300 font-medium">{sessionUser?.displayName}</span></span>
                 </div>
               )}
             </div>
-            {sessionUser ? (
+            {supabaseUser ? (
               <div className="relative" ref={avatarMenuRef}>
                 <button
                   onClick={() => setAvatarMenuOpen((o) => !o)}
@@ -362,13 +376,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
                     >
                       <LogOut size={15} className="text-gray-500 flex-shrink-0" />
-                      {supabaseUser ? 'Sign Out' : 'Switch User'}
-                    </button>
-                    <button
-                      onClick={() => { setAvatarMenuOpen(false); setShowLookupModal(true); }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
-                    >
-                      <Search size={15} className="text-gray-500 flex-shrink-0" /> Look up a user
+                      Sign Out
                     </button>
                     {supabaseUser && (
                       <button
@@ -390,12 +398,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             ) : (
-              <button
-                onClick={handleSignInWithGoogle}
-                className="text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2 transition-colors"
-              >
-                Sign in
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowLookupModal(true)}
+                  className="text-sm text-gray-400 hover:text-gray-200 transition-colors flex items-center gap-1.5"
+                >
+                  <Search size={14} />
+                  Look up a user
+                </button>
+                <button
+                  onClick={handleSignInWithGoogle}
+                  className="text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2 transition-colors"
+                >
+                  Create account / Sign in
+                </button>
+              </div>
             )}
           </header>
 
@@ -523,7 +540,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* League lookup modal */}
       {showLookupModal && (
-        <LookupLeagueModal onClose={() => setShowLookupModal(false)} />
+        <LookupLeagueModal
+          onClose={() => setShowLookupModal(false)}
+          isPro={isPro}
+          onUpgrade={() => setShowUpgradeModal(true)}
+        />
       )}
 
       {/* Mobile League Picker Sheet */}
@@ -585,6 +606,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             )}
+            <button
+              onClick={() => { setLeaguePickerOpen(false); setShowLookupModal(true); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+            >
+              <Search size={15} className="text-gray-500 flex-shrink-0" />
+              Look up a user
+            </button>
           </div>
         </SheetContent>
       </Sheet>
@@ -600,7 +628,34 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
           <div className="px-4 pb-4 space-y-3">
-            {sessionUser ? (
+            {isAnonymousViewing ? (
+              <>
+                {/* Viewing indicator for anonymous user */}
+                <div className="flex items-center gap-2 bg-white/5 border border-card-border/40 rounded-xl px-3 py-2">
+                  <Search size={12} className="text-gray-500 flex-shrink-0" />
+                  <span className="text-xs text-gray-400">Viewing <span className="text-white font-medium">{sessionUser!.displayName}</span></span>
+                </div>
+
+                {/* Sign in CTA */}
+                <div className="bg-card-bg border border-card-border rounded-xl p-3 space-y-2">
+                  <div className="text-xs text-gray-400">Create an account or sign in to save your leagues and unlock Pro</div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); handleSignInWithGoogle(); }}
+                    className="w-full text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2.5 transition-colors"
+                  >
+                    Create account / Sign in
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => { setUserMenuOpen(false); setShowLookupModal(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+                >
+                  <Search size={15} className="text-gray-500 flex-shrink-0" />
+                  Look up a user
+                </button>
+              </>
+            ) : supabaseUser ? (
               <>
                 {/* User info — always shows authenticated user if signed in */}
                 <div className="flex items-center gap-3 py-1">
@@ -621,7 +676,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 {isViewingOther && (
                   <div className="flex items-center gap-2 bg-white/5 border border-card-border/40 rounded-xl px-3 py-2">
                     <Search size={12} className="text-gray-500 flex-shrink-0" />
-                    <span className="text-xs text-gray-400">Viewing <span className="text-white font-medium">{sessionUser.displayName}</span></span>
+                    <span className="text-xs text-gray-400">Viewing <span className="text-white font-medium">{sessionUser!.displayName}</span></span>
                   </div>
                 )}
 
@@ -674,24 +729,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
                 </button>
 
-                {!supabaseUser && (
-                  <div className="bg-card-bg border border-card-border rounded-xl p-3 space-y-2">
-                    <div className="text-xs text-gray-400">Sign in to save your leagues and unlock Pro</div>
-                    <button
-                      onClick={() => { setUserMenuOpen(false); handleSignInWithGoogle(); }}
-                      className="w-full text-sm font-medium text-brand-cyan border border-brand-cyan/40 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-lg px-4 py-2.5 transition-colors"
-                    >
-                      Continue with Google
-                    </button>
-                  </div>
-                )}
-
                 <button
                   onClick={() => { setUserMenuOpen(false); handleChangeUser(); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
                 >
                   <LogOut size={15} className="text-gray-500 flex-shrink-0" />
-                  {supabaseUser ? 'Sign Out' : 'Switch User'}
+                  Sign Out
                 </button>
 
                 {supabaseUser && (
@@ -703,14 +746,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     Change Sleeper account
                   </button>
                 )}
-
-                <button
-                  onClick={() => { setUserMenuOpen(false); setShowLookupModal(true); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
-                >
-                  <Search size={15} className="text-gray-500 flex-shrink-0" />
-                  Look up a user
-                </button>
               </>
             ) : (
               <div className="py-2 space-y-3">
