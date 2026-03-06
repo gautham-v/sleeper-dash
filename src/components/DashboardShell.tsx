@@ -20,6 +20,7 @@ import {
   CreditCard,
   Zap,
   Search,
+  UserX,
 } from 'lucide-react';
 import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
@@ -182,6 +183,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     if (supabaseUser) {
       await createClient().auth.signOut();
     }
+    router.push('/');
+  };
+
+  const handleUnlinkSleeper = async () => {
+    if (!supabaseUser) return;
+    await createClient().from('user_profiles').update({
+      sleeper_user_id: null,
+      sleeper_username: null,
+      sleeper_display_name: null,
+      sleeper_avatar: null,
+    }).eq('id', supabaseUser.id);
+    queryClient.clear();
+    clearSessionUser();
+    setOwnProfile(null);
     router.push('/');
   };
 
@@ -353,8 +368,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       onClick={() => { setAvatarMenuOpen(false); setShowLookupModal(true); }}
                       className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
                     >
-                      <Search size={15} className="text-gray-500 flex-shrink-0" /> Look up another league
+                      <Search size={15} className="text-gray-500 flex-shrink-0" /> Look up a user
                     </button>
+                    {supabaseUser && (
+                      <button
+                        onClick={() => { setAvatarMenuOpen(false); void handleUnlinkSleeper(); }}
+                        className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
+                      >
+                        <UserX size={15} className="text-gray-500 flex-shrink-0" /> Change Sleeper account
+                      </button>
+                    )}
                     {isPro && (
                       <button
                         onClick={() => { setAvatarMenuOpen(false); void handleManageSubscription(); }}
@@ -671,12 +694,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   {supabaseUser ? 'Sign Out' : 'Switch User'}
                 </button>
 
+                {supabaseUser && (
+                  <button
+                    onClick={() => { setUserMenuOpen(false); void handleUnlinkSleeper(); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
+                  >
+                    <UserX size={15} className="text-gray-500 flex-shrink-0" />
+                    Change Sleeper account
+                  </button>
+                )}
+
                 <button
                   onClick={() => { setUserMenuOpen(false); setShowLookupModal(true); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
                 >
                   <Search size={15} className="text-gray-500 flex-shrink-0" />
-                  Look up another league
+                  Look up a user
                 </button>
               </>
             ) : (

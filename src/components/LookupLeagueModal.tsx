@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Search, Loader2, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
+import { Button } from '@/components/ui/button';
 import { sleeperApi } from '@/api/sleeper';
 import { saveSessionUser } from '@/hooks/useSessionUser';
 import { avatarUrl } from '@/utils/calculations';
@@ -27,13 +28,11 @@ export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Auto-focus input on mount (slight delay so sheet animation doesn't fight it)
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(t);
   }, []);
 
-  // Close on Escape
   useEffect(() => {
     const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handle);
@@ -98,7 +97,7 @@ export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
       leagueGroups,
     });
 
-    posthog.capture('lookup_league_navigated', {
+    posthog.capture('lookup_user_navigated', {
       target_username: foundUser.username,
       league_id: latest.league_id,
     });
@@ -122,7 +121,7 @@ export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
         <div className="flex items-center justify-between px-5 pt-4 pb-4 border-b border-card-border/60">
           <div className="flex items-center gap-2">
             <Search size={15} className="text-brand-cyan flex-shrink-0" />
-            <h2 className="text-sm font-bold text-white">Look up a league</h2>
+            <h2 className="text-sm font-bold text-white">Look up a user</h2>
           </div>
           <button
             onClick={onClose}
@@ -146,13 +145,14 @@ export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
             disabled={loading}
             className="flex-1 bg-base-bg border border-card-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-cyan/50 focus:ring-1 focus:ring-brand-cyan/20 disabled:opacity-50"
           />
-          <button
+          <Button
             type="submit"
             disabled={!username.trim() || loading}
-            className="px-4 py-2.5 rounded-lg bg-brand-cyan text-black text-sm font-semibold disabled:opacity-40 hover:bg-brand-cyan/90 transition-colors shrink-0 flex items-center gap-1.5"
+            size="sm"
+            className="shrink-0 h-auto py-2.5 px-4"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : 'Search'}
-          </button>
+          </Button>
         </form>
 
         {error && (
