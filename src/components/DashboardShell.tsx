@@ -32,7 +32,14 @@ import { useSessionUser, clearSessionUser } from '@/hooks/useSessionUser';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuthContext } from '@/context/auth';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { LookupLeagueModal } from '@/components/LookupLeagueModal';
 import { createClient } from '@/lib/supabase-browser';
+
+interface OwnProfile {
+  sleeper_user_id: string;
+  sleeper_display_name: string | null;
+  sleeper_avatar: string | null;
+}
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const params = useParams<{ leagueId: string; userId?: string }>();
@@ -41,7 +48,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Derive active tab from the URL segment following leagueId
   const activeTab = useMemo((): TabId => {
     const segments = pathname.split('/');
     const leagueIdIndex = segments.indexOf(leagueId);
@@ -49,28 +55,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (TABS.find((t) => t.id === tabSegment)?.id ?? 'overview') as TabId;
   }, [pathname, leagueId]);
 
-  // True when we're on a manager profile sub-route
   const showingManagerProfile = !!params.userId;
-
-  // User context from sessionStorage
   const sessionUser = useSessionUser();
-
   const { isPro, cancelAtPeriodEnd, periodEnd } = useSubscription();
   const { user: supabaseUser } = useAuthContext();
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showLookupModal, setShowLookupModal] = useState(false);
   const [leagueSheetOpen, setLeagueSheetOpen] = useState(false);
   const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
 
-  const { league, currentWeek, isOffseason } = useDashboardData(leagueId);
-
-  const allLeagueGroups = sessionUser?.leagueGroups ?? [];
+  // Own Supabase profile — always reflects the authenticated user, regardless of
+  // which Sleeper username is currently being viewed in sessionUser.
+  const [ownProfile, setOwnProfile] = useState<OwnProfile | null>(null);
+  useEffect(() => {
+    if (!supabaseUser) { setOwnProfile(null); return; }
+    createClient()
+      .from('user_profiles')
+      .select('sleeper_user_id, sleeper_display_name, sleeper_avatar')
+      .eq('id', supabaseUser.id)
+      .maybeSingle()
+      .then(({ data }) => setOwnProfile(data));
+  }, [supabaseUser?.id]);
 
   // Auto-link Sleeper account when an anonymous session user signs in with Google.
-  // This runs silently in the background so the user stays on the current page.
   useEffect(() => {
     if (!supabaseUser || !sessionUser) return;
     const supabase = createClient();
@@ -80,19 +91,42 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       .eq('id', supabaseUser.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.sleeper_user_id) return; // already linked
+        if (data?.sleeper_user_id) {
+          // Already linked — refresh own profile state
+          setOwnProfile((prev) => prev ?? null);
+          return;
+        }
         return supabase.from('user_profiles').upsert({
           id: supabaseUser.id,
           sleeper_user_id: sessionUser.userId,
           sleeper_username: sessionUser.username,
           sleeper_display_name: sessionUser.displayName,
           sleeper_avatar: sessionUser.avatar,
+        }).then(() => {
+          // Refresh own profile after linking
+          setOwnProfile({
+            sleeper_user_id: sessionUser.userId,
+            sleeper_display_name: sessionUser.displayName,
+            sleeper_avatar: sessionUser.avatar,
+          });
         });
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabaseUser?.id, sessionUser?.userId]);
 
-  // Close avatar menu on outside click
+  // When authenticated: the header always shows the own (Google-linked) profile.
+  // sessionUser may point to a different Sleeper user when "Look up another league" was used.
+  const isViewingOther = !!supabaseUser && !!ownProfile && !!sessionUser &&
+    sessionUser.userId !== ownProfile.sleeper_user_id;
+
+  const headerAvatar = supabaseUser && ownProfile ? ownProfile.sleeper_avatar : (sessionUser?.avatar ?? null);
+  const headerDisplayName = supabaseUser && ownProfile
+    ? (ownProfile.sleeper_display_name ?? '')
+    : (sessionUser?.displayName ?? '');
+
+  const { league, currentWeek, isOffseason } = useDashboardData(leagueId);
+  const allLeagueGroups = sessionUser?.leagueGroups ?? [];
+
   useEffect(() => {
     if (!avatarMenuOpen) return;
     const handle = (e: MouseEvent) => {
@@ -114,7 +148,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setLeaguePickerOpen(false);
       setLeagueSheetOpen(false);
       setUserMenuOpen(false);
-      // Small delay to let the sheet close animation finish before modal appears
       setTimeout(() => setShowUpgradeModal(true), 150);
       return;
     }
@@ -152,8 +185,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     router.push('/');
   };
 
-  // Sign in with Google from within the app — returns to current page after auth
-  // and auto-links the Sleeper account via the effect above
   const handleSignInWithGoogle = () => {
     void createClient().auth.signInWithOAuth({
       provider: 'google',
@@ -165,13 +196,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   const isCareerRoute = pathname.endsWith('/career') || pathname.endsWith('/career-stats');
-
   const userId = sessionUser?.userId;
-  const userDisplayName = sessionUser?.displayName ?? '';
-  const userAvatar = sessionUser?.avatar ?? null;
-
   const isMyProfileRoute = showingManagerProfile && !!userId && params.userId === userId && !pathname.endsWith('/career-stats');
-
   const totalLeagueCount = allLeagueGroups.length;
 
   const sidebarProps: SidebarNavProps = {
@@ -217,7 +243,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* Mobile Top Header */}
           <header className="xl:hidden h-14 border-b border-card-border px-3 flex items-center justify-between gap-2 bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            {/* Left: back button or league avatar */}
             <div className="w-10 flex items-center">
               {showingManagerProfile ? (
                 <button
@@ -242,22 +267,25 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Center: title */}
             <div className="flex-1 text-center">
               <div className="text-sm font-bold text-white leading-tight">
                 {showingManagerProfile ? 'Manager Profile' : isCareerRoute ? 'Career Stats' : activeLabel}
               </div>
+              {isViewingOther && (
+                <div className="text-[10px] text-gray-500 leading-none mt-0.5">
+                  Viewing {sessionUser?.displayName}
+                </div>
+              )}
             </div>
 
-            {/* Right: user avatar */}
             <div className="w-10 flex items-center justify-end">
               <button
                 onClick={() => setUserMenuOpen(true)}
                 className="w-8 h-8 rounded-full border border-card-border hover:border-gray-500 transition-colors overflow-hidden flex-shrink-0 flex items-center justify-center bg-card-bg"
                 aria-label="User menu"
               >
-                {userAvatar ? (
-                  <img src={avatarUrl(userAvatar) ?? ''} alt={userDisplayName} className="w-full h-full object-cover" />
+                {headerAvatar ? (
+                  <img src={avatarUrl(headerAvatar) ?? ''} alt={headerDisplayName} className="w-full h-full object-cover" />
                 ) : (
                   <UserCircle size={18} className="text-muted-foreground" />
                 )}
@@ -267,8 +295,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Top Header */}
           <header className="hidden xl:flex h-14 border-b border-card-border px-8 items-center justify-between bg-base-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
-              <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-400">
+                <BookOpen size={16} /> {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
+              </div>
+              {isViewingOther && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-card-border/40">
+                  <Search size={11} className="text-gray-500" />
+                  <span className="text-[11px] text-gray-400">Viewing <span className="text-gray-300 font-medium">{sessionUser?.displayName}</span></span>
+                </div>
+              )}
             </div>
             {sessionUser ? (
               <div className="relative" ref={avatarMenuRef}>
@@ -278,10 +314,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   aria-label="User menu"
                 >
                   <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-                    {userAvatar ? (
+                    {headerAvatar ? (
                       <img
-                        src={avatarUrl(userAvatar) ?? ''}
-                        alt={userDisplayName}
+                        src={avatarUrl(headerAvatar) ?? ''}
+                        alt={headerDisplayName}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -296,7 +332,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <div className="absolute right-0 top-full mt-2 w-56 bg-card-bg border border-card-border rounded-xl shadow-2xl z-30 overflow-hidden py-1">
                     <div className="px-3 py-2.5 border-b border-card-border/60">
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
-                      <div className="text-sm font-semibold text-white truncate">{userDisplayName}</div>
+                      <div className="text-sm font-semibold text-white truncate">{headerDisplayName}</div>
                     </div>
                     {isPro && cancelAtPeriodEnd && periodEnd && (
                       <div className="px-3 py-2 border-b border-card-border/60 flex items-center gap-2">
@@ -314,7 +350,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                       {supabaseUser ? 'Sign Out' : 'Switch User'}
                     </button>
                     <button
-                      onClick={() => { setAvatarMenuOpen(false); router.push('/?lookup=true'); }}
+                      onClick={() => { setAvatarMenuOpen(false); setShowLookupModal(true); }}
                       className="w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2.5"
                     >
                       <Search size={15} className="text-gray-500 flex-shrink-0" /> Look up another league
@@ -389,7 +425,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="px-4 pb-4 space-y-3">
-            {/* Quick nav — H2H, Records, Draft */}
             <div>
               <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
                 More Pages
@@ -397,11 +432,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <div className="flex flex-col divide-y divide-card-border/40 border border-card-border rounded-xl overflow-hidden bg-card-bg">
                 <button
                   onClick={() => { handleTabChange('trades'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
-                    activeTab === 'trades'
-                      ? 'text-brand-cyan bg-brand-cyan/10'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${activeTab === 'trades' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
                 >
                   <ArrowLeftRight size={17} className={`flex-shrink-0 ${activeTab === 'trades' ? 'text-brand-cyan' : 'text-gray-500'}`} />
                   <span className="flex-1">Trades</span>
@@ -409,11 +440,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { handleTabChange('draft'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
-                    activeTab === 'draft'
-                      ? 'text-brand-cyan bg-brand-cyan/10'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${activeTab === 'draft' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
                 >
                   <ClipboardList size={17} className={`flex-shrink-0 ${activeTab === 'draft' ? 'text-brand-cyan' : 'text-gray-500'}`} />
                   <span className="flex-1">Draft</span>
@@ -421,11 +448,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { handleTabChange('h2h'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
-                    activeTab === 'h2h'
-                      ? 'text-brand-cyan bg-brand-cyan/10'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${activeTab === 'h2h' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
                 >
                   <Scale size={17} className={`flex-shrink-0 ${activeTab === 'h2h' ? 'text-brand-cyan' : 'text-gray-500'}`} />
                   <span className="flex-1">Head-to-Head</span>
@@ -433,11 +456,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   onClick={() => { handleTabChange('records'); setLeagueSheetOpen(false); }}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${
-                    activeTab === 'records'
-                      ? 'text-brand-cyan bg-brand-cyan/10'
-                      : 'text-gray-300 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-left transition-colors w-full ${activeTab === 'records' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-gray-300 hover:text-white hover:bg-white/5'}`}
                 >
                   <BookOpen size={17} className={`flex-shrink-0 ${activeTab === 'records' ? 'text-brand-cyan' : 'text-gray-500'}`} />
                   <span className="flex-1">Records</span>
@@ -446,36 +465,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* About / Contact */}
             <div className="border-t border-gray-800 pt-2 flex items-center gap-1 flex-wrap">
               <AboutModal>
                 <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
-                  <Info size={12} />
-                  About
+                  <Info size={12} /> About
                 </button>
               </AboutModal>
               <span className="text-gray-700 text-xs">·</span>
-              <a
-                href="/how-it-works"
-                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
-                onClick={() => setLeagueSheetOpen(false)}
-              >
-                <FlaskConical size={12} />
-                How It Works
+              <a href="/how-it-works" className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5" onClick={() => setLeagueSheetOpen(false)}>
+                <FlaskConical size={12} /> How It Works
               </a>
               <span className="text-gray-700 text-xs">·</span>
               <ContactModal>
                 <button className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5">
-                  <Mail size={12} />
-                  Contact
+                  <Mail size={12} /> Contact
                 </button>
               </ContactModal>
               <span className="text-gray-700 text-xs">·</span>
-              <a
-                href="/terms"
-                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
-                onClick={() => setLeagueSheetOpen(false)}
-              >
+              <a href="/terms" className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5" onClick={() => setLeagueSheetOpen(false)}>
                 Terms
               </a>
             </div>
@@ -491,6 +498,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
+      {/* League lookup modal */}
+      {showLookupModal && (
+        <LookupLeagueModal onClose={() => setShowLookupModal(false)} />
+      )}
+
       {/* Mobile League Picker Sheet */}
       <Sheet open={leaguePickerOpen} onOpenChange={setLeaguePickerOpen}>
         <SheetContent
@@ -502,18 +514,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="w-10 h-1 rounded-full bg-gray-700" />
           </div>
           <div className="px-4 pb-4 space-y-3">
-            {/* Current league */}
             <div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
-                Current League
-              </div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">Current League</div>
               <div className="flex items-center gap-3 bg-card-bg rounded-xl p-2.5 border border-card-border">
                 {league?.avatar ? (
-                  <img
-                    src={avatarUrl(league.avatar) ?? ''}
-                    alt={league.name}
-                    className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
-                  />
+                  <img src={avatarUrl(league.avatar) ?? ''} alt={league.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-base flex-shrink-0 border border-brand-purple/30">
                     {league?.name?.slice(0, 2) ?? '??'}
@@ -521,19 +526,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 )}
                 <div className="min-w-0">
                   <div className="font-semibold text-white text-sm truncate">{league?.name}</div>
-                  <div className="text-xs text-gray-500">
-                    {league?.season} · {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}
-                  </div>
+                  <div className="text-xs text-gray-500">{league?.season} · {isOffseason ? 'Offseason' : `Wk ${currentWeek}`}</div>
                 </div>
               </div>
             </div>
 
-            {/* Switch League */}
             {allLeagueGroups.filter(([, group]) => !group.some((g) => g.league_id === leagueId)).length > 0 && (
               <div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">
-                  Switch League
-                </div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">Switch League</div>
                 <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                   {allLeagueGroups
                     .filter(([, group]) => !group.some((g) => g.league_id === leagueId))
@@ -544,19 +544,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         <button
                           key={latest.league_id}
                           onClick={() => { handleChangeLeague(latest.league_id); if (isPro) setLeaguePickerOpen(false); }}
-                          className={`flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-left transition-colors bg-card-bg border min-w-0 ${
-                            locked
-                              ? 'border-card-border text-gray-500 opacity-70'
-                              : 'border-card-border text-gray-300 hover:border-gray-500 hover:text-white'
-                          }`}
+                          className={`flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-left transition-colors bg-card-bg border min-w-0 ${locked ? 'border-card-border text-gray-500 opacity-70' : 'border-card-border text-gray-300 hover:border-gray-500 hover:text-white'}`}
                           style={{ maxWidth: '180px' }}
                         >
                           {latest.avatar ? (
-                            <img
-                              src={avatarUrl(latest.avatar) ?? ''}
-                              alt={name}
-                              className={`w-6 h-6 rounded-lg object-cover flex-shrink-0 ${locked ? 'opacity-40' : ''}`}
-                            />
+                            <img src={avatarUrl(latest.avatar) ?? ''} alt={name} className={`w-6 h-6 rounded-lg object-cover flex-shrink-0 ${locked ? 'opacity-40' : ''}`} />
                           ) : (
                             <div className={`w-6 h-6 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple text-xs font-bold flex-shrink-0 border border-brand-purple/20 ${locked ? 'opacity-40' : ''}`}>
                               {name.slice(0, 2)}
@@ -587,14 +579,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="px-4 pb-4 space-y-3">
             {sessionUser ? (
               <>
-                {/* User info */}
+                {/* User info — always shows authenticated user if signed in */}
                 <div className="flex items-center gap-3 py-1">
-                  {userAvatar ? (
-                    <img
-                      src={avatarUrl(userAvatar) ?? ''}
-                      alt={userDisplayName}
-                      className="w-10 h-10 rounded-full border border-card-border flex-shrink-0"
-                    />
+                  {headerAvatar ? (
+                    <img src={avatarUrl(headerAvatar) ?? ''} alt={headerDisplayName} className="w-10 h-10 rounded-full border border-card-border flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center flex-shrink-0">
                       <UserCircle size={20} className="text-brand-cyan/70" />
@@ -602,9 +590,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   )}
                   <div>
                     <div className="text-[10px] text-gray-500 uppercase tracking-wider">Signed in as</div>
-                    <div className="text-sm font-semibold text-white">{userDisplayName}</div>
+                    <div className="text-sm font-semibold text-white">{headerDisplayName}</div>
                   </div>
                 </div>
+
+                {/* Viewing other user indicator */}
+                {isViewingOther && (
+                  <div className="flex items-center gap-2 bg-white/5 border border-card-border/40 rounded-xl px-3 py-2">
+                    <Search size={12} className="text-gray-500 flex-shrink-0" />
+                    <span className="text-xs text-gray-400">Viewing <span className="text-white font-medium">{sessionUser.displayName}</span></span>
+                  </div>
+                )}
 
                 {/* Pro status */}
                 {isPro && (
@@ -621,7 +617,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
 
-                {/* Manage subscription */}
                 {isPro && (
                   <button
                     onClick={() => { setUserMenuOpen(false); void handleManageSubscription(); }}
@@ -632,7 +627,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </button>
                 )}
 
-                {/* My Profile */}
                 {userId && (
                   <button
                     onClick={() => { setUserMenuOpen(false); router.push(`/league/${leagueId}/managers/${userId}`); }}
@@ -646,7 +640,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </button>
                 )}
 
-                {/* Career Stats */}
                 <button
                   onClick={() => { setUserMenuOpen(false); handleCareerStats(); }}
                   className="w-full flex items-center justify-between bg-card-bg rounded-xl p-3 border border-card-border hover:border-gray-500 transition-colors group"
@@ -658,7 +651,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   <ChevronLeft size={16} className="text-gray-500 group-hover:text-gray-300 flex-shrink-0 rotate-180" />
                 </button>
 
-                {/* Sign in prompt for session-only users */}
                 {!supabaseUser && (
                   <div className="bg-card-bg border border-card-border rounded-xl p-3 space-y-2">
                     <div className="text-xs text-gray-400">Sign in to save your leagues and unlock Pro</div>
@@ -671,7 +663,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
 
-                {/* Sign Out / Switch User */}
                 <button
                   onClick={() => { setUserMenuOpen(false); handleChangeUser(); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
@@ -680,9 +671,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                   {supabaseUser ? 'Sign Out' : 'Switch User'}
                 </button>
 
-                {/* Look up another league */}
                 <button
-                  onClick={() => { setUserMenuOpen(false); router.push('/?lookup=true'); }}
+                  onClick={() => { setUserMenuOpen(false); setShowLookupModal(true); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-400 hover:text-white bg-card-bg border border-card-border rounded-xl hover:border-gray-500 transition-colors"
                 >
                   <Search size={15} className="text-gray-500 flex-shrink-0" />

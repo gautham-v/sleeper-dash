@@ -25,14 +25,18 @@ export function useSubscription(): { isPro: boolean; isLoading: boolean; cancelA
     const supabase = createClient();
     supabase
       .from('subscriptions')
-      .select('status, cancel_at_period_end, current_period_end')
+      .select('status, cancel_at_period_end, current_period_end, cancel_at')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .maybeSingle()
       .then(({ data }) => {
         setIsPro(!!data);
-        setCancelAtPeriodEnd(data?.cancel_at_period_end ?? false);
-        setPeriodEnd(data?.current_period_end ?? null);
+        // Stripe may use either cancel_at_period_end (bool) or cancel_at (timestamp)
+        // to indicate a scheduled cancellation depending on how the portal cancels
+        const isCanceling = data?.cancel_at_period_end || !!data?.cancel_at;
+        setCancelAtPeriodEnd(isCanceling ?? false);
+        // Prefer cancel_at (absolute timestamp) over current_period_end for the display date
+        setPeriodEnd(data?.cancel_at ?? data?.current_period_end ?? null);
         setIsLoading(false);
       });
   }, [user, userLoading]);

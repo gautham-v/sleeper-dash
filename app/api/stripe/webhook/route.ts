@@ -43,6 +43,14 @@ export async function POST(req: NextRequest) {
         const periodEnd = item?.current_period_end ?? null;
         const userId = session.metadata?.userId ?? null;
 
+        console.log('[stripe webhook] checkout.session.completed', {
+          subscriptionId: subscription.id,
+          userId,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at,
+          status: subscription.status,
+        });
+
         const { error } = await supabase.from('subscriptions').upsert({
           id: subscription.id,
           user_id: userId,
@@ -51,6 +59,7 @@ export async function POST(req: NextRequest) {
           price_id: priceId,
           current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at ? new Date(subscription.cancel_at * 1000).toISOString() : null,
         });
         if (error) throw new Error(`DB upsert failed: ${error.message}`);
         break;
@@ -62,27 +71,53 @@ export async function POST(req: NextRequest) {
         const priceId = item?.price.id ?? null;
         const periodEnd = item?.current_period_end ?? null;
 
-        const { error } = await supabase
+        // Log all cancellation-related fields so we can debug which mechanism Stripe uses
+        console.log('[stripe webhook] customer.subscription.updated', {
+          event_id: event.id,
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at,
+          current_period_end: periodEnd,
+        });
+
+        const updateData = {
+          status: subscription.status,
+          price_id: priceId,
+          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at ? new Date(subscription.cancel_at * 1000).toISOString() : null,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: updated, error } = await supabase
           .from('subscriptions')
-          .update({
-            status: subscription.status,
-            price_id: priceId,
-            current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', subscription.id);
+          .update(updateData)
+          .eq('id', subscription.id)
+          .select('id');
+
         if (error) throw new Error(`DB update failed: ${error.message}`);
+
+        if (!updated || updated.length === 0) {
+          // Row not found by subscription ID — log clearly so we can diagnose
+          console.error('[stripe webhook] No row found for subscription.id', subscription.id, '— check if the subscription was created before this webhook was set up');
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
 
+        console.log('[stripe webhook] customer.subscription.deleted', {
+          subscriptionId: subscription.id,
+        });
+
         const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'canceled',
+            cancel_at_period_end: false,
+            cancel_at: null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', subscription.id);
