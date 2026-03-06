@@ -450,7 +450,7 @@ export interface FranchiseOutlookResult {
   futurePicks: FutureDraftPick[];
   isSeasonComplete: boolean;
   keyPlayers: { name: string; position: string; age: number | null; war: number; dynastyValue: number | null }[];
-  youngAssets: { name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
+  youngAssets: { playerId: string; name: string; position: string; age: number; war: number; upsideRatio: number; dynastyValue: number | null }[];
   warByPosition: { position: string; war: number; leagueAvgWAR: number; rank: number; avgAge: number }[];
   wins: number;
   losses: number;

@@ -91,6 +91,15 @@
   --chart-3: #f59e0b;
   --chart-4: #ef4444;
   --chart-5: #8b5cf6;
+  /* Orange — needed for buy-low badge bg in dark mode */
+  --color-orange-900: #431407;
+  --color-orange-800: #7c2d12;
+  /* Blue — needed for good-fit badge bg in dark mode */
+  --color-blue-900: #1e3a8a;
+  --color-blue-800: #1e40af;
+  /* Purple — needed for PICK/DEF/DST badge bg in dark mode */
+  --color-purple-900: #581c87;
+  --color-purple-800: #6b21a8;
 }
 
 @utility glass-panel {
@@ -218,10 +227,12 @@ button {
 
     --color-orange-900: #ffedd5;
     --color-orange-800: #fed7aa;
+    --color-orange-200: #c2410c;
     --color-orange-400: #c2410c;
     --color-orange-300: #9a3412;
 
     /* Amber — remap light/neon tones to readable dark equivalents */
+    --color-amber-900: #fef3c7;
     --color-amber-400: #b45309;
     --color-amber-500: #d97706;
     --color-amber-600: #b45309;
@@ -231,6 +242,10 @@ button {
     --color-blue-900: #dbeafe;
     --color-blue-800: #bfdbfe;
     --color-blue-300: #1d4ed8;
+
+    /* Purple — remap dark bg to light so text-white (→black in light mode) is readable */
+    --color-purple-900: #f3e8ff;
+    --color-purple-800: #e9d5ff;
     --color-blue-400: #1d4ed8;
     --color-blue-500: #2563eb;
 

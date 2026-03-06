@@ -59,6 +59,8 @@ export interface PlayerRecommendation {
   injuryStatus: string | null;
   isStarter: boolean;                      // fills a required lineup slot
   dominantFactor: string;                  // which dimension drove the verdict most
+  dataQuality: number;                     // 0-1, proportion of key inputs available
+  overrideApplied: string | null;          // name of edge-case override that fired, if any
 }
 
 export interface VerdictThresholds {

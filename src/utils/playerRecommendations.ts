@@ -173,19 +173,21 @@ function scoreAgeCurveTrajectory(
  * Dimension 3: Sell Window (0-100)
  * Is this the right time to sell this player for maximum return?
  * High score = good time to sell. NOT a simple market value inversion.
+ * dynastyValueReference: league P75 dynasty value (stable anchor, not team max)
  */
 function scoreSellWindow(
   dynastyValue: number | null,
-  maxDynastyValueOnRoster: number,
+  dynastyValueReference: number,
   ageCurveNormalized: number,
   usage?: PlayerUsageMetrics,
 ): number {
-  if (dynastyValue == null || dynastyValue <= 0 || maxDynastyValueOnRoster <= 0) {
+  if (dynastyValue == null || dynastyValue <= 0 || dynastyValueReference <= 0) {
     // No market value = untradeable, sell window is irrelevant
     return 0;
   }
 
-  const valueShare = dynastyValue / maxDynastyValueOnRoster;
+  // Cap at 1.0 so players above P75 don't exceed 100% value share
+  const valueShare = Math.min(1.0, dynastyValue / dynastyValueReference);
   const declineRate = Math.max(0, 1 - ageCurveNormalized / 100);
 
   // High dynasty value + declining curve = high sell signal
@@ -675,15 +677,15 @@ function generateReason(
 // ---- Helper: Find upside ratio for a player ----
 
 function findUpsideRatio(
-  _playerId: string,
+  playerId: string,
   playerName: string,
   youngAssets: FranchiseOutlookResult['youngAssets'],
 ): number | null {
-  // youngAssets uses name to identify players, so we need to match by name
-  const match = youngAssets.find(
-    (ya) => ya.name === playerName,
-  );
-  return match?.upsideRatio ?? null;
+  // Try ID-based lookup first (most reliable), fall back to name match
+  const byId = youngAssets.find((ya) => ya.playerId === playerId);
+  if (byId) return byId.upsideRatio;
+  const byName = youngAssets.find((ya) => ya.name === playerName);
+  return byName?.upsideRatio ?? null;
 }
 
 // ---- Main Computation Function ----

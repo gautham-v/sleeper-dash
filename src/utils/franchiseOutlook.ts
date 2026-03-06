@@ -1217,6 +1217,7 @@ export function computeFranchiseOutlook(
       const fcKey = `${normalize(name)}:${p.position}`;
       const dynastyValue = fcMap.get(p.playerId) ?? fcMap.get(fcKey) ?? null;
       return {
+        playerId: p.playerId,
         name,
         position: p.position,
         age,
