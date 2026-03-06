@@ -1,4 +1,4 @@
-import type { StrategyMode, FranchiseTier } from './sleeper';
+import type { StrategyMode, FranchiseTier, FutureDraftPick } from './sleeper';
 
 // ---- Hold / Trade / Cut Verdict Types ----
 
@@ -75,6 +75,31 @@ export interface StrategyWeights {
   positional: number;
   strategicFit: number;
   situation: number;
+}
+
+// ---- Pick HTC Verdict Types ----
+
+export type PickVerdict = 'HOLD' | 'TRADE' | 'TRADE_UP' | 'TRADE_DOWN';
+
+export interface PickDimensionScores {
+  rosterImpact: number;      // 0-100: positional deficit demand
+  timelineFit: number;       // 0-100: does pick mature within franchise window?
+  portfolioDepth: number;    // 0-100: asset richness (high = more tradeable)
+  warSurplus: number;        // 0-100: does contextual WAR close the gap to contention?
+  marketTiming: number;      // 0-100: how liquid is this pick on the market?
+  composite: number;         // weighted combination (higher = stronger HOLD signal)
+}
+
+export interface PickRecommendation {
+  pick: FutureDraftPick;
+  verdict: PickVerdict;
+  confidence: number;               // 0-100
+  reason: string;
+  contextualWAR: number;            // base WAR × all context multipliers
+  baseWAR: number;                  // raw PICK_WAR_BY_ROUND value
+  scores: PickDimensionScores;
+  criticalNeedPosition: string | null;
+  overrideApplied: string | null;   // name of edge-case override that fired, if any
 }
 
 export interface RosterRecommendations {

@@ -21,6 +21,8 @@ import { PosBadge, TierBadge } from '@/components/ui/badges';
 import { Share2 } from 'lucide-react';
 import { FranchiseCardModal } from '@/components/FranchiseCardModal';
 import type { FranchiseShareCardProps } from '@/components/FranchiseShareCard';
+import { usePickRecommendations } from '../hooks/usePickRecommendations';
+import type { PickRecommendation, PickVerdict } from '../types/recommendations';
 
 interface FranchiseOutlookTabProps {
   userId: string;
@@ -76,9 +78,55 @@ function SummaryCard({ label, children }: { label: React.ReactNode; children: Re
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function FranchiseOutlookTab({ userId, data, rawContext }: FranchiseOutlookTabProps) {
+// ── Pick verdict helpers ──────────────────────────────────────────────────────
+
+function pickVerdictStyles(verdict: PickVerdict) {
+  switch (verdict) {
+    case 'HOLD':      return { pill: 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/40', label: 'HOLD' };
+    case 'TRADE':     return { pill: 'bg-amber-900/40 text-amber-400 border border-amber-700/40', label: 'TRADE' };
+    case 'TRADE_UP':  return { pill: 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30', label: 'TRADE UP' };
+    case 'TRADE_DOWN':return { pill: 'bg-purple-900/40 text-purple-400 border border-purple-700/40', label: 'TRADE DOWN' };
+  }
+}
+
+function PickCard({ rec }: { rec: PickRecommendation }) {
+  const [expanded, setExpanded] = useState(false);
+  const { pill, label } = pickVerdictStyles(rec.verdict);
+  const pickLabel = rec.pick.slot != null
+    ? `${rec.pick.season} ${rec.pick.round}.${rec.pick.slot.toString().padStart(2, '0')}`
+    : `${rec.pick.season} Rd ${rec.pick.round}`;
+
+  return (
+    <div
+      className="flex flex-col gap-1.5 bg-gray-800/40 border border-gray-700/30 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-800/60 transition-colors"
+      onClick={() => setExpanded(e => !e)}
+    >
+      <div className="flex items-center gap-2.5">
+        <PosBadge pos="PICK" />
+        <span className="text-sm font-medium text-gray-200 flex-1">{pickLabel}</span>
+        <span className="text-xs text-gray-500 tabular-nums shrink-0">
+          {rec.contextualWAR.toFixed(1)} cWAR
+        </span>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${pill}`}>
+          {label}
+        </span>
+      </div>
+      {expanded && (
+        <div className="text-xs text-gray-400 leading-relaxed pt-1 border-t border-gray-700/30 mt-1">
+          {rec.reason}
+          {rec.overrideApplied && (
+            <span className="ml-1 text-gray-600 italic">(override: {rec.overrideApplied})</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function FranchiseOutlookTab({ userId, data, leagueId, rawContext }: FranchiseOutlookTabProps) {
   // useState must be called unconditionally before any early returns (Rules of Hooks)
   const [cardModalOpen, setCardModalOpen] = useState(false);
+  const pickRecs = usePickRecommendations(leagueId ?? null, userId);
 
   const result = data.get(userId);
 
@@ -368,6 +416,38 @@ export function FranchiseOutlookTab({ userId, data, rawContext }: FranchiseOutlo
           </div>
         </div>
       </div>
+
+      {/* ── Draft Capital Intelligence ── */}
+      {pickRecs.data && pickRecs.data.length > 0 && (
+        <div className="bg-card-bg border border-card-border rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-sm font-semibold text-white">Draft Capital</div>
+            <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
+              {(['HOLD', 'TRADE', 'TRADE_UP', 'TRADE_DOWN'] as PickVerdict[]).map(v => {
+                const count = pickRecs.data!.filter(r => r.verdict === v).length;
+                if (count === 0) return null;
+                const { pill, label } = pickVerdictStyles(v);
+                return (
+                  <span key={v} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pill}`}>
+                    {count} {label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 mb-3">
+            Tap a pick for strategy guidance. cWAR = contextual WAR accounting for your window &amp; roster needs.
+          </div>
+          <div className="space-y-2">
+            {[...pickRecs.data]
+              .sort((a, b) => a.pick.round - b.pick.round || Number(a.pick.season) - Number(b.pick.season))
+              .map((rec, i) => (
+                <PickCard key={i} rec={rec} />
+              ))
+            }
+          </div>
+        </div>
+      )}
 
       {/* ── Performance Trend ── */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5">
