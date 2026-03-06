@@ -216,6 +216,8 @@ button {
 
     --color-cyan-400: #0891b2;
 
+    --color-orange-900: #ffedd5;
+    --color-orange-800: #fed7aa;
     --color-orange-400: #c2410c;
     --color-orange-300: #9a3412;
 
@@ -226,6 +228,8 @@ button {
     --color-amber-700: #92400e;
 
     /* Blue — remap light tones to readable dark equivalents */
+    --color-blue-900: #dbeafe;
+    --color-blue-800: #bfdbfe;
     --color-blue-300: #1d4ed8;
     --color-blue-400: #1d4ed8;
     --color-blue-500: #2563eb;
