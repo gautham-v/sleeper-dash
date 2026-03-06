@@ -245,7 +245,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       setUserMenuOpen(false);
       setTimeout(() => setShowUpgradeModal(true), 150);
     },
-    onLookupUser: () => setShowLookupModal(true),
     onTabChange: handleTabChange,
     onCareerStats: sessionUser ? handleCareerStats : undefined,
     careerStatsActive: isCareerRoute,

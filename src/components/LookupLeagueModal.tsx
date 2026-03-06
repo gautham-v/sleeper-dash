@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Search, Loader2, ChevronRight } from 'lucide-react';
+import { X, Search, Loader2, ChevronRight, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,11 @@ import type { SleeperLeague } from '@/types/sleeper';
 
 interface LookupLeagueModalProps {
   onClose: () => void;
+  isPro?: boolean;
+  onUpgrade?: () => void;
 }
 
-export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
+export function LookupLeagueModal({ onClose, isPro = false, onUpgrade }: LookupLeagueModalProps) {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,32 +175,44 @@ export function LookupLeagueModal({ onClose }: LookupLeagueModalProps) {
               <span className="text-xs font-medium text-gray-300">{foundUser.displayName}</span>
               <span className="text-xs text-gray-600">· {leagueGroups.length} league{leagueGroups.length !== 1 ? 's' : ''}</span>
             </div>
-            {leagueGroups.map(([name, group]) => {
+            {leagueGroups.map(([name, group], index) => {
               const latest = [...group].sort((a, b) => Number(b.season) - Number(a.season))[0];
+              const locked = !isPro && index > 0;
               return (
                 <button
                   key={latest.league_id}
-                  onClick={() => handleSelectLeague(group)}
-                  className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors text-left"
+                  onClick={() => {
+                    if (locked) {
+                      onClose();
+                      onUpgrade?.();
+                    } else {
+                      handleSelectLeague(group);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-5 py-3 transition-colors text-left ${locked ? 'opacity-60 hover:bg-white/3' : 'hover:bg-white/5'}`}
                 >
                   {latest.avatar ? (
                     <img
                       src={avatarUrl(latest.avatar) ?? ''}
                       alt={name}
-                      className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                      className={`w-8 h-8 rounded-lg object-cover flex-shrink-0 ${locked ? 'opacity-50' : ''}`}
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-xs flex-shrink-0 border border-brand-purple/20">
+                    <div className={`w-8 h-8 rounded-lg bg-brand-purple/20 flex items-center justify-center text-brand-purple font-bold text-xs flex-shrink-0 border border-brand-purple/20 ${locked ? 'opacity-50' : ''}`}>
                       {name.slice(0, 2)}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">{name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className={`text-sm font-medium truncate ${locked ? 'text-gray-500' : 'text-white'}`}>{name}</div>
+                    <div className="text-xs text-gray-600">
                       {latest.season} · {group.length} season{group.length !== 1 ? 's' : ''}
                     </div>
                   </div>
-                  <ChevronRight size={14} className="text-gray-600 flex-shrink-0" />
+                  {locked ? (
+                    <Lock size={13} className="text-gray-600 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight size={14} className="text-gray-600 flex-shrink-0" />
+                  )}
                 </button>
               );
             })}
