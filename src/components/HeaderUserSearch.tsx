@@ -7,6 +7,7 @@ import posthog from 'posthog-js';
 import { sleeperApi } from '@/api/sleeper';
 import { saveSessionUser } from '@/hooks/useSessionUser';
 import { avatarUrl } from '@/utils/calculations';
+import { fetchUserLeaguesGrouped } from '@/utils/leagueSeasons';
 import type { SleeperLeague } from '@/types/sleeper';
 
 interface FoundUser {
@@ -81,23 +82,7 @@ export function HeaderUserSearch({ isPro = false, onUpgrade }: HeaderUserSearchP
       const sleeperUser = await sleeperApi.getUser(query);
       if (!sleeperUser?.user_id) throw new Error('Sleeper user not found');
 
-      const [l2024, l2025] = await Promise.all([
-        sleeperApi.getUserLeagues(sleeperUser.user_id, '2024').catch(() => []),
-        sleeperApi.getUserLeagues(sleeperUser.user_id, '2025').catch(() => []),
-      ]);
-
-      const allLeagues = [...(l2024 ?? []), ...(l2025 ?? [])];
-      if (allLeagues.length === 0) throw new Error('No leagues found for this user');
-
-      const grouped = allLeagues.reduce<Record<string, typeof allLeagues>>((acc, l) => {
-        (acc[l.name] ??= []).push(l);
-        return acc;
-      }, {});
-      const byRecent = Object.entries(grouped).sort(([, a], [, b]) => {
-        const maxA = Math.max(...a.map((l) => Number(l.season)));
-        const maxB = Math.max(...b.map((l) => Number(l.season)));
-        return maxB - maxA;
-      });
+      const byRecent = await fetchUserLeaguesGrouped(sleeperUser.user_id);
 
       setFoundUser({
         userId: sleeperUser.user_id,

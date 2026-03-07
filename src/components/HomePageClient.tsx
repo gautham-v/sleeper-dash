@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { sleeperApi } from '@/api/sleeper';
 import { saveSessionUser } from '@/hooks/useSessionUser';
+import { fetchUserLeaguesGrouped } from '@/utils/leagueSeasons';
 import { useAuthContext } from '@/context/auth';
 import { createClient } from '@/lib/supabase-browser';
 
@@ -57,30 +58,13 @@ async function loadLeaguesAndRedirect({
   avatar: string | null;
   router: ReturnType<typeof useRouter>;
 }) {
-  const [l2024, l2025] = await Promise.all([
-    sleeperApi.getUserLeagues(userId, '2024').catch(() => []),
-    sleeperApi.getUserLeagues(userId, '2025').catch(() => []),
-  ]);
-
-  const allLeagues = [...(l2024 ?? []), ...(l2025 ?? [])];
-  if (allLeagues.length === 0) throw new Error('No leagues found for this user');
-
-  const grouped = allLeagues.reduce<Record<string, typeof allLeagues>>((acc, l) => {
-    (acc[l.name] ??= []).push(l);
-    return acc;
-  }, {});
-
-  const byTenure = Object.entries(grouped).sort(([, a], [, b]) => b.length - a.length);
-  const byRecent = Object.entries(grouped).sort(([, a], [, b]) => {
-    const maxA = Math.max(...a.map((l) => Number(l.season)));
-    const maxB = Math.max(...b.map((l) => Number(l.season)));
-    return maxB - maxA;
-  });
+  const byRecent = await fetchUserLeaguesGrouped(userId);
+  const byTenure = [...byRecent].sort(([, a], [, b]) => b.length - a.length);
 
   saveSessionUser({ username, userId, displayName, avatar, leagueGroups: byRecent });
 
   posthog.identify(userId, { username, display_name: displayName });
-  posthog.capture('username_searched', { success: true, league_count: allLeagues.length });
+  posthog.capture('username_searched', { success: true, league_count: byRecent.reduce((n, [, g]) => n + g.length, 0) });
 
   const [, longestGroup] = byTenure[0];
   const latestLeague = [...longestGroup].sort(

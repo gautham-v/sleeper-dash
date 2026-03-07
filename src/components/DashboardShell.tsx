@@ -26,6 +26,7 @@ import { AboutModal } from '@/components/AboutModal';
 import { ContactModal } from '@/components/ContactModal';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useDashboardData } from '@/hooks/useLeagueData';
+import { sleeperApi } from '@/api/sleeper';
 import { SidebarNav, type SidebarNavProps } from '@/components/SidebarNav';
 import { TABS, type TabId } from '@/lib/tabs';
 import { avatarUrl } from '@/utils/calculations';
@@ -140,6 +141,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     : (sessionUser?.displayName ?? '');
 
   const { league, currentWeek, isOffseason } = useDashboardData(leagueId);
+
+  // Redirect completed leagues to their latest successor season
+  useEffect(() => {
+    if (!league || league.status !== 'complete') return;
+
+    const nextSeason = String(Number(league.season) + 1);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const users = await sleeperApi.getLeagueUsers(leagueId);
+        if (cancelled || !users.length) return;
+
+        const nextLeagues = await sleeperApi.getUserLeagues(users[0].user_id, nextSeason);
+        if (cancelled) return;
+
+        const successor = nextLeagues.find((l) => l.previous_league_id === leagueId);
+        if (!successor) return;
+
+        const suffix = pathname.replace(`/league/${leagueId}`, '');
+        router.replace(`/league/${successor.league_id}${suffix}`);
+      } catch {
+        // Silent failure — stay on the current league
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [league, leagueId, pathname, router]);
+
   const allLeagueGroups = sessionUser?.leagueGroups ?? [];
 
   useEffect(() => {

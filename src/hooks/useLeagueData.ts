@@ -14,6 +14,7 @@ import type {
   HistoricalSeason,
   LeagueSeasonRecord,
   SeasonTeamRecord,
+  SleeperLeague,
   SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
@@ -111,15 +112,21 @@ export function useUserLeagues(userId: string | undefined, season: string) {
   });
 }
 
-/** Fetch leagues across both 2024 and 2025 seasons combined */
+/** Fetch leagues across current and previous seasons combined */
 export function useUserLeaguesAllSeasons(userId: string | undefined) {
-  const q2024 = useUserLeagues(userId, '2024');
-  const q2025 = useUserLeagues(userId, '2025');
-
-  return {
-    isLoading: q2024.isLoading || q2025.isLoading,
-    data: [...(q2024.data ?? []), ...(q2025.data ?? [])],
-  };
+  return useQuery({
+    queryKey: ['leagues-all-seasons', userId],
+    queryFn: async () => {
+      const state = await sleeperApi.getNFLState();
+      const seasons = [state.season, state.previous_season];
+      const results = await Promise.all(
+        seasons.map((s) => sleeperApi.getUserLeagues(userId!, s).catch(() => [] as SleeperLeague[])),
+      );
+      return results.flat();
+    },
+    enabled: !!userId,
+    staleTime: TEN_MIN_MS,
+  });
 }
 
 export function useNFLState() {
