@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftRight, ArrowDown, Crown, Trophy } from 'lucide-react';
+import { ArrowLeftRight, ArrowDown, Crown, Trophy, ChevronDown, ChevronRight } from 'lucide-react';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
 import { assignGrade } from '../utils/draftCalculations';
@@ -57,73 +57,6 @@ function PickDisplay({ p, rtl }: { p: TradeDraftPickAsset; rtl?: boolean }) {
     );
   }
   return <div className="text-sm text-yellow-400">{pickLabel}</div>;
-}
-
-function TradeCard({ trade, highlightUserId }: { trade: AnalyzedTrade; highlightUserId?: string }) {
-  const side = highlightUserId
-    ? trade.sides.find((s) => s.userId === highlightUserId) ?? trade.sides[0]
-    : trade.sides[0];
-  const otherSide = trade.sides.find((s) => s.userId !== side.userId) ?? trade.sides[1];
-
-  return (
-    <div className="bg-card-bg border border-card-border rounded-xl p-4">
-      <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-        <ArrowLeftRight size={12} />
-        <span>{trade.season} Wk{trade.week} · {formatTimestamp(trade.timestamp)}</span>
-        {trade.hasUnresolved ? (
-          <span className="text-yellow-500 ml-auto">Pending</span>
-        ) : (() => {
-          const winner = trade.sides.reduce((a, b) => a.netValue > b.netValue ? a : b);
-          return winner.netValue > 0 ? (
-            <span className="ml-auto flex items-center gap-1 text-emerald-400">
-              <Crown size={10} />
-              {winner.displayName}
-            </span>
-          ) : null;
-        })()}
-      </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
-        <div>
-          <div className="text-xs text-gray-500 mb-1">{side.displayName} receives</div>
-          <div className="space-y-0.5">
-            {side.assetsReceived.map((a) => (
-              <div key={a.playerId} className="flex items-center gap-1 text-sm">
-                <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
-                <span className="text-gray-200 truncate">{a.playerName}</span>
-              </div>
-            ))}
-            {side.picksReceived.map((p, i) => (
-              <div key={i}><PickDisplay p={p} /></div>
-            ))}
-            {side.assetsReceived.length === 0 && side.picksReceived.length === 0 && (
-              <div className="text-xs text-gray-600">—</div>
-            )}
-          </div>
-        </div>
-        <div className="self-center text-gray-600"><ArrowLeftRight size={14} /></div>
-        <div className="text-right">
-          <div className="text-xs text-gray-500 mb-1">{otherSide?.displayName ?? '?'} receives</div>
-          <div className="space-y-0.5">
-            {otherSide?.assetsReceived.map((a) => (
-              <div key={a.playerId} className="flex items-center gap-1 text-sm justify-end">
-                <span className="text-gray-200 truncate">{a.playerName}</span>
-                <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-gray-400'}`}>{a.position}</span>
-              </div>
-            ))}
-            {otherSide?.picksReceived.map((p, i) => (
-              <div key={i}><PickDisplay p={p} rtl /></div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="mt-2 pt-2 border-t border-gray-800 flex justify-between items-center">
-        <span className="text-xs text-gray-500">Net value for {side.displayName}</span>
-        <span className={`text-sm font-bold tabular-nums ${valueColor(side.netValue)}`}>
-          {valueLabel(side.netValue)} pts
-        </span>
-      </div>
-    </div>
-  );
 }
 
 function ImpactfulTradeCard({
@@ -220,6 +153,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
   const [seasonFilter, setSeasonFilter] = useState<string>('');
   const [sortOption, setSortOption] = useState<SortOption>('recent');
   const [currentPage, setCurrentPage] = useState(1);
+  const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null);
 
   const availableSeasons = useMemo(() => {
     if (!analysis) return [];
@@ -409,7 +343,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
         {activeTab === 'all-trades' && (
           <div className="flex items-center gap-2">
             {availableSeasons.length > 0 && (
-              <Select value={effectiveSeasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); }}>
+              <Select value={effectiveSeasonFilter} onValueChange={(v) => { setSeasonFilter(v); setCurrentPage(1); setExpandedTradeId(null); }}>
                 <SelectTrigger className="h-8 text-xs w-[120px]">
                   <SelectValue placeholder="Season" />
                 </SelectTrigger>
@@ -421,7 +355,7 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
                 </SelectContent>
               </Select>
             )}
-            <Select value={sortOption} onValueChange={(v) => { setSortOption(v as SortOption); setCurrentPage(1); }}>
+            <Select value={sortOption} onValueChange={(v) => { setSortOption(v as SortOption); setCurrentPage(1); setExpandedTradeId(null); }}>
               <SelectTrigger className="h-8 text-xs w-[150px]">
                 <SelectValue />
               </SelectTrigger>
@@ -549,60 +483,149 @@ export function LeagueTrades({ leagueId }: { leagueId: string }) {
       {/* ── All Trades tab ── */}
       {activeTab === 'all-trades' && (
         <div className="space-y-6">
-          {/* Paginated All Trades list */}
           {filteredTrades.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <ArrowLeftRight size={15} className="text-gray-400" />
-                <span className="font-semibold text-white text-sm">All Trades</span>
-                <span className="text-xs text-gray-500">({filteredTrades.length})</span>
+            <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+                <ArrowLeftRight size={15} className="text-muted-foreground" />
+                <span className="font-semibold text-foreground text-sm">All Trades</span>
+                <span className="text-xs text-muted-foreground">({filteredTrades.length})</span>
               </div>
-              <div className="space-y-3">
-                {pagedTrades.map((trade) => (
-                  <TradeCard key={trade.transactionId} trade={trade} />
-                ))}
+              <div className="divide-y divide-card-border/40">
+                {pagedTrades.map((trade) => {
+                  const isExpanded = expandedTradeId === trade.transactionId;
+                  const winner = trade.sides.reduce((a, b) => a.netValue > b.netValue ? a : b);
+                  const loser = trade.sides.find(s => s !== winner) ?? trade.sides[1];
+                  const side = trade.sides[0];
+                  const otherSide = trade.sides.find((s) => s.userId !== side.userId) ?? trade.sides[1];
+                  return (
+                    <div key={trade.transactionId}>
+                      {/* Collapsed row */}
+                      <button
+                        onClick={() => setExpandedTradeId(isExpanded ? null : trade.transactionId)}
+                        className="w-full flex items-center gap-2 px-3 sm:px-4 py-2.5 hover:bg-muted/10 transition-colors text-left"
+                      >
+                        <span className="text-xs text-muted-foreground shrink-0 tabular-nums w-20">
+                          {trade.season} Wk{trade.week}
+                        </span>
+                        <span className="text-sm text-foreground truncate flex-1">{winner.displayName}</span>
+                        <ArrowLeftRight size={12} className="text-muted-foreground/50 shrink-0" />
+                        <span className="text-sm text-muted-foreground truncate flex-1 text-right">{loser?.displayName ?? '?'}</span>
+                        {trade.hasUnresolved ? (
+                          <span className="text-[10px] text-yellow-400 font-medium shrink-0">Pending</span>
+                        ) : winner.netValue > 0 ? (
+                          <span className="text-xs font-bold text-emerald-400 tabular-nums shrink-0">
+                            +{winner.netValue.toFixed(1)}
+                          </span>
+                        ) : null}
+                        {isExpanded
+                          ? <ChevronDown size={14} className="text-muted-foreground shrink-0" />
+                          : <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                        }
+                      </button>
+                      {/* Expanded detail */}
+                      {isExpanded && (
+                        <div className="px-3 sm:px-4 pb-3">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                            <ArrowLeftRight size={12} />
+                            <span>{trade.season} Wk{trade.week} · {formatTimestamp(trade.timestamp)}</span>
+                            {!trade.hasUnresolved && (() => {
+                              return winner.netValue > 0 ? (
+                                <span className="ml-auto flex items-center gap-1 text-emerald-400">
+                                  <Crown size={10} />
+                                  {winner.displayName}
+                                </span>
+                              ) : null;
+                            })()}
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+                            <div>
+                              <div className="text-xs text-muted-foreground mb-1">{side.displayName} receives</div>
+                              <div className="space-y-0.5">
+                                {side.assetsReceived.map((a) => (
+                                  <div key={a.playerId} className="flex items-center gap-1 text-sm">
+                                    <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-muted-foreground'}`}>{a.position}</span>
+                                    <span className="text-foreground truncate">{a.playerName}</span>
+                                  </div>
+                                ))}
+                                {side.picksReceived.map((p, i) => (
+                                  <div key={i}><PickDisplay p={p} /></div>
+                                ))}
+                                {side.assetsReceived.length === 0 && side.picksReceived.length === 0 && (
+                                  <div className="text-xs text-muted-foreground">—</div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="self-center text-muted-foreground"><ArrowLeftRight size={14} /></div>
+                            <div className="text-right">
+                              <div className="text-xs text-muted-foreground mb-1">{otherSide?.displayName ?? '?'} receives</div>
+                              <div className="space-y-0.5">
+                                {otherSide?.assetsReceived.map((a) => (
+                                  <div key={a.playerId} className="flex items-center gap-1 text-sm justify-end">
+                                    <span className="text-foreground truncate">{a.playerName}</span>
+                                    <span className={`text-xs font-semibold ${POSITION_COLORS[a.position] ?? 'text-muted-foreground'}`}>{a.position}</span>
+                                  </div>
+                                ))}
+                                {otherSide?.picksReceived.map((p, i) => (
+                                  <div key={i}><PickDisplay p={p} rtl /></div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-card-border/50 flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">Net value for {side.displayName}</span>
+                            <span className={`text-sm font-bold tabular-nums ${valueColor(side.netValue)}`}>
+                              {valueLabel(side.netValue)} pts
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {totalPages > 1 && (
-                <Pagination className="mt-4">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      />
-                    </PaginationItem>
-                    {getPageNumbers().map((p, i) =>
-                      p === 'ellipsis' ? (
-                        <PaginationItem key={`ellipsis-${i}`}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      ) : (
-                        <PaginationItem key={p}>
-                          <PaginationLink
-                            isActive={p === currentPage}
-                            onClick={() => setCurrentPage(p)}
-                          >
-                            {p}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ),
-                    )}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                <div className="border-t border-card-border/50">
+                  <Pagination className="py-3">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => { setCurrentPage((p) => Math.max(1, p - 1)); setExpandedTradeId(null); }}
+                          disabled={currentPage === 1}
+                        />
+                      </PaginationItem>
+                      {getPageNumbers().map((p, i) =>
+                        p === 'ellipsis' ? (
+                          <PaginationItem key={`ellipsis-${i}`}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        ) : (
+                          <PaginationItem key={p}>
+                            <PaginationLink
+                              isActive={p === currentPage}
+                              onClick={() => { setCurrentPage(p); setExpandedTradeId(null); }}
+                            >
+                              {p}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ),
+                      )}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => { setCurrentPage((p) => Math.min(totalPages, p + 1)); setExpandedTradeId(null); }}
+                          disabled={currentPage === totalPages}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               )}
             </div>
           )}
 
           {filteredTrades.length === 0 && (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
-              <div className="text-sm font-medium text-gray-300">No trades for this season</div>
-              <div className="text-xs text-gray-500 mt-1">Try selecting a different season filter.</div>
+              <div className="text-sm font-medium text-foreground">No trades for this season</div>
+              <div className="text-xs text-muted-foreground mt-1">Try selecting a different season filter.</div>
             </div>
           )}
         </div>

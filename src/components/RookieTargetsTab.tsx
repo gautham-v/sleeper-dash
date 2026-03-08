@@ -9,6 +9,7 @@ import { useSessionUser } from '@/hooks/useSessionUser';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import posthog from 'posthog-js';
 import { PosBadge } from '@/components/ui/badges';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import type { DraftBoardRequest, DraftBoardTarget } from '@/types/sleeper';
 import type { CompPlayer } from '@/types/prospects';
@@ -492,17 +493,18 @@ export function RookieTargetsTab({ leagueId }: RookieTargetsTabProps) {
         {managers.length > 0 && (
           <div className="flex items-center gap-1.5 shrink-0">
             <Users size={14} className="text-muted-foreground" />
-            <select
-              value={effectiveUserId}
-              onChange={(e) => { setSelectedUserId(e.target.value); setPage(0); setExpandedProspect(0); }}
-              className="bg-card-bg border border-card-border rounded-lg px-2 py-1.5 text-sm text-foreground"
-            >
-              {managers.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
+            <Select value={effectiveUserId} onValueChange={(v) => { setSelectedUserId(v); setPage(0); setExpandedProspect(0); }}>
+              <SelectTrigger className="bg-card-bg border-card-border text-foreground w-52 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card-bg border-card-border">
+                {managers.map((m) => (
+                  <SelectItem key={m.userId} value={m.userId}>
+                    {m.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
