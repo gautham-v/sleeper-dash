@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import posthog from 'posthog-js';
 import { useRouter } from 'next/navigation';
-import { Loader2, Trophy, Skull, ChevronLeft, ChevronDown, ChevronRight, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2, Users } from 'lucide-react';
+import { Loader2, Trophy, Skull, ChevronLeft, ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown, Swords, Star, Award, BarChart2, Users } from 'lucide-react';
 import { useLeagueHistory } from '../hooks/useLeagueData';
 import { useLeagueDraftHistory } from '../hooks/useLeagueDraftHistory';
 import { useLeagueTradeHistory } from '../hooks/useLeagueTradeHistory';
@@ -41,7 +41,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { PosBadge } from '@/components/ui/badges';
+import { PosBadge, VerdictBadge, verdictTextColor, verdictPanelClasses } from '@/components/ui/badges';
+import type { VerdictVariant } from '@/components/ui/badges';
 
 interface Props {
   leagueId: string;
@@ -71,6 +72,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
   const [playersView, setPlayersView] = useState<'current' | 'all'>('current');
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [htcSheetOpen, setHtcSheetOpen] = useState(false);
+  const [showAllStats, setShowAllStats] = useState(false);
   const htcTracked = useRef(false);
 
   // Track tab views
@@ -250,68 +252,82 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
       {/* Profile header */}
       <Card className="bg-card-bg border-card-border rounded-2xl">
         <CardContent className="p-4 sm:p-6">
-          <div className="flex items-start gap-3 sm:gap-5">
+          <div className="flex items-center gap-3 sm:gap-5">
             <Avatar avatar={stats.avatar} name={stats.displayName} size="lg" />
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight">{stats.displayName}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight truncate">{stats.displayName}</h2>
               <div className="text-xs sm:text-sm text-gray-400 mt-0.5">
                 {stats.totalSeasons} season{stats.totalSeasons !== 1 ? 's' : ''} in the league
               </div>
-
-              {/* Key stats grid — 2 cols on mobile, 3 on sm+ */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5 mt-3">
-                <div>
-                  <div className="text-lg font-bold text-brand-cyan tabular-nums">{winPct}</div>
-                  <div className="text-xs text-gray-500">Win Rate</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
-                  <div className="text-xs text-gray-500">Career ({totalGames}g)</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
-                  <div className="text-xs text-gray-500">Championship{champYears.length !== 1 ? 's' : ''}</div>
-                </div>
-                {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
-                  <div>
-                    <div className="text-lg font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
-                    <div className="text-xs text-gray-500">Playoff Record</div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-lg font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
-                  <div className="text-xs text-gray-500">All-Time Points</div>
-                </div>
-                {biggestRival && (
-                  <div>
-                    <div className="text-base font-bold text-white truncate max-w-[120px]">
-                      {biggestRival.opponent.displayName}
-                    </div>
-                    <div className="text-xs text-gray-500">Biggest Rival ({biggestRival.wins}–{biggestRival.losses})</div>
-                  </div>
-                )}
-                {draftGrade && (
-                  <div>
-                    <div className={`text-lg font-bold tabular-nums ${draftGradeColor ?? 'text-white'}`}>{draftGrade}</div>
-                    <div className="text-xs text-gray-500">Draft Grade</div>
-                  </div>
-                )}
-                {tradeGrade && (
-                  <div>
-                    <div className={`text-lg font-bold tabular-nums ${tradeGradeColor ?? 'text-white'}`}>{tradeGrade}</div>
-                    <div className="text-xs text-gray-500">Trade Grade</div>
-                  </div>
-                )}
-                {rosterAge !== null && (
-                  <div>
-                    <div className="text-lg font-bold text-white tabular-nums">{rosterAge.toFixed(1)}</div>
-                    <div className="text-xs text-gray-500">Avg Roster Age</div>
-                  </div>
-                )}
+            </div>
+            {/* Key stats inline */}
+            <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+              <div className="text-right">
+                <div className="text-xl sm:text-2xl font-bold text-brand-cyan tabular-nums">{winPct}</div>
+                <div className="text-xs text-gray-500">Win Rate</div>
               </div>
-
+              <div className="text-right">
+                <div className="text-xl sm:text-2xl font-bold text-yellow-400 tabular-nums">{champYears.length}</div>
+                <div className="text-xs text-gray-500">Title{champYears.length !== 1 ? 's' : ''}</div>
+              </div>
             </div>
           </div>
+
+          {/* Expandable secondary stats */}
+          {showAllStats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-card-border/50">
+              <div>
+                <div className="text-lg font-bold text-white tabular-nums">{stats.totalWins}–{stats.totalLosses}</div>
+                <div className="text-xs text-gray-500">Career ({totalGames}g)</div>
+              </div>
+              {(stats.playoffWins > 0 || stats.playoffLosses > 0) && (
+                <div>
+                  <div className="text-lg font-bold text-yellow-500 tabular-nums">{stats.playoffWins}–{stats.playoffLosses}</div>
+                  <div className="text-xs text-gray-500">Playoff Record</div>
+                </div>
+              )}
+              <div>
+                <div className="text-lg font-bold text-white tabular-nums">{allTimePts.toFixed(0)}</div>
+                <div className="text-xs text-gray-500">All-Time Points</div>
+              </div>
+              {biggestRival && (
+                <div>
+                  <div className="text-base font-bold text-white truncate max-w-[140px]">{biggestRival.opponent.displayName}</div>
+                  <div className="text-xs text-gray-500">Rival ({biggestRival.wins}–{biggestRival.losses})</div>
+                </div>
+              )}
+              {draftGrade && (
+                <div>
+                  <div className={`text-lg font-bold tabular-nums ${draftGradeColor ?? 'text-white'}`}>{draftGrade}</div>
+                  <div className="text-xs text-gray-500">Draft Grade</div>
+                </div>
+              )}
+              {tradeGrade && (
+                <div>
+                  <div className={`text-lg font-bold tabular-nums ${tradeGradeColor ?? 'text-white'}`}>{tradeGrade}</div>
+                  <div className="text-xs text-gray-500">Trade Grade</div>
+                </div>
+              )}
+              {rosterAge !== null && (
+                <div>
+                  <div className="text-lg font-bold text-white tabular-nums">{rosterAge.toFixed(1)}</div>
+                  <div className="text-xs text-gray-500">Avg Roster Age</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Toggle button */}
+          <button
+            onClick={() => setShowAllStats(s => !s)}
+            className="w-full flex items-center justify-center gap-1 mt-3 pt-3 border-t border-card-border/30 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAllStats ? 'Less' : 'More stats'}
+            {showAllStats
+              ? <ChevronUp size={12} />
+              : <ChevronDown size={12} />
+            }
+          </button>
         </CardContent>
       </Card>
 
@@ -328,7 +344,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
         }}
       >
         {/* Mobile: Select dropdown */}
-        <div className="sm:hidden">
+        <div className="sm:hidden sticky top-0 z-10 bg-background py-2 -mx-4 px-4">
           <Select
             value={activeSection}
             onValueChange={(v) => {
@@ -356,7 +372,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           </Select>
         </div>
         {/* Desktop: Tab list */}
-        <TabsList className="hidden sm:flex bg-card-bg border border-card-border">
+        <TabsList className="hidden sm:flex bg-card-bg border border-card-border sticky top-0 z-10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="value">Value</TabsTrigger>
           <TabsTrigger value="outlook">Outlook</TabsTrigger>
@@ -911,17 +927,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                     <span className="text-sm text-foreground font-medium truncate">{player.playerName}</span>
                                     {/* Verdict pill inline on mobile */}
                                     {showVerdict && rec && (
-                                      <span
-                                        className={`sm:hidden inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${
-                                          rec.verdict === 'HOLD'
-                                            ? 'bg-emerald-500/15 text-emerald-400'
-                                            : rec.verdict === 'TRADE'
-                                              ? 'bg-amber-500/15 text-amber-400'
-                                              : 'bg-red-500/15 text-red-400'
-                                        }`}
-                                      >
-                                        {rec.verdict}
-                                      </span>
+                                      <VerdictBadge verdict={rec.verdict as VerdictVariant} size="xs" className="sm:hidden" />
                                     )}
                                     {isExpanded
                                       ? <ChevronDown size={12} className="text-muted-foreground shrink-0" />
@@ -932,18 +938,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                 {showVerdict && (
                                   <TableCell className="py-3 px-2 text-center hidden sm:table-cell">
                                     {rec ? (
-                                      <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                          rec.verdict === 'HOLD'
-                                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                            : rec.verdict === 'TRADE'
-                                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                              : 'bg-red-500/15 text-red-400 border border-red-500/30'
-                                        }`}
-                                        title={rec.reason}
-                                      >
-                                        {rec.verdict}
-                                      </span>
+                                      <VerdictBadge verdict={rec.verdict as VerdictVariant} size="sm" title={rec.reason} />
                                     ) : (
                                       <span className="text-xs text-muted-foreground/50">—</span>
                                     )}
@@ -966,19 +961,9 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                                 <TableRow key={`${player.playerId}-expanded`} className="border-b border-card-border/60">
                                   <TableCell colSpan={colSpan} className="px-5 pb-4 pt-0">
                                     {rec && (
-                                      <div className={`mb-3 mt-2 rounded-lg px-3 py-2 text-xs ${
-                                        rec.verdict === 'HOLD'
-                                          ? 'bg-emerald-500/10 border border-emerald-500/20'
-                                          : rec.verdict === 'TRADE'
-                                            ? 'bg-amber-500/10 border border-amber-500/20'
-                                            : 'bg-red-500/10 border border-red-500/20'
-                                      }`}>
+                                      <div className={`mb-3 mt-2 rounded-lg px-3 py-2 text-xs ${verdictPanelClasses(rec.verdict as VerdictVariant)}`}>
                                         <div className="flex items-center gap-2 flex-wrap">
-                                          <span className={`font-semibold ${
-                                            rec.verdict === 'HOLD' ? 'text-emerald-400'
-                                              : rec.verdict === 'TRADE' ? 'text-amber-400'
-                                                : 'text-red-400'
-                                          }`}>
+                                          <span className={`font-semibold ${verdictTextColor(rec.verdict as VerdictVariant)}`}>
                                             {rec.verdict}{rec.tradeType ? ` (${rec.tradeType})` : ''}
                                           </span>
                                           <span className="text-muted-foreground">{rec.reason}</span>
@@ -1024,7 +1009,7 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
                       </TableBody>
                     </Table>
                     {totalPlayerPages > 1 && (
-                      <div className="px-5 py-3 border-t border-gray-800">
+                      <div className="px-5 py-3 border-t border-card-border">
                         <Pagination>
                           <PaginationContent>
                             <PaginationItem>
@@ -1049,8 +1034,8 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           ) : (
             <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
               <div className="text-2xl mb-3">📋</div>
-              <div className="text-sm font-medium text-gray-300">No player history available</div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-sm font-medium text-muted-foreground">No player history available</div>
+              <div className="text-xs text-muted-foreground/60 mt-1">
                 Player history requires completed matchup data for this league.
               </div>
             </div>
@@ -1059,60 +1044,35 @@ export function ManagerProfile({ leagueId, userId, onBack, onSelectManager, onVi
           {/* Draft Picks Section */}
           {pickRecommendations.data && pickRecommendations.data.length > 0 && (
             <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-white text-sm">Draft Picks</span>
-                <span className="text-xs text-gray-500">— tap a pick for strategy guidance</span>
+              <div className="px-5 pt-4 pb-3 border-b border-card-border flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-foreground text-sm">Draft Picks</span>
+                <span className="text-xs text-muted-foreground">— tap a pick for strategy guidance</span>
                 <div className="ml-auto flex items-center gap-2">
                   {(['HOLD', 'TRADE', 'TRADE_UP', 'TRADE_DOWN'] as PickVerdict[]).map(v => {
                     const count = pickRecommendations.data!.filter(r => r.verdict === v).length;
                     if (count === 0) return null;
-                    const styles: Record<PickVerdict, string> = {
-                      HOLD:       'bg-emerald-900/40 text-emerald-400 border border-emerald-700/40',
-                      TRADE:      'bg-amber-900/40 text-amber-400 border border-amber-700/40',
-                      TRADE_UP:   'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30',
-                      TRADE_DOWN: 'bg-purple-900/40 text-purple-400 border border-purple-700/40',
-                    };
-                    const labels: Record<PickVerdict, string> = {
-                      HOLD: 'Hold', TRADE: 'Trade', TRADE_UP: 'Trade Up', TRADE_DOWN: 'Trade Down',
-                    };
                     return (
-                      <span key={v} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${styles[v]}`}>
-                        {count} {labels[v]}
-                      </span>
+                      <VerdictBadge key={v} verdict={v} size="xs" label={`${count} ${v === 'TRADE_UP' ? 'Trade Up' : v === 'TRADE_DOWN' ? 'Trade Down' : v.charAt(0) + v.slice(1).toLowerCase()}`} />
                     );
                   })}
                 </div>
               </div>
-              <div className="px-5 pb-4 space-y-2">
+              <div className="divide-y divide-card-border/40">
                 {[...pickRecommendations.data]
                   .sort((a, b) => a.pick.round - b.pick.round || Number(a.pick.season) - Number(b.pick.season))
                   .map((rec, i) => {
                     const pickLabel = rec.pick.slot != null
                       ? `${rec.pick.season} ${rec.pick.round}.${rec.pick.slot.toString().padStart(2, '0')}`
                       : `${rec.pick.season} Rd ${rec.pick.round}`;
-                    const verdictStyles: Record<PickVerdict, string> = {
-                      HOLD:       'bg-emerald-900/40 text-emerald-400 border border-emerald-700/40',
-                      TRADE:      'bg-amber-900/40 text-amber-400 border border-amber-700/40',
-                      TRADE_UP:   'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30',
-                      TRADE_DOWN: 'bg-purple-900/40 text-purple-400 border border-purple-700/40',
-                    };
-                    const verdictLabels: Record<PickVerdict, string> = {
-                      HOLD: 'HOLD', TRADE: 'TRADE', TRADE_UP: 'TRADE UP', TRADE_DOWN: 'TRADE DOWN',
-                    };
                     return (
                       <div
                         key={i}
-                        className="flex flex-col gap-1.5 bg-gray-800/40 border border-gray-700/30 rounded-xl px-4 py-3"
+                        className="flex items-center gap-2.5 px-3 sm:px-5 py-3 hover:bg-muted/10 transition-colors"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <PosBadge pos="PICK" />
-                          <span className="text-sm font-medium text-gray-200 flex-1">{pickLabel}</span>
-                          <span className="text-xs text-gray-500 tabular-nums shrink-0">{rec.contextualWAR.toFixed(1)} cWAR</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${verdictStyles[rec.verdict]}`}>
-                            {verdictLabels[rec.verdict]}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-400 leading-relaxed">{rec.reason}</div>
+                        <PosBadge pos="PICK" />
+                        <span className="text-sm font-medium text-foreground flex-1">{pickLabel}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums shrink-0">{rec.contextualWAR.toFixed(1)} cWAR</span>
+                        <VerdictBadge verdict={rec.verdict} size="xs" />
                       </div>
                     );
                   })

@@ -7,30 +7,58 @@ import { useLeagueRosters } from '@/hooks/useLeagueRosters';
 import { useDashboardData } from '@/hooks/useLeagueData';
 import { useSessionUser } from '@/hooks/useSessionUser';
 import { usePlayerRecommendations } from '@/hooks/usePlayerRecommendations';
-import type { PlayerRecommendation } from '@/types/recommendations';
+import { usePickRecommendations } from '@/hooks/usePickRecommendations';
+import type { PlayerRecommendation, PickRecommendation, PickVerdict } from '@/types/recommendations';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlayerCareerPanel } from '@/components/PlayerCareerPanel';
 import { avatarUrl } from '@/utils/calculations';
-import { PosBadge } from '@/components/ui/badges';
+import { PosBadge, VerdictBadge, verdictTextColor, verdictPanelClasses } from '@/components/ui/badges';
+import type { VerdictVariant } from '@/components/ui/badges';
 
 const POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'DST'];
 type PositionFilter = 'All' | string;
 
-function VerdictPill({ rec, size = 'sm' }: { rec: PlayerRecommendation; size?: 'sm' | 'xs' }) {
-  const classes = rec.verdict === 'HOLD'
-    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-    : rec.verdict === 'TRADE'
-      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-      : 'bg-red-500/15 text-red-400 border border-red-500/30';
+function PickRow({ rec }: { rec: PickRecommendation }) {
+  const [expanded, setExpanded] = useState(false);
+  const pickLabel = rec.pick.slot != null
+    ? `${rec.pick.season} ${rec.pick.round}.${rec.pick.slot.toString().padStart(2, '0')}`
+    : `${rec.pick.season} Rd ${rec.pick.round}`;
+
   return (
-    <span
-      className={`inline-flex items-center rounded-full font-semibold ${classes} ${
-        size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
-      }`}
-      title={rec.reason}
-    >
-      {rec.verdict}
-    </span>
+    <div>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3 hover:bg-muted/10 transition-colors text-left"
+      >
+        <PosBadge pos="PICK" />
+        <span className="text-sm font-medium text-foreground flex-1">{pickLabel}</span>
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+          {rec.contextualWAR.toFixed(1)} cWAR
+        </span>
+        <VerdictBadge verdict={rec.verdict} size="xs" />
+        {expanded
+          ? <ChevronDown size={14} className="text-muted-foreground shrink-0" />
+          : <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+        }
+      </button>
+      {expanded && (
+        <div className="px-3 sm:px-5 pb-3">
+          <div className={`rounded-lg px-3 py-2 text-xs ${verdictPanelClasses(rec.verdict)}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`font-semibold ${verdictTextColor(rec.verdict)}`}>
+                {rec.verdict === 'TRADE_UP' ? 'TRADE UP' : rec.verdict === 'TRADE_DOWN' ? 'TRADE DOWN' : rec.verdict}
+              </span>
+              <span className="text-muted-foreground">{rec.reason}</span>
+            </div>
+            {rec.overrideApplied && (
+              <div className="mt-1 text-[10px] text-muted-foreground/50 italic">
+                Rule applied: {rec.overrideApplied.replace(/-/g, ' ')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -63,6 +91,7 @@ export default function PlayersPage() {
     isCurrentSeason ? leagueId : null,
     effectiveUserId || null,
   );
+  const pickRecs = usePickRecommendations(isCurrentSeason ? leagueId : null, effectiveUserId || null);
 
   const recMap = useMemo(() => {
     const m = new Map<string, PlayerRecommendation>();
@@ -105,15 +134,15 @@ export default function PlayersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Players</h2>
-        <p className="text-sm text-muted-foreground mt-1">Browse current rosters by team and season</p>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">Players &amp; Assets</h2>
+        <p className="text-sm text-muted-foreground mt-1">Roster, draft capital, and asset recommendations by team</p>
       </div>
 
-      {/* Filters row */}
-      <div className="flex gap-3 flex-wrap">
+      {/* Merged filter bar: team selector + season selector + position pills */}
+      <div className="flex items-center gap-2 flex-wrap">
         {/* Team selector */}
         <Select value={effectiveUserId} onValueChange={v => { setSelectedUserId(v); setPositionFilter('All'); }}>
-          <SelectTrigger className="bg-card-bg border-card-border text-foreground w-52">
+          <SelectTrigger className="bg-card-bg border-card-border text-foreground w-52 h-9">
             <SelectValue placeholder="Select a team" />
           </SelectTrigger>
           <SelectContent className="bg-card-bg border-card-border text-foreground">
@@ -137,7 +166,7 @@ export default function PlayersPage() {
             value={selectedSeasonLeagueId || leagueId}
             onValueChange={v => { setSelectedSeasonLeagueId(v === leagueId ? '' : v); setExpandedPlayerId(null); }}
           >
-            <SelectTrigger className="bg-card-bg border-card-border text-foreground w-32">
+            <SelectTrigger className="bg-card-bg border-card-border text-foreground w-32 h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card-bg border-card-border text-foreground">
@@ -149,26 +178,26 @@ export default function PlayersPage() {
             </SelectContent>
           </Select>
         )}
-      </div>
 
-      {/* Position filter chips — only positions present on the selected roster */}
-      {availablePositions.length > 1 && (
-        <div className="flex gap-2 flex-wrap">
-          {availablePositions.map(pos => (
-            <button
-              key={pos}
-              onClick={() => setPositionFilter(pos)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                positionFilter === pos
-                  ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40'
-                  : 'bg-card-bg text-muted-foreground border-card-border hover:text-foreground'
-              }`}
-            >
-              {pos}
-            </button>
-          ))}
-        </div>
-      )}
+        {/* Position filter pills — inline with selectors */}
+        {availablePositions.length > 1 && (
+          <div className="flex gap-1.5 flex-wrap">
+            {availablePositions.map(pos => (
+              <button
+                key={pos}
+                onClick={() => setPositionFilter(pos)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  positionFilter === pos
+                    ? 'bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40'
+                    : 'bg-card-bg text-muted-foreground border-card-border hover:text-foreground'
+                }`}
+              >
+                {pos}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* HTC Summary bar */}
       {hasRecs && (
@@ -232,7 +261,7 @@ export default function PlayersPage() {
                       <PosBadge pos={player.position} />
                       <span className="text-sm text-foreground font-medium flex-1 truncate">{player.playerName}</span>
                       {/* Verdict pill */}
-                      {hasRecs && rec && <VerdictPill rec={rec} size="xs" />}
+                      {hasRecs && rec && <VerdictBadge verdict={rec.verdict} size="xs" title={rec.reason} />}
                       {player.nflTeam && (
                         <span className="text-xs text-muted-foreground/60 shrink-0 hidden sm:inline">{player.nflTeam}</span>
                       )}
@@ -248,19 +277,9 @@ export default function PlayersPage() {
                       <div className="px-3 sm:px-5 pb-4">
                         {/* Recommendation detail panel */}
                         {rec && (
-                          <div className={`mb-3 rounded-lg px-3 py-2 text-xs ${
-                            rec.verdict === 'HOLD'
-                              ? 'bg-emerald-500/10 border border-emerald-500/20'
-                              : rec.verdict === 'TRADE'
-                                ? 'bg-amber-500/10 border border-amber-500/20'
-                                : 'bg-red-500/10 border border-red-500/20'
-                          }`}>
+                          <div className={`mb-3 rounded-lg px-3 py-2 text-xs ${verdictPanelClasses(rec.verdict as VerdictVariant)}`}>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`font-semibold ${
-                                rec.verdict === 'HOLD' ? 'text-emerald-400'
-                                  : rec.verdict === 'TRADE' ? 'text-amber-400'
-                                    : 'text-red-400'
-                              }`}>
+                              <span className={`font-semibold ${verdictTextColor(rec.verdict as VerdictVariant)}`}>
                                 {rec.verdict}{rec.tradeType ? ` (${rec.tradeType})` : ''}
                               </span>
                               <span className="text-muted-foreground">{rec.reason}</span>
@@ -299,6 +318,35 @@ export default function PlayersPage() {
         <div className="bg-card-bg border border-card-border rounded-2xl p-8 text-center">
           <div className="text-2xl mb-3">👥</div>
           <div className="text-sm font-medium text-muted-foreground">Select a team to view their roster</div>
+        </div>
+      )}
+
+      {/* Draft Capital */}
+      {isCurrentSeason && pickRecs.data && pickRecs.data.length > 0 && (
+        <div className="bg-card-bg border border-card-border rounded-2xl overflow-hidden">
+          <div className="px-5 pt-4 pb-3 border-b border-card-border">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground text-sm">Draft Capital</span>
+              <span className="text-xs text-muted-foreground">{pickRecs.data.length} picks</span>
+              <div className="ml-auto flex items-center gap-2">
+                {(['HOLD', 'TRADE', 'TRADE_UP', 'TRADE_DOWN'] as PickVerdict[]).map(v => {
+                  const count = pickRecs.data!.filter(r => r.verdict === v).length;
+                  if (count === 0) return null;
+                  return (
+                    <VerdictBadge key={v} verdict={v} size="xs" label={`${count} ${v === 'TRADE_UP' ? 'TRADE UP' : v === 'TRADE_DOWN' ? 'TRADE DOWN' : v}`} />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="divide-y divide-card-border/40">
+            {[...pickRecs.data]
+              .sort((a, b) => Number(a.pick.season) - Number(b.pick.season) || a.pick.round - b.pick.round || (a.pick.slot ?? 99) - (b.pick.slot ?? 99))
+              .map((rec, i) => (
+                <PickRow key={i} rec={rec} />
+              ))
+            }
+          </div>
         </div>
       )}
     </div>

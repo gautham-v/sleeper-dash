@@ -98,3 +98,69 @@ export function StatusBadge({
     </span>
   );
 }
+
+// ── VerdictBadge ─────────────────────────────────────────────────────────────
+// Unified verdict pills for player (HOLD/TRADE/CUT) and pick (HOLD/TRADE/TRADE_UP/TRADE_DOWN) verdicts
+
+export type VerdictVariant = 'HOLD' | 'TRADE' | 'CUT' | 'TRADE_UP' | 'TRADE_DOWN';
+
+const VERDICT_COLORS: Record<VerdictVariant, string> = {
+  HOLD:       'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  TRADE:      'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  CUT:        'bg-red-500/15 text-red-400 border-red-500/30',
+  TRADE_UP:   'bg-sky-500/15 text-sky-400 border-sky-500/30',
+  TRADE_DOWN: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+};
+
+const VERDICT_LABELS: Record<VerdictVariant, string> = {
+  HOLD: 'HOLD', TRADE: 'TRADE', CUT: 'CUT',
+  TRADE_UP: 'TRADE UP', TRADE_DOWN: 'TRADE DOWN',
+};
+
+/** Text color class for a verdict (for headings, labels outside pills) */
+export function verdictTextColor(verdict: VerdictVariant): string {
+  switch (verdict) {
+    case 'HOLD':       return 'text-emerald-400';
+    case 'TRADE':      return 'text-amber-400';
+    case 'CUT':        return 'text-red-400';
+    case 'TRADE_UP':   return 'text-sky-400';
+    case 'TRADE_DOWN': return 'text-purple-400';
+  }
+}
+
+/** Panel background/border classes for expanded verdict detail blocks */
+export function verdictPanelClasses(verdict: VerdictVariant): string {
+  switch (verdict) {
+    case 'HOLD':       return 'bg-emerald-500/10 border border-emerald-500/20';
+    case 'TRADE':      return 'bg-amber-500/10 border border-amber-500/20';
+    case 'CUT':        return 'bg-red-500/10 border border-red-500/20';
+    case 'TRADE_UP':   return 'bg-sky-500/10 border border-sky-500/20';
+    case 'TRADE_DOWN': return 'bg-purple-500/10 border border-purple-500/20';
+  }
+}
+
+export function VerdictBadge({
+  verdict,
+  size = 'sm',
+  label,
+  title,
+  className,
+}: {
+  verdict: VerdictVariant;
+  size?: 'sm' | 'xs';
+  label?: string;
+  title?: string;
+  className?: string;
+}) {
+  const cls = VERDICT_COLORS[verdict];
+  const text = label ?? VERDICT_LABELS[verdict];
+  const sizeCls = size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs';
+  return (
+    <span
+      className={cn('inline-flex items-center rounded-full font-semibold border', sizeCls, cls, className)}
+      title={title}
+    >
+      {text}
+    </span>
+  );
+}
